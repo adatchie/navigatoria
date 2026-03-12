@@ -95,22 +95,29 @@ function buildQuestDetails(params: {
   if (category === 'trade_procurement') {
     return {
       title: `${good.name} 買い出し依頼`,
-      description: `${sourcePort.name} の交易ギルドより。${destination.name} で ${good.name} を ${quantity} 個調達して ${sourcePort.name} へ持ち帰ってください。`,
-      reportPortId: sourcePort.id,
+      description: `${sourcePort.name} の交易ギルドより。${sourcePort.name} で ${good.name} を ${quantity} 個買い付け、${destination.name} へ届けてください。`,
+      reportPortId: destination.id,
       objectives: [
         {
           type: 'buy_item',
           target: good.id,
           count: quantity,
           current: 0,
-          description: `${destination.name} で ${good.name} を ${quantity} 個購入する`,
+          description: `${sourcePort.name} で ${good.name} を ${quantity} 個購入する`,
         },
         {
           type: 'deliver_item',
           target: good.id,
           count: quantity,
           current: 0,
-          description: `${sourcePort.name} のギルドへ ${good.name} を ${quantity} 個納める`,
+          description: `${destination.name} のギルドへ ${good.name} を ${quantity} 個納める`,
+        },
+        {
+          type: 'visit_port',
+          target: destination.id,
+          count: 1,
+          current: 0,
+          description: `${destination.name} のギルドに報告する`,
         },
       ],
     }
@@ -217,4 +224,5 @@ export function generateTradeQuestsForPort(params: {
     }
   })
 }
+
 
