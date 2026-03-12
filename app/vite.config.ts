@@ -89,6 +89,7 @@ function manualChunks(id: string): string | undefined {
 }
 
 export default defineConfig({
+  base: '/navigatoria/',
   plugins: [react(), glsl()],
   resolve: {
     alias: {
