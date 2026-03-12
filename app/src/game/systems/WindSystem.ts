@@ -12,7 +12,7 @@ export class WindSystem implements GameSystem {
   name = 'WindSystem'
   priority = 5 // Navigationより先に更新
 
-  update(_deltaTime: number): void {
+  update(): void {
     const worldStore = useWorldStore.getState()
     const navigationStore = useNavigationStore.getState()
     const { gameTime } = useGameStore.getState()
@@ -33,3 +33,4 @@ export class WindSystem implements GameSystem {
     worldStore.setSeason(season)
   }
 }
+

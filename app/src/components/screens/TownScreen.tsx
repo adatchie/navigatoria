@@ -115,7 +115,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const clearQuestNotice = useQuestStore((s) => s.clearQuestNotice)
 
   const [quantities, setQuantities] = useState<Record<string, number>>({})
-  const [tradeMessage, setTradeMessage] = useState<string | null>(null)
+  const [tradeMessageState, setTradeMessageState] = useState<{ portId: string | null; message: string | null }>({ portId: null, message: null })
   const [activeSection, setActiveSection] = useState<TownSection>('overview')
 
   const port = ports.find((item) => item.id === portId)
@@ -132,14 +132,6 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   useEffect(() => {
     if (port?.id) ensurePortQuests(port.id, day)
   }, [day, ensurePortQuests, port?.id])
-
-  useEffect(() => {
-    setTradeMessage(null)
-  }, [portId])
-
-  useEffect(() => {
-    if (activeSection === 'guild' && !hasGuild) setActiveSection('overview')
-  }, [activeSection, hasGuild])
 
   const marketRows = useMemo(
     () => (market?.items ?? []).map((item) => {
@@ -169,7 +161,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const setQuantity = (goodId: string, nextValue: number) => setQuantities((current) => ({ ...current, [goodId]: Math.max(1, Math.min(200, Math.floor(nextValue) || 1)) }))
   const handleAction = (message: { message: string }) => {
     clearQuestNotice()
-    setTradeMessage(message.message)
+    setTradeMessageState({ portId: port.id, message: message.message })
   }
 
   const cargoUsage = `${activeShip?.usedCapacity ?? 0}/${activeShip?.maxCapacity ?? 0}`
@@ -183,7 +175,8 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const canReportQuest = Boolean(activeQuest && isQuestDelivered && questReportPortId === port.id)
   const rewardSummary = (activeQuest?.rewards ?? []).map(formatReward).join(' / ')
   const activeQuestDaysRemaining = getDaysRemaining(activeQuest, day)
-  const notice = tradeMessage ?? lastQuestNotice
+  const visibleSection = activeSection === 'guild' && !hasGuild ? 'overview' : activeSection
+  const notice = (tradeMessageState.portId === port.id ? tradeMessageState.message : null) ?? lastQuestNotice
   const missingDurability = Math.max(0, (activeShip?.maxDurability ?? 0) - (activeShip?.currentDurability ?? 0))
   const emergencyPreview = Math.min(missingDurability, 12)
   const emergencyRepairGain = missingDurability > 0 ? Math.min(missingDurability, Math.max(4, Math.floor(emergencyPreview * (VOYAGE_CONFIG.EMERGENCY_REPAIR_EFFICIENCY + shipyardLevel * 0.03)))) : 0
@@ -265,7 +258,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
           </aside>
 
           <main style={styles.content}>
-            {activeSection === 'overview' && (
+            {visibleSection === 'overview' && (
               <div style={styles.contentStack}>
                 <section style={{ ...styles.panel, ...styles.overviewHero }}>
                   <div style={styles.overviewCopy}>
@@ -282,7 +275,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
               </div>
             )}
 
-            {activeSection === 'guild' && hasGuild && (
+            {visibleSection === 'guild' && hasGuild && (
               <div style={styles.contentStack}>
                 <section style={styles.panel}>
                   <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>Guild Board</h3><span style={styles.panelHint}>条件と報酬を圧縮表示</span></div>
@@ -306,7 +299,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
               </div>
             )}
 
-            {activeSection === 'market' && (
+            {visibleSection === 'market' && (
               <div style={styles.contentStack}>
                 <div style={styles.twoCol}>
                   <section style={styles.panel}>
@@ -363,7 +356,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
               </div>
             )}
 
-            {activeSection === 'services' && (
+            {visibleSection === 'services' && (
               <div style={styles.contentStack}>
                 <div style={styles.twoCol}>
                   <section style={{ ...styles.panel, ...styles.featurePanel }}>
@@ -523,6 +516,9 @@ const styles: Record<string, React.CSSProperties> = {
   primaryButton: { padding: '11px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #2563eb, #0ea5e9)', color: '#fff', cursor: 'pointer' },
   secondaryButton: { padding: '11px 16px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.05)', color: '#fff', cursor: 'pointer' },
 }
+
+
+
 
 
 

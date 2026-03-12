@@ -35,7 +35,7 @@ export class GameTime {
     let remainingDays = totalDays
     let year = TIME_CONFIG.START_YEAR
     let month = TIME_CONFIG.START_MONTH - 1 // 0-indexed
-    let day = TIME_CONFIG.START_DAY - 1
+    const day = TIME_CONFIG.START_DAY - 1
 
     remainingDays += day
     month += 0
@@ -120,3 +120,4 @@ export class GameTime {
     this._totalGameSeconds = totalSeconds
   }
 }
+

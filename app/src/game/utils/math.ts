@@ -24,7 +24,7 @@ export function lerp(a: number, b: number, t: number): number {
 
 /** 角度の線形補間 (最短経路) */
 export function lerpAngle(a: number, b: number, t: number): number {
-  let diff = ((b - a + 540) % 360) - 180
+  const diff = ((b - a + 540) % 360) - 180
   return a + diff * clamp(t, 0, 1)
 }
 
@@ -88,3 +88,4 @@ export function smoothstep(edge0: number, edge1: number, x: number): number {
   const t = clamp((x - edge0) / (edge1 - edge0), 0, 1)
   return t * t * (3 - 2 * t)
 }
+
