@@ -17,8 +17,9 @@ function hasGuild(port: Port): boolean {
 }
 
 function pickDestination(sourcePort: Port, ports: Port[], seed: number): Port {
-  const guildPorts = ports.filter((port) => port.id !== sourcePort.id && hasGuild(port))
-  const candidates = guildPorts.length > 0 ? guildPorts : ports.filter((port) => port.id !== sourcePort.id)
+  const nonSourcePorts = ports.filter((port) => port.id !== sourcePort.id)
+  const guildPorts = nonSourcePorts.filter((port) => hasGuild(port))
+  const candidates = guildPorts.length > 0 ? guildPorts : nonSourcePorts
   return candidates[seed % candidates.length] ?? sourcePort
 }
 
@@ -188,16 +189,17 @@ export function generateTradeQuestsForPort(params: {
     const sameCulture = destination.culture === port.culture
     const rank = getQuestRank(seed, quantity)
     const category = getQuestCategory(seed)
-    const deadlineDay = day + getDeadlineOffset(rank, sameCulture, category)
-    const rewardMultiplier = getRewardMultiplier(rank, category)
+    const resolvedCategory = destination.id === port.id ? 'trade_delivery' : category
+    const deadlineDay = day + getDeadlineOffset(rank, sameCulture, resolvedCategory)
+    const rewardMultiplier = getRewardMultiplier(rank, resolvedCategory)
     const moneyReward = Math.round((DELIVERY_REWARD_BASE + good.basePrice * quantity * 0.22) * (sameCulture ? 1 : 1.25) * rewardMultiplier)
     const expReward = Math.max(15, Math.round(moneyReward / 5))
     const fameReward = Math.max(1, Math.round(moneyReward / 140))
-    const details = buildQuestDetails({ category, sourcePort: port, destination, good, quantity })
-    const requiredFame = getRequiredFame(rank, category)
+    const details = buildQuestDetails({ category: resolvedCategory, sourcePort: port, destination, good, quantity })
+    const requiredFame = getRequiredFame(rank, resolvedCategory)
 
     return {
-      id: `trade_${category}_${port.id}_${day}_${index}`,
+      id: `trade_${resolvedCategory}_${port.id}_${day}_${index}`,
       title: details.title,
       description: details.description,
       type: 'delivery',
@@ -216,7 +218,7 @@ export function generateTradeQuestsForPort(params: {
         reportPortId: details.reportPortId,
         goodId: good.id,
         quantity,
-        category,
+        category: resolvedCategory,
         delivered: false,
         purchased: false,
         soldQuantity: 0,
@@ -224,5 +226,3 @@ export function generateTradeQuestsForPort(params: {
     }
   })
 }
-
-

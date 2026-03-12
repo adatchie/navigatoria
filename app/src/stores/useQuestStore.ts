@@ -204,7 +204,7 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
       if (!currentQuest) return state
 
       let nextQuest = updateObjective(currentQuest, 'deliver_item', quantity)
-      if (category === 'trade_delivery') {
+      if (category === 'trade_delivery' || category === 'trade_procurement') {
         nextQuest = updateObjective(nextQuest, 'visit_port', 1)
       }
       nextQuest = {
@@ -266,7 +266,7 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
     set((state) => {
       const quest = state.activeQuest
       if (!quest || getQuestCategory(quest) !== 'trade_procurement') return state
-      if (quest.metadata?.destinationPortId !== portId || quest.metadata.goodId !== goodId) return state
+      if (quest.metadata?.sourcePortId !== portId || quest.metadata.goodId !== goodId) return state
 
       const nextCurrent = Math.min((quest.metadata.quantity ?? 0), (quest.objectives.find((objective) => objective.type === 'buy_item')?.current ?? 0) + quantity)
       const nextQuest = updateObjective(quest, 'buy_item', nextCurrent)
@@ -276,7 +276,7 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
           metadata: { ...nextQuest.metadata, purchased: nextCurrent >= (quest.metadata.quantity ?? 0) },
           status: nextCurrent >= (quest.metadata.quantity ?? 0) ? 'active' : nextQuest.status,
         },
-        lastQuestNotice: nextCurrent >= (quest.metadata.quantity ?? 0) ? '買い付け完了です。依頼主の港へ持ち帰って納品してください。' : state.lastQuestNotice,
+        lastQuestNotice: nextCurrent >= (quest.metadata.quantity ?? 0) ? '買い付け完了です。指定された港へ運んで納品してください。' : state.lastQuestNotice,
       }
     })
   },
@@ -328,5 +328,7 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
 
   clearQuestNotice: () => set({ lastQuestNotice: null }),
 }))
+
+
 
 
