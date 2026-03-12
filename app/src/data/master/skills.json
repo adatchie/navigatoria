@@ -1,0 +1,14 @@
+[
+  { "id": "navigation", "name": "操帆", "category": "adventure", "description": "帆の操作技術。航海速度に影響する。", "maxRank": 15 },
+  { "id": "astronomy", "name": "天文学", "category": "adventure", "description": "星による位置特定。外洋航海に必須。", "maxRank": 15 },
+  { "id": "cartography", "name": "地図製作", "category": "adventure", "description": "地図の作成と解読。探索範囲を広げる。", "maxRank": 10 },
+  { "id": "sighting", "name": "視認", "category": "adventure", "description": "遠方の物体を発見する能力。発見物探索に必要。", "maxRank": 15 },
+  { "id": "appraisal", "name": "鑑定", "category": "trade", "description": "品物の価値を見極める技術。", "maxRank": 10 },
+  { "id": "accounting", "name": "会計", "category": "trade", "description": "取引の管理能力。購入価格を引き下げる。", "maxRank": 15 },
+  { "id": "negotiation", "name": "交渉", "category": "trade", "description": "交渉術。売買の価格に影響。", "maxRank": 15 },
+  { "id": "gunnery", "name": "砲術", "category": "combat", "description": "大砲の操作技術。砲撃ダメージに影響。", "maxRank": 15 },
+  { "id": "swordsmanship", "name": "剣術", "category": "combat", "description": "白兵戦の技術。接舷戦闘で重要。", "maxRank": 15 },
+  { "id": "repair", "name": "修理", "category": "combat", "description": "船の修理技術。航海中の応急修理が可能。", "maxRank": 10 },
+  { "id": "cooking", "name": "調理", "category": "life", "description": "食事の調理。乗員の疲労回復に影響。", "maxRank": 10 },
+  { "id": "medicine", "name": "医術", "category": "life", "description": "傷病の治療。疫病対策にも必要。", "maxRank": 10 }
+]
