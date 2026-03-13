@@ -1,4 +1,4 @@
-import type { CombatAction } from '@/types/encounter.ts'
+import type { CombatAction, CombatDistance, EncounterAction } from '@/types/encounter.ts'
 import { useEncounterStore } from '@/stores/useEncounterStore.ts'
 
 const ACTION_LABELS: Record<CombatAction, string> = {
@@ -7,11 +7,29 @@ const ACTION_LABELS: Record<CombatAction, string> = {
   withdraw: 'Withdraw',
 }
 
+const ACTION_DESCRIPTIONS: Record<CombatAction, string> = {
+  cannon: '距離が長くても安定した砲撃。close で追加 Crew ダメージ。',
+  board: '接近・接舷で威力を発揮。long では距離を詰める準備。',
+  withdraw: '逃走/包囲回避。距離が近いほど失敗リスクが高まる。',
+}
+
+const DISTANCE_VALUES: Record<CombatDistance, number> = {
+  long: 0.2,
+  close: 0.65,
+  boarded: 1,
+}
+
 const DISTANCE_LABELS = {
   long: 'Long Range',
   close: 'Close Range',
   boarded: 'Boarded',
 } as const
+
+const RECOMMENDED_ACTION_MAP: Record<EncounterAction, CombatAction[]> = {
+  engage: ['cannon', 'board'],
+  evade: ['withdraw'],
+  ignore: ['withdraw'],
+}
 
 export function EncounterOverlay() {
   const encounter = useEncounterStore((s) => s.activeEncounter)
@@ -19,6 +37,7 @@ export function EncounterOverlay() {
   const resolveEncounter = useEncounterStore((s) => s.resolveEncounter)
   const performCombatAction = useEncounterStore((s) => s.performCombatAction)
   const closeEncounter = useEncounterStore((s) => s.closeEncounter)
+  const recommendedActions = encounter ? RECOMMENDED_ACTION_MAP[encounter.recommendedAction] ?? [] : []
 
   if (!encounter) return null
 
@@ -55,6 +74,26 @@ export function EncounterOverlay() {
 
         {combatState && (
           <>
+            <div style={styles.hudRow}>
+              <div style={styles.distancePanel}>
+                <span style={styles.distanceLabel}>Distance</span>
+                <div style={styles.distanceTrack}>
+                  <div style={{ ...styles.distanceFill, width: `${DISTANCE_VALUES[combatState.distance] * 100}%` }} />
+                </div>
+                <span style={styles.distanceSub}>{DISTANCE_LABELS[combatState.distance]} / Round {combatState.round}</span>
+              </div>
+              <div style={styles.actionInsights}>
+                {(Object.keys(ACTION_LABELS) as CombatAction[]).map((action) => {
+                  const isRecommended = recommendedActions.includes(action)
+                  return (
+                    <div key={action} style={isRecommended ? styles.actionBadgePrimary : styles.actionBadge}>
+                    <strong>{ACTION_LABELS[action]}</strong>
+                    <span style={styles.actionNote}>{ACTION_DESCRIPTIONS[action]}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
             <div style={styles.battleHeaderRow}>
               <div style={styles.battleMetric}><span style={styles.label}>Round</span><strong>{combatState.round}</strong></div>
               <div style={styles.battleMetric}><span style={styles.label}>Distance</span><strong>{DISTANCE_LABELS[combatState.distance]}</strong></div>
@@ -177,4 +216,14 @@ const styles: Record<string, React.CSSProperties> = {
   logEntryMuted: { color: '#7f91ab', lineHeight: 1.6 },
   logRound: { color: '#bfdbfe', fontSize: 12 },
   logStats: { color: '#9eb2cc', fontSize: 12 },
+  hudRow: { display: 'flex', gap: 16, marginTop: 12, flexWrap: 'wrap', alignItems: 'flex-start' },
+  distancePanel: { flex: '0 0 220px', padding: 12, borderRadius: 14, background: 'rgba(30, 41, 59, 0.8)', border: '1px solid rgba(99, 102, 241, 0.25)' },
+  distanceLabel: { fontSize: 11, letterSpacing: 1, color: '#94a3b8', textTransform: 'uppercase' },
+  distanceTrack: { marginTop: 6, height: 8, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' },
+  distanceFill: { height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, #38bdf8, #6366f1)' },
+  distanceSub: { marginTop: 6, fontSize: 12, color: '#cbd5f5' },
+  actionInsights: { flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 },
+  actionBadge: { padding: 10, borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 4 },
+  actionBadgePrimary: { padding: 10, borderRadius: 12, background: 'linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.05))', border: '1px solid rgba(34,197,94,0.6)', display: 'flex', flexDirection: 'column', gap: 4 },
+  actionNote: { fontSize: 11, color: '#94a3b8', lineHeight: 1.4 },
 }

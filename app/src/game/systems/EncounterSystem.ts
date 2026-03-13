@@ -110,6 +110,11 @@ export class EncounterSystem implements GameSystem {
     const type = createEncounterType(Math.random())
     const danger = clamp(Math.round(zoneDanger + portDistanceFactor * 3 + moralePenalty), 1, 8)
     const encounter = createEncounter(`enc_${Math.floor(currentDay * 1000)}`, type, danger, currentDay, zone?.name, navigation.weather.type, nearest.distanceKm)
-    encounterStore.triggerEncounter(encounter)
+    const triggered = encounterStore.triggerEncounter(encounter)
+    if (triggered) {
+      const distanceLabel = nearest.distanceKm.toFixed(1)
+      const notice = `${encounter.shipName} (${encounter.type}) が ${nearest.port.name} 沖 ${distanceLabel} km 付近で確認されました。`
+      usePlayerStore.getState().logEncounterEvent(notice, Math.floor(currentDay))
+    }
   }
 }

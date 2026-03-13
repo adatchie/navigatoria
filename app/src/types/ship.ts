@@ -87,6 +87,10 @@ export interface ShipInstance {
   supplies: ShipSupplies
   reinforceCount: number
   maxReinforce: number
+  upgrades?: {
+    rigging: number
+    cargo: number
+  }
 }
 
 export interface CargoSlot {

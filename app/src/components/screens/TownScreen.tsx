@@ -30,6 +30,13 @@ const SECTION_LABELS: Record<TownSection, string> = {
 }
 
 const INVENTORY_SELL_FACTOR = 0.78
+const OUTFIT_OPTIONS = [
+  { option: 'rigging' as const, label: 'Rigging Tune', description: 'Hull耐久と士気が微増' },
+  { option: 'cargo' as const, label: 'Cargo Rig', description: 'Cargo容量＋6' },
+]
+const OUTFIT_BASE_COST = { rigging: 320, cargo: 280 }
+const OUTFIT_STEP = { rigging: 90, cargo: 70 }
+const OUTFIT_MAX_LEVEL = 3
 
 function formatQuestRank(rank?: QuestRank): string {
   if (rank === 'premium') return 'Premium'
@@ -122,6 +129,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const purchaseShip = usePlayerStore((s) => s.purchaseShip)
   const setActiveShip = usePlayerStore((s) => s.setActiveShip)
   const sellInventoryItem = usePlayerStore((s) => s.sellInventoryItem)
+  const outfitShip = usePlayerStore((s) => s.outfitShip)
   const ensurePortQuests = useQuestStore((s) => s.ensurePortQuests)
   const availableByPort = useQuestStore((s) => s.availableByPort)
   const activeQuest = useQuestStore((s) => s.activeQuest)
@@ -227,6 +235,10 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const captainLevel = Math.max(player?.stats.tradeLevel ?? 0, player?.stats.combatLevel ?? 0, player?.stats.adventureLevel ?? 0)
   const ownedShipTypeIds = new Set(ships.map((ship) => ship.typeId))
   const shipyardOffers = shipCatalog.filter((ship) => !ownedShipTypeIds.has(ship.id)).sort((a, b) => a.requiredLevel - b.requiredLevel || a.price - b.price)
+  const riggingLevel = activeShip?.upgrades?.rigging ?? 0
+  const cargoLevel = activeShip?.upgrades?.cargo ?? 0
+  const outfitCost = (option: 'rigging' | 'cargo', level: number) => OUTFIT_BASE_COST[option] + level * OUTFIT_STEP[option]
+  const outfitLocked = (optionLevel: number) => optionLevel >= OUTFIT_MAX_LEVEL
 
   return (
     <div style={styles.container}>
@@ -495,12 +507,12 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                       </div>
                       <div>
                         <p style={styles.serviceLabel}>Shipyard Offers</p>
-                        <div style={styles.list}>
-                          {shipyardOffers.length === 0 && <div style={styles.emptyState}>現在購入できる未保有船はありません。</div>}
-                          {shipyardOffers.map((ship) => {
-                            const requiredFacility = getShipyardRequirement(ship.category)
-                            const blockedByLevel = captainLevel < ship.requiredLevel
-                            const blockedByFacility = shipyardLevel < requiredFacility
+                          <div style={styles.list}>
+                            {shipyardOffers.length === 0 && <div style={styles.emptyState}>現在購入できる未保有船はありません。</div>}
+                            {shipyardOffers.map((ship) => {
+                              const requiredFacility = getShipyardRequirement(ship.category)
+                              const blockedByLevel = captainLevel < ship.requiredLevel
+                              const blockedByFacility = shipyardLevel < requiredFacility
                             return (
                               <div key={ship.id} style={styles.compactActionRow}>
                                 <div style={styles.tradeMeta}>
@@ -511,10 +523,34 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                                 </div>
                                 <button style={styles.primaryButton} disabled={blockedByLevel || blockedByFacility || (player?.money ?? 0) < ship.price} onClick={() => handleAction(purchaseShip(ship.id, shipyardLevel))}>Buy</button>
                               </div>
-                            )
-                          })}
+                              )
+                            })}
+                          </div>
+                          <div style={styles.outfitPanel}>
+                            <div style={styles.outfitHeader}>
+                              <span>Outfitting</span>
+                              <span>Rigging Lv {riggingLevel} / Cargo Lv {cargoLevel}</span>
+                            </div>
+                            <div style={styles.outfitGrid}>
+                              {OUTFIT_OPTIONS.map((option) => {
+                                const level = option.option === 'rigging' ? riggingLevel : cargoLevel
+                                const cost = outfitCost(option.option, level)
+                                const isMaxed = outfitLocked(level)
+                                const disabled = !activeShip || isMaxed || (player?.money ?? 0) < cost
+                                return (
+                                  <div key={option.option} style={styles.outfitCard}>
+                                    <strong>{option.label}</strong>
+                                    <span style={styles.outfitNote}>{option.description}</span>
+                                    <span style={styles.outfitMeta}>{isMaxed ? 'Maxed' : `Cost ${cost} d / Lv ${level + 1}`}</span>
+                                    <button style={styles.primaryButton} disabled={disabled} onClick={() => handleAction(outfitShip(option.option))}>
+                                      {isMaxed ? 'Maxed' : 'Apply'}
+                                    </button>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
                         </div>
-                      </div>
                     </div>
                   )}
                 </section>
@@ -640,6 +676,12 @@ const styles: Record<string, React.CSSProperties> = {
   leaveButton: { padding: '11px 15px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.08)', color: '#fff', cursor: 'pointer' },
   primaryButton: { padding: '11px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #2563eb, #0ea5e9)', color: '#fff', cursor: 'pointer' },
   secondaryButton: { padding: '11px 16px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.05)', color: '#fff', cursor: 'pointer' },
+  outfitPanel: { marginTop: 12, padding: 14, borderRadius: 16, border: '1px solid rgba(148, 163, 184, 0.25)', background: 'rgba(15, 23, 42, 0.8)' },
+  outfitHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, color: '#cfd8ff', fontSize: 13 },
+  outfitGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 },
+  outfitCard: { padding: 10, borderRadius: 12, border: '1px solid rgba(148, 163, 184, 0.35)', background: 'rgba(255,255,255,0.02)', display: 'flex', flexDirection: 'column', gap: 6 },
+  outfitNote: { fontSize: 11, color: '#8aa0c4' },
+  outfitMeta: { fontSize: 12, color: '#dbeafe' },
 }
 
 

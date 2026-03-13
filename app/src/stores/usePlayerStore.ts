@@ -48,7 +48,9 @@ interface PlayerStoreState {
   hireCrew: (amount: number) => PortActionResult
   visitTavern: (service: TavernService, amount?: number, tavernLevel?: number) => PortActionResult
   repairShip: (mode?: RepairMode, amount?: number, facilityLevel?: number) => PortActionResult
+  outfitShip: (option: 'rigging' | 'cargo') => PortActionResult
   resolveVoyageEvent: (currentDay: number, weatherType: WeatherType) => void
+  logEncounterEvent: (message: string, day: number) => void
   clearVoyageNotice: () => void
   debugSetLevel: (type: 'adventure' | 'trade' | 'combat', level: number) => void
 }
@@ -128,6 +130,7 @@ function createShipInstanceFromType(shipType: ShipType, instanceId: string, name
     supplies: createInitialSupplies(maxCrew),
     reinforceCount: 0,
     maxReinforce: 5,
+    upgrades: { rigging: 0, cargo: 0 },
   }
 }
 
@@ -168,6 +171,7 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
           supplies: createInitialSupplies(maxCrew),
           reinforceCount: 0,
           maxReinforce: 5,
+          upgrades: { rigging: 0, cargo: 0 },
         }
 
     const player: Player = {
@@ -479,10 +483,10 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
     return { ok: true, message: `酒場で ${hireable} 人の船員を集めました。` }
   },
 
-  repairShip: (mode = 'standard', amount, facilityLevel = 1) => {
-    const state = get()
-    const player = state.player
-    const ship = state.ships.find((entry) => entry.instanceId === state.activeShipId)
+    repairShip: (mode = 'standard', amount, facilityLevel = 1) => {
+      const state = get()
+      const player = state.player
+      const ship = state.ships.find((entry) => entry.instanceId === state.activeShipId)
     if (!player || !ship) return { ok: false, message: '修理対象の船が見つかりません。' }
 
     const level = clamp(facilityLevel, 1, 5)
@@ -538,11 +542,52 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
       }),
     }))
 
-    return { ok: true, message: `${label}で耐久を ${repaired} 回復しました。` }
-  },
+      return { ok: true, message: `${label}で耐久を ${repaired} 回復しました。` }
+    },
 
-  resolveVoyageEvent: (currentDay, weatherType) => {
-    const state = get()
+    outfitShip: (option = 'rigging') => {
+      const state = get()
+      const player = state.player
+      const ship = state.ships.find((entry) => entry.instanceId === state.activeShipId)
+      if (!player || !ship) return { ok: false, message: '旗艦が見つかりません。' }
+
+      const currentLevel = ship.upgrades?.[option] ?? 0
+      const maxLevel = 3
+      if (currentLevel >= maxLevel) return { ok: false, message: 'これ以上装備を強化できません。' }
+
+      const baseCost = option === 'rigging' ? 320 : 280
+      const stepIncrease = option === 'rigging' ? 90 : 70
+      const cost = baseCost + currentLevel * stepIncrease
+      if (player.money < cost) return { ok: false, message: '資金が足りません。' }
+
+      const nextShips = state.ships.map((entry) => {
+        if (entry.instanceId !== state.activeShipId) return entry
+        const nextUpgrades = { rigging: entry.upgrades?.rigging ?? 0, cargo: entry.upgrades?.cargo ?? 0, [option]: currentLevel + 1 }
+        const nextShip = {
+          ...entry,
+          upgrades: nextUpgrades,
+          morale: clamp(entry.morale + (option === 'rigging' ? 4 : 2), 0, 100),
+        }
+        if (option === 'rigging') {
+          nextShip.maxDurability = entry.maxDurability + 4
+          nextShip.currentDurability = Math.min(nextShip.maxDurability, entry.currentDurability + 5)
+        } else {
+          nextShip.maxCapacity = entry.maxCapacity + 6
+        }
+        return nextShip
+      })
+
+      set({
+        player: { ...player, money: player.money - cost },
+        ships: nextShips,
+      })
+
+      const label = option === 'rigging' ? 'Rigging Tune' : 'Cargo Rig'
+      return { ok: true, message: `${label} を適用しました（Lv ${currentLevel + 1}）。` }
+    },
+
+    resolveVoyageEvent: (currentDay, weatherType) => {
+      const state = get()
     if (currentDay <= state.lastVoyageEventDay) return
 
     const ship = state.ships.find((entry) => entry.instanceId === state.activeShipId)
@@ -712,20 +757,27 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
 
     const result = selected.apply()
 
-    set((current) => ({
-      lastVoyageEventDay: currentDay,
-      lastVoyageNotice: result.message,
-      player: result.player ?? current.player,
-      ships: current.ships.map((entry) => entry.instanceId !== current.activeShipId ? entry : {
-        ...result.ship,
-        morale: clamp(result.ship.morale ?? getShipMorale(entry), 0, 100),
-        supplies: {
-          ...getShipSupplies(entry),
-          ...result.ship.supplies,
-        },
-      }),
-    }))
-  },
+      set((current) => ({
+        lastVoyageEventDay: currentDay,
+        lastVoyageNotice: result.message,
+        player: result.player ?? current.player,
+        ships: current.ships.map((entry) => entry.instanceId !== current.activeShipId ? entry : {
+          ...result.ship,
+          morale: clamp(result.ship.morale ?? getShipMorale(entry), 0, 100),
+          supplies: {
+            ...getShipSupplies(entry),
+            ...result.ship.supplies,
+          },
+        }),
+      }))
+    },
+
+    logEncounterEvent: (message, day) => {
+      set((state) => ({
+        lastVoyageNotice: message,
+        lastVoyageEventDay: Math.max(state.lastVoyageEventDay, day),
+      }))
+    },
 
   clearVoyageNotice: () => set({ lastVoyageNotice: null }),
 
