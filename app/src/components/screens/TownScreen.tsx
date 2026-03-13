@@ -14,7 +14,7 @@ interface TownScreenProps {
   onLoadLatest: () => void
 }
 
-type TownSection = 'overview' | 'guild' | 'market' | 'services'
+type TownSection = 'overview' | 'guild' | 'market' | 'services' | 'inventory'
 
 const INVEST_AMOUNTS = [1000, 5000]
 const BANK_AMOUNTS = [1000, 5000]
@@ -26,7 +26,10 @@ const SECTION_LABELS: Record<TownSection, string> = {
   guild: 'Guild',
   market: 'Market',
   services: 'Services',
+  inventory: 'Inventory',
 }
+
+const INVENTORY_SELL_FACTOR = 0.78
 
 function formatQuestRank(rank?: QuestRank): string {
   if (rank === 'premium') return 'Premium'
@@ -118,6 +121,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const repairShip = usePlayerStore((s) => s.repairShip)
   const purchaseShip = usePlayerStore((s) => s.purchaseShip)
   const setActiveShip = usePlayerStore((s) => s.setActiveShip)
+  const sellInventoryItem = usePlayerStore((s) => s.sellInventoryItem)
   const ensurePortQuests = useQuestStore((s) => s.ensurePortQuests)
   const availableByPort = useQuestStore((s) => s.availableByPort)
   const activeQuest = useQuestStore((s) => s.activeQuest)
@@ -168,6 +172,26 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
     }).filter((row): row is NonNullable<typeof row> => Boolean(row)).sort((a, b) => b.quote!.unitPrice - a.quote!.unitPrice),
     [activeShip?.cargo, getSellQuote, getTradeGood, portId, quantities],
   )
+
+  const inventoryRows = useMemo(() => {
+    const entries = player?.inventory ?? []
+    return entries
+      .map((stack) => {
+        const good = getTradeGood(stack.itemId)
+        const unitValue = Math.max(10, Math.round((good?.basePrice ?? 50) * INVENTORY_SELL_FACTOR))
+        return {
+          itemId: stack.itemId,
+          quantity: stack.quantity,
+          unitValue,
+          totalValue: unitValue * stack.quantity,
+          name: good?.name ?? stack.itemId,
+          description: good?.description ?? 'No description.',
+        }
+      })
+      .filter((entry) => entry.quantity > 0)
+      .sort((a, b) => b.totalValue - a.totalValue)
+  }, [getTradeGood, player?.inventory])
+  const inventoryTotalValue = inventoryRows.reduce((sum, entry) => sum + entry.totalValue, 0)
 
   if (!port) return <div style={styles.container}><div style={styles.card}>No port selected.</div></div>
 
@@ -513,8 +537,43 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                   </div>
                 </section>
               </div>
+              )}
+            {visibleSection === 'inventory' && (
+              <div style={styles.contentStack}>
+                <section style={styles.panel}>
+                  <div style={styles.panelHeader}>
+                    <h3 style={styles.sectionTitle}>Inventory</h3>
+                    <span style={styles.panelHint}>クエスト報酬や保管品を確認・売却</span>
+                  </div>
+                  {inventoryRows.length === 0 ? (
+                    <div style={styles.emptyState}>保管中のアイテムはありません。</div>
+                  ) : (
+                    <>
+                      <div style={styles.infoBlock}>
+                        <span style={styles.infoLabel}>Total Value</span>
+                        <strong>{inventoryTotalValue} d</strong>
+                        <small>Sell は 78% の価格で即時入金されます。</small>
+                      </div>
+                      <div style={styles.list}>
+                        {inventoryRows.map((entry) => (
+                          <div key={entry.itemId} style={styles.compactActionRow}>
+                            <div style={styles.tradeMeta}>
+                              <strong>{entry.name}</strong>
+                              <span style={styles.tradeSub}>{entry.description}</span>
+                              <span style={styles.tradeSub}>x{entry.quantity} / {entry.unitValue} d each / {entry.totalValue} d total</span>
+                            </div>
+                            <button style={styles.primaryButton} onClick={() => handleAction(sellInventoryItem(entry.itemId, entry.quantity, entry.unitValue))}>
+                              Sell All
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </section>
+              </div>
             )}
-          </main>
+            </main>
         </div>
       </div>
     </div>

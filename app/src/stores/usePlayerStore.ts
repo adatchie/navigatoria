@@ -41,6 +41,7 @@ interface PlayerStoreState {
   purchaseShip: (shipTypeId: string, facilityLevel?: number) => PortActionResult
   updatePlayer: (partial: Partial<Player>) => void
   addInventoryItem: (itemId: string, quantity: number) => void
+  sellInventoryItem: (itemId: string, quantity: number, unitPrice: number) => PortActionResult
   replaceCargo: (cargo: CargoSlot[], usedCapacity: number) => void
   consumeVoyageResources: (gameDayDelta: number) => void
   resupplyShip: (target: 'food' | 'water' | 'all', amount?: number) => PortActionResult
@@ -281,6 +282,36 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
         : [...state.player.inventory, { itemId, quantity }]
       return { player: { ...state.player, inventory } }
     })
+  },
+  sellInventoryItem: (itemId, quantity, unitPrice) => {
+    if (quantity <= 0 || unitPrice <= 0) {
+      return { ok: false, message: '数量または価格が不正です。' }
+    }
+    let soldAmount = 0
+    set((state) => {
+      if (!state.player) return state
+      const existing = state.player.inventory.find((item) => item.itemId === itemId)
+      if (!existing) return state
+      const take = Math.min(existing.quantity, quantity)
+      if (take <= 0) return state
+      soldAmount = take
+      const nextInventory = existing.quantity === take
+        ? state.player.inventory.filter((item) => item.itemId !== itemId)
+        : state.player.inventory.map((item) => (item.itemId === itemId ? { ...item, quantity: item.quantity - take } : item))
+      return {
+        player: {
+          ...state.player,
+          money: state.player.money + take * unitPrice,
+          inventory: nextInventory,
+        },
+      }
+    })
+    if (soldAmount <= 0) {
+      return { ok: false, message: 'アイテムが在庫にありません。' }
+    }
+    const tradeGood = useDataStore.getState().getTradeGood(itemId)
+    const name = tradeGood?.name ?? itemId
+    return { ok: true, message: `${name} x${soldAmount} を売却し、${soldAmount * unitPrice} d を獲得しました。` }
   },
 
   replaceCargo: (cargo, usedCapacity) => {
