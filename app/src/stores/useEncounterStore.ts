@@ -4,6 +4,7 @@ import type {
   CombatDistance,
   EncounterAction,
   EncounterCombatState,
+  EncounterLoot,
   EncounterOutcome,
   EncounterState,
   EncounterType,
@@ -12,6 +13,7 @@ import { COMBAT_CONFIG } from '@/config/gameConfig.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
+import type { PlayerItemStack } from '@/types/character.ts'
 
 interface EncounterResolution {
   ok: boolean
@@ -48,6 +50,13 @@ function resolveNavigationMode(): 'sailing' | 'anchored' {
   return useNavigationStore.getState().destination ? 'sailing' : 'anchored'
 }
 
+function mergeInventoryStacks(base: PlayerItemStack[], loot: EncounterLoot[]): PlayerItemStack[] {
+  const map = new Map<string, number>()
+  base.forEach((item) => map.set(item.itemId, (map.get(item.itemId) ?? 0) + item.quantity))
+  loot.forEach((item) => map.set(item.itemId, (map.get(item.itemId) ?? 0) + item.quantity))
+  return Array.from(map.entries()).map(([itemId, quantity]) => ({ itemId, quantity }))
+}
+
 function applyEncounterOutcome(outcome: EncounterOutcome, combatState?: EncounterCombatState): void {
   usePlayerStore.setState((state) => {
     if (!state.player) return state
@@ -64,6 +73,8 @@ function applyEncounterOutcome(outcome: EncounterOutcome, combatState?: Encounte
       }
     })
 
+    const currentInventory = state.player.inventory ?? []
+    const nextInventory = outcome.loot?.length ? mergeInventoryStacks(currentInventory, outcome.loot) : currentInventory
     return {
       player: {
         ...state.player,
@@ -76,6 +87,7 @@ function applyEncounterOutcome(outcome: EncounterOutcome, combatState?: Encounte
           combatExp: state.player.stats.combatExp + outcome.combatExpDelta,
           adventureExp: state.player.stats.adventureExp + outcome.adventureExpDelta,
         },
+        inventory: nextInventory,
       },
       ships,
     }
@@ -246,6 +258,7 @@ function buildVictoryOutcome(encounter: EncounterState, state: EncounterCombatSt
   const moneyDelta = rewardBase + encounter.threat * 55 + state.round * 18
   const fameDelta = encounter.type === 'pirate' ? 2 + Math.floor(encounter.threat / 2) : encounter.type === 'navy' ? 1 : 0
   const notorietyDelta = encounter.type === 'merchant' ? 2 : encounter.type === 'navy' ? 3 : 0
+  const loot = createEncounterLoot(encounter)
 
   return {
     message: `${encounter.title} に勝利しました。${moneyDelta} d を獲得しました。`,
@@ -255,6 +268,7 @@ function buildVictoryOutcome(encounter: EncounterState, state: EncounterCombatSt
     combatExpDelta: 10 + encounter.threat * 4 + combatLevel,
     adventureExpDelta: encounter.type === 'derelict' ? 4 + encounter.threat : 0,
     notorietyDelta,
+    loot,
   }
 }
 
@@ -270,6 +284,16 @@ function buildDefeatOutcome(encounter: EncounterState): EncounterOutcome {
     adventureExpDelta: 0,
     notorietyDelta: encounter.type === 'navy' ? 1 : 0,
   }
+}
+
+function createEncounterLoot(encounter: EncounterState): EncounterLoot[] {
+  const goods = useDataStore.getState().masterData.tradeGoods
+  if (goods.length === 0) return []
+  const pool = goods.filter((good) => good.rarity >= (encounter.type === 'pirate' ? 3 : 2))
+  const candidates = pool.length ? pool : goods
+  const chosen = candidates[Math.floor(Math.random() * candidates.length)]
+  const quantity = Math.max(1, Math.floor(encounter.threat / 3) + 1)
+  return [{ itemId: chosen.id, quantity }]
 }
 
 function buildWithdrawalOutcome(encounter: EncounterState, success: boolean): EncounterOutcome {

@@ -1,6 +1,11 @@
 import type { WeatherType } from './common.ts'
 
 export type EncounterType = 'pirate' | 'navy' | 'merchant' | 'derelict'
+
+export interface EncounterLoot {
+  itemId: string
+  quantity: number
+}
 export type EncounterAction = 'engage' | 'evade' | 'ignore'
 export type CombatAction = 'cannon' | 'board' | 'withdraw'
 export type CombatDistance = 'long' | 'close' | 'boarded'
@@ -14,6 +19,7 @@ export interface EncounterOutcome {
   combatExpDelta: number
   adventureExpDelta: number
   notorietyDelta: number
+  loot?: EncounterLoot[]
 }
 
 export interface CombatRoundLog {
