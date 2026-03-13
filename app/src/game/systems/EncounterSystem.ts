@@ -114,7 +114,7 @@ export class EncounterSystem implements GameSystem {
     if (triggered) {
       const distanceLabel = nearest.distanceKm.toFixed(1)
       const notice = `${encounter.shipName} (${encounter.type}) が ${nearest.port.name} 沖 ${distanceLabel} km 付近で確認されました。`
-      usePlayerStore.getState().logEncounterEvent(notice, Math.floor(currentDay))
+      usePlayerStore.getState().logEncounterEvent(notice)
     }
   }
 }

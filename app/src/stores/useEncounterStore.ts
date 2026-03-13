@@ -259,9 +259,15 @@ function buildVictoryOutcome(encounter: EncounterState, state: EncounterCombatSt
   const fameDelta = encounter.type === 'pirate' ? 2 + Math.floor(encounter.threat / 2) : encounter.type === 'navy' ? 1 : 0
   const notorietyDelta = encounter.type === 'merchant' ? 2 : encounter.type === 'navy' ? 3 : 0
   const loot = createEncounterLoot(encounter)
+  const lootSummary = loot
+    .map((entry) => {
+      const good = useDataStore.getState().getTradeGood(entry.itemId)
+      return `${good?.name ?? entry.itemId} x${entry.quantity}`
+    })
+    .join(' / ')
 
   return {
-    message: `${encounter.title} に勝利しました。${moneyDelta} d を獲得しました。`,
+    message: `${encounter.title} に勝利しました。${moneyDelta} d を獲得しました。${lootSummary ? ` 戦利品: ${lootSummary}` : ''}`,
     moneyDelta,
     fameDelta,
     tradeExpDelta: encounter.type === 'merchant' ? 2 + encounter.threat : 0,

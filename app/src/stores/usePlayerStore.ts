@@ -50,7 +50,7 @@ interface PlayerStoreState {
   repairShip: (mode?: RepairMode, amount?: number, facilityLevel?: number) => PortActionResult
   outfitShip: (option: 'rigging' | 'cargo') => PortActionResult
   resolveVoyageEvent: (currentDay: number, weatherType: WeatherType) => void
-  logEncounterEvent: (message: string, day: number) => void
+  logEncounterEvent: (message: string) => void
   clearVoyageNotice: () => void
   debugSetLevel: (type: 'adventure' | 'trade' | 'combat', level: number) => void
 }
@@ -772,11 +772,10 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
       }))
     },
 
-    logEncounterEvent: (message, day) => {
-      set((state) => ({
+    logEncounterEvent: (message) => {
+      set({
         lastVoyageNotice: message,
-        lastVoyageEventDay: Math.max(state.lastVoyageEventDay, day),
-      }))
+      })
     },
 
   clearVoyageNotice: () => set({ lastVoyageNotice: null }),
