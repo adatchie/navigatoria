@@ -2,9 +2,10 @@
 // GameCanvas — React Three Fiber のメインCanvas + カメラ制御
 // ============================================================
 
-import { Suspense, lazy, useMemo, useState } from 'react'
-import { Canvas } from '@react-three/fiber'
-import { MeshBasicMaterial, SphereGeometry } from 'three'
+import { Suspense, lazy, useMemo, useState, useRef } from 'react'
+import { Canvas, useFrame } from '@react-three/fiber'
+import { MeshBasicMaterial, RingGeometry, SphereGeometry, type Mesh } from 'three'
+import type { Port } from '@/types/port.ts'
 import { OceanScene } from '@/rendering/OceanScene.tsx'
 import { SkyBox } from '@/rendering/SkyBox.tsx'
 import { ShipRenderer } from '@/rendering/ShipRenderer.tsx'
@@ -23,17 +24,20 @@ const PORT_MARKER_GEOMETRIES = {
   default: new SphereGeometry(0.9, 14, 14),
   active: new SphereGeometry(1.2, 14, 14),
 }
+const PORT_MARKER_RING = new RingGeometry(1.6, 2.2, 32)
 
 const PORT_MARKER_MATERIALS: Record<string, MeshBasicMaterial> = {
-  portugal: new MeshBasicMaterial({ color: 0x34d399 }),
-  spain: new MeshBasicMaterial({ color: 0xf97316 }),
-  england: new MeshBasicMaterial({ color: 0x60a5fa }),
-  netherlands: new MeshBasicMaterial({ color: 0xfacc15 }),
-  france: new MeshBasicMaterial({ color: 0xa78bfa }),
-  venice: new MeshBasicMaterial({ color: 0xf87171 }),
-  ottoman: new MeshBasicMaterial({ color: 0x22c55e }),
-  default: new MeshBasicMaterial({ color: 0xffffff }),
+  portugal: new MeshBasicMaterial({ color: 0x34d399, depthTest: false, depthWrite: false }),
+  spain: new MeshBasicMaterial({ color: 0xf97316, depthTest: false, depthWrite: false }),
+  england: new MeshBasicMaterial({ color: 0x60a5fa, depthTest: false, depthWrite: false }),
+  netherlands: new MeshBasicMaterial({ color: 0xfacc15, depthTest: false, depthWrite: false }),
+  france: new MeshBasicMaterial({ color: 0xa78bfa, depthTest: false, depthWrite: false }),
+  venice: new MeshBasicMaterial({ color: 0xf87171, depthTest: false, depthWrite: false }),
+  ottoman: new MeshBasicMaterial({ color: 0x22c55e, depthTest: false, depthWrite: false }),
+  default: new MeshBasicMaterial({ color: 0xffffff, depthTest: false, depthWrite: false }),
 }
+
+const PORT_MARKER_HEIGHT = 4
 
 export function GameCanvas() {
   const showFPS = useUIStore((s) => s.debugFlags.showFPS)
@@ -124,16 +128,12 @@ function PortMarkers() {
     <>
       {ports.map((port) => {
         const isActive = destination === port.name
-        const geometry = isActive ? PORT_MARKER_GEOMETRIES.active : PORT_MARKER_GEOMETRIES.default
-        const material = PORT_MARKER_MATERIALS[port.nationality] ?? PORT_MARKER_MATERIALS.default
-
         return (
-          <mesh
+          <PortMarker
             key={port.id}
-            geometry={geometry}
-            material={material}
-            position={worldToScene(port.position)}
-            onClick={() => {
+            port={port}
+            isActive={isActive}
+            onSelect={() => {
               setDestination(port.position, port.name)
               setDockedPort(null)
               resetVoyage()
@@ -143,5 +143,31 @@ function PortMarkers() {
         )
       })}
     </>
+  )
+}
+
+type PortMarkerProps = {
+  port: Port
+  isActive: boolean
+  onSelect: () => void
+}
+
+function PortMarker({ port, isActive, onSelect }: PortMarkerProps) {
+  const material = PORT_MARKER_MATERIALS[port.nationality] ?? PORT_MARKER_MATERIALS.default
+  const geometry = isActive ? PORT_MARKER_GEOMETRIES.active : PORT_MARKER_GEOMETRIES.default
+  const ringRef = useRef<Mesh>(null)
+  useFrame(() => {
+    if (ringRef.current) {
+      ringRef.current.rotation.z += 0.01
+      ringRef.current.rotation.y += 0.002
+    }
+  })
+
+  const [x, , z] = worldToScene(port.position)
+  return (
+    <group position={[x, PORT_MARKER_HEIGHT, z]}>
+      <mesh geometry={geometry} material={material} onClick={onSelect} />
+      <mesh ref={ringRef} geometry={PORT_MARKER_RING} material={material} rotation={[-Math.PI / 2, 0, 0]} onClick={onSelect} />
+    </group>
   )
 }
