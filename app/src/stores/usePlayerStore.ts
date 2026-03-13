@@ -5,7 +5,7 @@
 import { create } from 'zustand'
 import type { Player } from '@/types/character.ts'
 import type { WeatherType } from '@/types/common.ts'
-import type { CargoSlot, ShipInstance, ShipSupplies } from '@/types/ship.ts'
+import type { CargoSlot, ShipInstance, ShipSupplies, ShipType } from '@/types/ship.ts'
 import { INITIAL_PLAYER, VOYAGE_CONFIG } from '@/config/gameConfig.ts'
 import { createShipId, type CharacterId, type Position2D } from '@/types/common.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
@@ -38,6 +38,7 @@ interface PlayerStoreState {
   addFame: (amount: number) => void
   addShip: (ship: ShipInstance) => void
   setActiveShip: (instanceId: string) => void
+  purchaseShip: (shipTypeId: string, facilityLevel?: number) => PortActionResult
   updatePlayer: (partial: Partial<Player>) => void
   addInventoryItem: (itemId: string, quantity: number) => void
   replaceCargo: (cargo: CargoSlot[], usedCapacity: number) => void
@@ -107,6 +108,36 @@ function applyShortageEffects(ship: ShipInstance, shortage: number): ShipInstanc
   }
 }
 
+function createShipInstanceFromType(shipType: ShipType, instanceId: string, name?: string): ShipInstance {
+  const maxCrew = shipType.crew.max
+  return {
+    instanceId,
+    typeId: shipType.id,
+    name: name ?? shipType.name,
+    material: 'oak',
+    currentDurability: shipType.durability.max,
+    maxDurability: shipType.durability.max,
+    currentCrew: shipType.crew.min,
+    maxCrew,
+    morale: DEFAULT_MORALE,
+    parts: [],
+    cargo: [],
+    usedCapacity: 0,
+    maxCapacity: shipType.capacity,
+    supplies: createInitialSupplies(maxCrew),
+    reinforceCount: 0,
+    maxReinforce: 5,
+  }
+}
+
+function getShipyardRequirement(shipType: ShipType): number {
+  if (shipType.category === 'small_sail') return 1
+  if (shipType.category === 'medium_sail' || shipType.category === 'galley') return 2
+  if (shipType.category === 'oriental') return 3
+  return 4
+}
+
+
 export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
   player: null,
   ships: [],
@@ -117,24 +148,26 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
   initPlayer: (name) => {
     const starterType = useDataStore.getState().getShip(createShipId('balsa'))
     const maxCrew = starterType?.crew.max ?? 12
-    const starterShip: ShipInstance = {
-      instanceId: 'ship_001',
-      typeId: starterType?.id ?? createShipId('balsa'),
-      name: starterType ? `${starterType.name}一号` : 'サンタ・リスボア',
-      material: 'oak',
-      currentDurability: starterType?.durability.max ?? 120,
-      maxDurability: starterType?.durability.max ?? 120,
-      currentCrew: starterType?.crew.min ?? 12,
-      maxCrew,
-      morale: DEFAULT_MORALE,
-      parts: [],
-      cargo: [],
-      usedCapacity: 0,
-      maxCapacity: starterType?.capacity ?? 30,
-      supplies: createInitialSupplies(maxCrew),
-      reinforceCount: 0,
-      maxReinforce: 5,
-    }
+    const starterShip = starterType
+      ? createShipInstanceFromType(starterType, 'ship_001', starterType.name + '一号')
+      : {
+          instanceId: 'ship_001',
+          typeId: createShipId('balsa'),
+          name: 'サンタ・リスボア',
+          material: 'oak' as const,
+          currentDurability: 120,
+          maxDurability: 120,
+          currentCrew: 12,
+          maxCrew,
+          morale: DEFAULT_MORALE,
+          parts: [],
+          cargo: [],
+          usedCapacity: 0,
+          maxCapacity: 30,
+          supplies: createInitialSupplies(maxCrew),
+          reinforceCount: 0,
+          maxReinforce: 5,
+        }
 
     const player: Player = {
       id: 'player_001' as CharacterId,
@@ -200,7 +233,36 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
   },
 
   setActiveShip: (instanceId) => {
-    set({ activeShipId: instanceId })
+    set((state) => state.ships.some((ship) => ship.instanceId === instanceId) ? { activeShipId: instanceId } : state)
+  },
+
+  purchaseShip: (shipTypeId, facilityLevel = 1) => {
+    const state = get()
+    const player = state.player
+    if (!player) return { ok: false, message: '船を購入できる状態ではありません。' }
+
+    const shipType = useDataStore.getState().getShip(shipTypeId)
+    if (!shipType) return { ok: false, message: '船種データが見つかりません。' }
+
+    const availableLevel = Math.max(player.stats.tradeLevel, player.stats.combatLevel, player.stats.adventureLevel)
+    if (availableLevel < shipType.requiredLevel) return { ok: false, message: shipType.name + ' の購入にはレベル ' + shipType.requiredLevel + ' が必要です。' }
+
+    const requiredFacilityLevel = getShipyardRequirement(shipType)
+    if (facilityLevel < requiredFacilityLevel) return { ok: false, message: shipType.name + ' は造船所 Lv.' + requiredFacilityLevel + ' 以上でないと建造できません。' }
+
+    if (state.ships.some((ship) => ship.typeId === shipType.id)) return { ok: false, message: shipType.name + ' はすでに保有しています。' }
+    if (player.money < shipType.price) return { ok: false, message: '所持金が足りません。' }
+
+    const instanceId = 'ship_' + String(state.ships.length + 1).padStart(3, '0')
+    const ship = createShipInstanceFromType(shipType, instanceId, shipType.name + String(state.ships.length + 1) + '号')
+
+    set((current) => ({
+      player: current.player ? { ...current.player, money: current.player.money - shipType.price } : current.player,
+      ships: [...current.ships, ship],
+      activeShipId: current.activeShipId ?? ship.instanceId,
+    }))
+
+    return { ok: true, message: shipType.name + ' を購入しました。' }
   },
 
   updatePlayer: (partial) => {
@@ -643,5 +705,9 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
     set({ player: { ...player, stats: { ...player.stats, [key]: level } } })
   },
 }))
+
+
+
+
 
 

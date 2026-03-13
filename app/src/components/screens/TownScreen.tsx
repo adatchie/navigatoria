@@ -81,6 +81,16 @@ function getMoraleTone(morale?: number): string {
   return 'Low'
 }
 
+
+
+function getShipyardRequirement(category: string): number {
+  if (category === 'small_sail') return 1
+  if (category === 'medium_sail' || category === 'galley') return 2
+  if (category === 'oriental') return 3
+  return 4
+}
+
+
 export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const portId = useNavigationStore((s) => s.dockedPortId)
   const ports = useWorldStore((s) => s.ports)
@@ -91,6 +101,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const day = useGameStore((s) => Math.floor(s.timeState.totalDays))
   const getShip = useDataStore((s) => s.getShip)
   const getTradeGood = useDataStore((s) => s.getTradeGood)
+  const shipCatalog = useDataStore((s) => s.masterData.ships)
   const market = useEconomyStore((s) => (portId ? s.markets[portId] : undefined))
   const getBuyQuote = useEconomyStore((s) => s.getBuyQuote)
   const getSellQuote = useEconomyStore((s) => s.getSellQuote)
@@ -105,6 +116,8 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const resupplyShip = usePlayerStore((s) => s.resupplyShip)
   const visitTavern = usePlayerStore((s) => s.visitTavern)
   const repairShip = usePlayerStore((s) => s.repairShip)
+  const purchaseShip = usePlayerStore((s) => s.purchaseShip)
+  const setActiveShip = usePlayerStore((s) => s.setActiveShip)
   const ensurePortQuests = useQuestStore((s) => s.ensurePortQuests)
   const availableByPort = useQuestStore((s) => s.availableByPort)
   const activeQuest = useQuestStore((s) => s.activeQuest)
@@ -187,6 +200,9 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const tavernMealCost = Math.max(20, Math.ceil(Math.max(1, activeShip?.currentCrew ?? 1) * VOYAGE_CONFIG.TAVERN_MEAL_COST_PER_CREW * (1 - tavernLevel * 0.04)))
   const tavernRoundsCost = Math.max(60, Math.ceil(VOYAGE_CONFIG.TAVERN_ROUND_BASE_COST * (1 + (activeShip?.maxCrew ?? 1) * 0.04) * (1 - tavernLevel * 0.03)))
   const tavernRecruitUnitCost = Math.max(10, 18 - tavernLevel * VOYAGE_CONFIG.TAVERN_RECRUIT_DISCOUNT_PER_LEVEL)
+  const captainLevel = Math.max(player?.stats.tradeLevel ?? 0, player?.stats.combatLevel ?? 0, player?.stats.adventureLevel ?? 0)
+  const ownedShipTypeIds = new Set(ships.map((ship) => ship.typeId))
+  const shipyardOffers = shipCatalog.filter((ship) => !ownedShipTypeIds.has(ship.id)).sort((a, b) => a.requiredLevel - b.requiredLevel || a.price - b.price)
 
   return (
     <div style={styles.container}>
@@ -428,6 +444,56 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                   </section>
                 </div>
 
+
+                <section style={styles.panel}>
+                  <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>Shipyard</h3><span style={styles.panelHint}>購入と旗艦切替</span></div>
+                  {!shipyardFacility && <div style={styles.emptyState}>この港では新造船の購入はできません。</div>}
+                  {shipyardFacility && (
+                    <div style={styles.contentStack}>
+                      <div>
+                        <p style={styles.serviceLabel}>Owned Ships</p>
+                        <div style={styles.list}>
+                          {ships.map((ship) => {
+                            const type = getShip(ship.typeId)
+                            const isActive = ship.instanceId === activeShipId
+                            return (
+                              <div key={ship.instanceId} style={styles.compactActionRow}>
+                                <div style={styles.tradeMeta}>
+                                  <strong>{type?.name ?? ship.name}{isActive ? ' / Active' : ''}</strong>
+                                  <span style={styles.tradeSub}>crew {ship.currentCrew}/{ship.maxCrew} / hull {ship.currentDurability}/{ship.maxDurability} / cargo {ship.usedCapacity}/{ship.maxCapacity}</span>
+                                  <span style={styles.tradeSub}>speed {type?.speed ?? '-'} / turn {type?.turnRate ?? '-'} / cannons {type?.cannonSlots ?? '-'}</span>
+                                </div>
+                                <button style={isActive ? styles.secondaryButton : styles.primaryButton} disabled={isActive} onClick={() => { setActiveShip(ship.instanceId); handleAction({ message: `${type?.name ?? ship.name} を旗艦に設定しました。` }) }}>Set Active</button>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <p style={styles.serviceLabel}>Shipyard Offers</p>
+                        <div style={styles.list}>
+                          {shipyardOffers.length === 0 && <div style={styles.emptyState}>現在購入できる未保有船はありません。</div>}
+                          {shipyardOffers.map((ship) => {
+                            const requiredFacility = getShipyardRequirement(ship.category)
+                            const blockedByLevel = captainLevel < ship.requiredLevel
+                            const blockedByFacility = shipyardLevel < requiredFacility
+                            return (
+                              <div key={ship.id} style={styles.compactActionRow}>
+                                <div style={styles.tradeMeta}>
+                                  <strong>{ship.name}</strong>
+                                  <span style={styles.tradeSub}>{ship.price} d / req lv {ship.requiredLevel} / shipyard lv {requiredFacility}</span>
+                                  <span style={styles.tradeSub}>cargo {ship.capacity} / hull {ship.durability.max} / crew {ship.crew.min}-{ship.crew.max} / cannons {ship.cannonSlots} / speed {ship.speed}</span>
+                                  {(blockedByLevel || blockedByFacility) && <span style={styles.tradeBlocked}>{blockedByLevel ? 'レベル不足' : '造船所レベル不足'}</span>}
+                                </div>
+                                <button style={styles.primaryButton} disabled={blockedByLevel || blockedByFacility || (player?.money ?? 0) < ship.price} onClick={() => handleAction(purchaseShip(ship.id, shipyardLevel))}>Buy</button>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </section>
                 <section style={styles.panel}>
                   <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>Finance & Investment</h3><span style={styles.panelHint}>港でまとめて済ませる</span></div>
                   <div style={styles.serviceColumns}>
@@ -516,6 +582,9 @@ const styles: Record<string, React.CSSProperties> = {
   primaryButton: { padding: '11px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #2563eb, #0ea5e9)', color: '#fff', cursor: 'pointer' },
   secondaryButton: { padding: '11px 16px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.05)', color: '#fff', cursor: 'pointer' },
 }
+
+
+
 
 
 
