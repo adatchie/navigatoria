@@ -33,6 +33,11 @@ export function NavigationHud() {
   const shipType = activeShip ? getShip(activeShip.typeId) : undefined
   const dockedPort = ports.find((port) => port.id === navigation.dockedPortId)
   const crewRatio = activeShip && shipType ? activeShip.currentCrew / Math.max(1, shipType.crew.min) : null
+  const riggingLevel = activeShip?.upgrades?.rigging ?? 0
+  const cargoUpgradeLevel = activeShip?.upgrades?.cargo ?? 0
+  const loadRatio = activeShip ? activeShip.usedCapacity / Math.max(1, activeShip.maxCapacity) : 0
+  const speedBonus = riggingLevel * 4
+  const turnBonus = riggingLevel * 6
 
   return (
     <div style={styles.panel}>
@@ -43,6 +48,8 @@ export function NavigationHud() {
       <div style={styles.row}><span style={styles.label}>Durability</span><span>{activeShip?.currentDurability ?? '-'} / {activeShip?.maxDurability ?? '-'}</span></div>
       <div style={styles.row}><span style={styles.label}>Crew</span><span>{activeShip?.currentCrew ?? '-'} / {activeShip?.maxCrew ?? '-'}</span></div>
       <div style={styles.row}><span style={styles.label}>Morale</span><span>{formatMoraleLabel(activeShip?.morale ?? null)}</span></div>
+      <div style={styles.row}><span style={styles.label}>Rigging</span><span>Lv {riggingLevel} / speed +{speedBonus}% / turn +{turnBonus}%</span></div>
+      <div style={styles.row}><span style={styles.label}>Cargo Rig</span><span>Lv {cargoUpgradeLevel} / load {(loadRatio * 100).toFixed(0)}%</span></div>
       <div style={styles.row}><span style={styles.label}>Crew Load</span><span>{crewRatio ? `${crewRatio.toFixed(2)}x req` : '-'}</span></div>
       <div style={styles.row}><span style={styles.label}>Food</span><span>{activeShip ? activeShip.supplies.food.toFixed(1) : '-'} / {activeShip?.supplies.maxFood ?? '-'}</span></div>
       <div style={styles.row}><span style={styles.label}>Water</span><span>{activeShip ? activeShip.supplies.water.toFixed(1) : '-'} / {activeShip?.supplies.maxWater ?? '-'}</span></div>

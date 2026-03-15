@@ -32,6 +32,16 @@ function getMoralePerformance(morale: number): { speed: number; turn: number } {
   }
 }
 
+function getLoadPerformance(usedCapacity: number, maxCapacity: number, cargoUpgradeLevel: number): number {
+  if (maxCapacity <= 0) return 1
+  const loadRatio = usedCapacity / maxCapacity
+  if (loadRatio <= 0.6) return 1
+
+  const rawPenalty = Math.min(0.18, (loadRatio - 0.6) * 0.45)
+  const mitigation = 1 - cargoUpgradeLevel * 0.28
+  return 1 - rawPenalty * Math.max(0.2, mitigation)
+}
+
 export class NavigationSystem implements GameSystem {
   name = 'NavigationSystem'
   priority = 10
@@ -49,7 +59,12 @@ export class NavigationSystem implements GameSystem {
     const activeShip = playerStore.ships.find((ship) => ship.instanceId === playerStore.activeShipId)
     const shipType = activeShip ? useDataStore.getState().getShip(activeShip.typeId) : undefined
 
-    const baseSpeed = shipType?.speed ?? 8
+    const riggingLevel = activeShip?.upgrades?.rigging ?? 0
+    const cargoUpgradeLevel = activeShip?.upgrades?.cargo ?? 0
+    const riggingSpeedFactor = 1 + riggingLevel * 0.04
+    const riggingTurnFactor = 1 + riggingLevel * 0.06
+    const loadFactor = getLoadPerformance(activeShip?.usedCapacity ?? 0, activeShip?.maxCapacity ?? 1, cargoUpgradeLevel)
+    const baseSpeed = (shipType?.speed ?? 8) * riggingSpeedFactor
     const minimumCrew = shipType?.crew.min ?? 1
     const crewPerformance = getCrewPerformance(activeShip?.currentCrew ?? minimumCrew, minimumCrew)
     const crewSpeedFactor = crewPerformance < 1
@@ -65,7 +80,7 @@ export class NavigationSystem implements GameSystem {
     }
 
     const moraleFactor = getMoralePerformance(activeShip?.morale ?? 70)
-    const turnRate = (shipType?.turnRate ?? NAVIGATION_CONFIG.BASE_TURN_RATE) * crewTurnFactor * moraleFactor.turn
+    const turnRate = (shipType?.turnRate ?? NAVIGATION_CONFIG.BASE_TURN_RATE) * riggingTurnFactor * crewTurnFactor * moraleFactor.turn
     const dx = navigationStore.destination.x - navigationStore.position.x
     const dy = navigationStore.destination.y - navigationStore.position.y
     const targetHeading = ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360
@@ -83,7 +98,7 @@ export class NavigationSystem implements GameSystem {
     const windBonus = relativeWind * navigationStore.wind.speed * NAVIGATION_CONFIG.WIND_EFFECT_FACTOR * 0.12
     const effectiveSpeed = Math.min(
       NAVIGATION_CONFIG.MAX_SPEED,
-      Math.max(1.2, (baseSpeed + windBonus) * crewSpeedFactor * moraleFactor.speed),
+      Math.max(1.2, (baseSpeed + windBonus) * crewSpeedFactor * moraleFactor.speed * loadFactor),
     )
 
     navigationStore.setSpeed(effectiveSpeed)

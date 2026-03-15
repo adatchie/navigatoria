@@ -1,5 +1,7 @@
 import type { GameSystem } from '@/game/GameLoop.ts'
 import type { EncounterAction, EncounterState, EncounterType } from '@/types/encounter.ts'
+import type { ShipType } from '@/types/ship.ts'
+import { useDataStore } from '@/stores/useDataStore.ts'
 import { useEncounterStore } from '@/stores/useEncounterStore.ts'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
@@ -25,7 +27,34 @@ function getRecommendedAction(type: EncounterType): EncounterAction {
   return 'evade'
 }
 
-function createEncounter(id: string, type: EncounterType, danger: number, currentDay: number, zoneName: string | undefined, weatherType: EncounterState['weatherType'], portDistance: number): EncounterState {
+function getEncounterShipPool(type: EncounterType, ships: ShipType[]): ShipType[] {
+  const preferredIds: Record<EncounterType, string[]> = {
+    pirate: ['xebec', 'pinnace', 'brig', 'caravel_redonda', 'sambuk', 'frigate'],
+    navy: ['brig', 'galley', 'galleass', 'galleon', 'frigate', 'turtle_ship', 'atakebune'],
+    merchant: ['dhow', 'sambuk', 'fluyt', 'nao', 'merchant_galleon', 'junk', 'carrack'],
+    derelict: ['balsa', 'caravel', 'dhow', 'junk', 'nao', 'fluyt'],
+  }
+
+  const ids = new Set(preferredIds[type])
+  const pool = ships.filter((ship) => ids.has(ship.id))
+  return pool.length ? pool : ships
+}
+
+function pickEncounterShip(type: EncounterType, danger: number, ships: ShipType[]): ShipType | undefined {
+  if (ships.length === 0) return undefined
+  const pool = getEncounterShipPool(type, ships)
+  const targetLevel = clamp(1 + danger * 4, 1, 35)
+  const ranked = [...pool].sort((a, b) => {
+    const aScore = Math.abs(a.requiredLevel - targetLevel)
+    const bScore = Math.abs(b.requiredLevel - targetLevel)
+    if (aScore !== bScore) return aScore - bScore
+    return a.requiredLevel - b.requiredLevel
+  })
+  const head = ranked.slice(0, Math.min(3, ranked.length))
+  return head[Math.floor(Math.random() * head.length)]
+}
+
+function createEncounter(id: string, type: EncounterType, danger: number, currentDay: number, zoneName: string | undefined, weatherType: EncounterState['weatherType'], portDistance: number, ships: ShipType[]): EncounterState {
   const definitions: Record<EncounterType, { title: string; description: string; shipName: string; lootHint?: string }> = {
     pirate: {
       title: '海賊船団',
@@ -53,19 +82,37 @@ function createEncounter(id: string, type: EncounterType, danger: number, curren
     },
   }
 
-  const baseCrew = type === 'derelict' ? 0 : 10 + danger * 3
-  const baseDurability = type === 'derelict' ? 20 + danger * 4 : 45 + danger * 8
   const definition = definitions[type]
+  const ship = pickEncounterShip(type, danger, ships)
+  const enemyCrew =
+    type === 'derelict'
+      ? 0
+      : ship
+        ? clamp(Math.round(ship.crew.min + (ship.crew.max - ship.crew.min) * (0.35 + danger * 0.06)), ship.crew.min, ship.crew.max)
+        : 10 + danger * 3
+  const enemyDurability =
+    type === 'derelict'
+      ? ship
+        ? clamp(Math.round(ship.durability.min * 0.45), 18, ship.durability.max)
+        : 20 + danger * 4
+      : ship
+        ? clamp(Math.round(ship.durability.min + (ship.durability.max - ship.durability.min) * (0.3 + danger * 0.05)), ship.durability.min, ship.durability.max)
+        : 45 + danger * 8
 
   return {
     id,
     type,
     title: definition.title,
     description: definition.description,
-    shipName: definition.shipName,
+    shipName: ship?.name ?? definition.shipName,
+    shipClass: ship?.category,
+    enemyShipTypeId: ship?.id,
     threat: danger,
-    enemyCrew: baseCrew,
-    enemyDurability: baseDurability,
+    enemyCrew,
+    enemyDurability,
+    enemyCannonSlots: ship?.cannonSlots ?? Math.max(2, 2 + danger * 2),
+    enemySpeed: ship?.speed ?? 8 + Math.floor(danger / 2),
+    enemyTurnRate: ship?.turnRate ?? 32 + danger * 2,
     distanceKm: Math.round(portDistance * 10) / 10,
     zoneName,
     weatherType,
@@ -105,11 +152,12 @@ export class EncounterSystem implements GameSystem {
     const chance = 0.08 + portDistanceFactor * 0.18 + weatherFactor + notorietyFactor
     if (Math.random() > chance) return
 
+    const ships = useDataStore.getState().masterData.ships
     const zoneDanger = zone?.dangerLevel ?? 2
     const moralePenalty = activeShip.morale < 45 ? 1 : 0
     const type = createEncounterType(Math.random())
     const danger = clamp(Math.round(zoneDanger + portDistanceFactor * 3 + moralePenalty), 1, 8)
-    const encounter = createEncounter(`enc_${Math.floor(currentDay * 1000)}`, type, danger, currentDay, zone?.name, navigation.weather.type, nearest.distanceKm)
+    const encounter = createEncounter(`enc_${Math.floor(currentDay * 1000)}`, type, danger, currentDay, zone?.name, navigation.weather.type, nearest.distanceKm, ships)
     const triggered = encounterStore.triggerEncounter(encounter)
     if (triggered) {
       const distanceLabel = nearest.distanceKm.toFixed(1)

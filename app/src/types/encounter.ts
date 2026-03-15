@@ -58,9 +58,14 @@ export interface EncounterState {
   title: string
   description: string
   shipName: string
+  shipClass?: string
+  enemyShipTypeId?: string
   threat: number
   enemyCrew: number
   enemyDurability: number
+  enemyCannonSlots: number
+  enemySpeed: number
+  enemyTurnRate: number
   distanceKm: number
   zoneName?: string
   weatherType: WeatherType

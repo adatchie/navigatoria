@@ -31,8 +31,8 @@ const SECTION_LABELS: Record<TownSection, string> = {
 
 const INVENTORY_SELL_FACTOR = 0.78
 const OUTFIT_OPTIONS = [
-  { option: 'rigging' as const, label: 'Rigging Tune', description: 'Hull耐久と士気が微増' },
-  { option: 'cargo' as const, label: 'Cargo Rig', description: 'Cargo容量＋6' },
+  { option: 'rigging' as const, label: 'Rigging Tune', description: 'Hull耐久と士気が微増 / speed+4% / turn+6%' },
+  { option: 'cargo' as const, label: 'Cargo Rig', description: 'Cargo容量＋6 / 重量ペナルティを軽減' },
 ]
 const OUTFIT_BASE_COST = { rigging: 320, cargo: 280 }
 const OUTFIT_STEP = { rigging: 90, cargo: 70 }
@@ -239,6 +239,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const cargoLevel = activeShip?.upgrades?.cargo ?? 0
   const outfitCost = (option: 'rigging' | 'cargo', level: number) => OUTFIT_BASE_COST[option] + level * OUTFIT_STEP[option]
   const outfitLocked = (optionLevel: number) => optionLevel >= OUTFIT_MAX_LEVEL
+  const loadRatio = activeShip ? activeShip.usedCapacity / Math.max(1, activeShip.maxCapacity) : 0
 
   return (
     <div style={styles.container}>
@@ -526,13 +527,17 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                               )
                             })}
                           </div>
-                          <div style={styles.outfitPanel}>
-                            <div style={styles.outfitHeader}>
-                              <span>Outfitting</span>
-                              <span>Rigging Lv {riggingLevel} / Cargo Lv {cargoLevel}</span>
-                            </div>
-                            <div style={styles.outfitGrid}>
-                              {OUTFIT_OPTIONS.map((option) => {
+                            <div style={styles.outfitPanel}>
+                              <div style={styles.outfitHeader}>
+                                <span>Outfitting</span>
+                                <span>Rigging Lv {riggingLevel} / Cargo Lv {cargoLevel}</span>
+                              </div>
+                              <div style={styles.outfitSummary}>
+                                <span>Current bonus: speed +{riggingLevel * 4}% / turn +{riggingLevel * 6}%</span>
+                                <span>Load state: {(loadRatio * 100).toFixed(0)}% full / cargo rig mitigation Lv {cargoLevel}</span>
+                              </div>
+                              <div style={styles.outfitGrid}>
+                                {OUTFIT_OPTIONS.map((option) => {
                                 const level = option.option === 'rigging' ? riggingLevel : cargoLevel
                                 const cost = outfitCost(option.option, level)
                                 const isMaxed = outfitLocked(level)
@@ -678,6 +683,7 @@ const styles: Record<string, React.CSSProperties> = {
   secondaryButton: { padding: '11px 16px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.05)', color: '#fff', cursor: 'pointer' },
   outfitPanel: { marginTop: 12, padding: 14, borderRadius: 16, border: '1px solid rgba(148, 163, 184, 0.25)', background: 'rgba(15, 23, 42, 0.8)' },
   outfitHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, color: '#cfd8ff', fontSize: 13 },
+  outfitSummary: { display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 10, color: '#9fb2d0', fontSize: 12 },
   outfitGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 },
   outfitCard: { padding: 10, borderRadius: 12, border: '1px solid rgba(148, 163, 184, 0.35)', background: 'rgba(255,255,255,0.02)', display: 'flex', flexDirection: 'column', gap: 6 },
   outfitNote: { fontSize: 11, color: '#8aa0c4' },

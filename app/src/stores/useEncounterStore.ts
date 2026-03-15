@@ -33,6 +33,14 @@ interface EncounterStoreState {
   clearEncounterNotice: () => void
 }
 
+interface EnemyBehaviorProfile {
+  preferredDistance: CombatDistance
+  boardingBias: number
+  cannonBias: number
+  escapePressure: number
+  closeInBias: number
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
 }
@@ -251,6 +259,66 @@ function getEnemyAggression(type: EncounterType): number {
   return 0.52
 }
 
+function getEnemyCannons(encounter: EncounterState): number {
+  return Math.max(1, encounter.enemyCannonSlots)
+}
+
+function getEnemyBehaviorProfile(type: EncounterType): EnemyBehaviorProfile {
+  if (type === 'pirate') {
+    return {
+      preferredDistance: 'boarded',
+      boardingBias: 1.2,
+      cannonBias: 0.92,
+      escapePressure: 1.1,
+      closeInBias: 0.78,
+    }
+  }
+
+  if (type === 'navy') {
+    return {
+      preferredDistance: 'close',
+      boardingBias: 0.88,
+      cannonBias: 1.16,
+      escapePressure: 1.2,
+      closeInBias: 0.6,
+    }
+  }
+
+  if (type === 'merchant') {
+    return {
+      preferredDistance: 'long',
+      boardingBias: 0.72,
+      cannonBias: 0.8,
+      escapePressure: 0.7,
+      closeInBias: 0.3,
+    }
+  }
+
+  return {
+    preferredDistance: 'close',
+    boardingBias: 0.45,
+    cannonBias: 0.5,
+    escapePressure: 0.35,
+    closeInBias: 0.25,
+  }
+}
+
+function getCombatSummary(encounter: EncounterState, action: CombatAction, distance: CombatDistance, outcome?: EncounterOutcome): string {
+  if (action === 'withdraw') return outcome?.message ?? '離脱を試みました。'
+
+  if (action === 'cannon') {
+    if (encounter.type === 'navy') return '規律だった砲列で砲撃を交わしました。'
+    if (encounter.type === 'merchant') return '商船は距離を取りながら散発的に応戦しました。'
+    if (encounter.type === 'pirate') return distance === 'boarded' ? '海賊船は砲撃の後、食らいつくように接近しました。' : '海賊船と荒々しい砲撃戦を交わしました。'
+    return '砲撃を交わしました。'
+  }
+
+  if (encounter.type === 'pirate') return '海賊船が鉤縄を投げ、激しく接舷戦を挑んできました。'
+  if (encounter.type === 'navy') return distance === 'boarded' ? '哨戒艦が強引に取りつき、制圧を試みています。' : '哨戒艦が隊形を維持しつつ距離を詰めています。'
+  if (encounter.type === 'merchant') return distance === 'boarded' ? '商船は混乱しながらも白兵で抵抗しています。' : '商船は逃げ腰のまま間合いを崩そうとしています。'
+  return distance === 'boarded' ? '漂流船へ移乗を試みました。' : '接近を試みました。'
+}
+
 function buildVictoryOutcome(encounter: EncounterState, state: EncounterCombatState): EncounterOutcome {
   const player = usePlayerStore.getState().player
   const combatLevel = player?.stats.combatLevel ?? 1
@@ -337,8 +405,13 @@ function performCombatRound(encounter: EncounterState, state: EncounterCombatSta
   const moraleRatio = state.playerMorale / 100
   const enemyCrewRatio = state.enemyCrew / Math.max(1, state.enemyMaxCrew)
   const cannonSlots = shipType?.cannonSlots ?? 2
-  const shipSpeed = shipType?.speed ?? 8
-  const shipTurn = shipType?.turnRate ?? 40
+  const riggingLevel = activeShip.upgrades?.rigging ?? 0
+  const shipSpeed = (shipType?.speed ?? 8) * (1 + riggingLevel * 0.04)
+  const shipTurn = (shipType?.turnRate ?? 40) * (1 + riggingLevel * 0.05)
+  const enemySpeed = encounter.enemySpeed
+  const enemyTurn = encounter.enemyTurnRate
+  const enemyCannons = getEnemyCannons(encounter)
+  const enemyProfile = getEnemyBehaviorProfile(encounter.type)
 
   let distance = state.distance
   let playerDamage = 0
@@ -348,13 +421,25 @@ function performCombatRound(encounter: EncounterState, state: EncounterCombatSta
   let playerMorale = state.playerMorale
   let outcome: EncounterOutcome | undefined
 
-  const cannonPower = COMBAT_CONFIG.BASE_CANNON_DAMAGE + cannonSlots * 2.2 + stats.combatLevel * 3.4 + moraleRatio * 8 + crewRatio * 10
+  const cannonPower = COMBAT_CONFIG.BASE_CANNON_DAMAGE + cannonSlots * 2.2 + stats.combatLevel * 3.4 + moraleRatio * 8 + crewRatio * 10 + riggingLevel * 2.4
   const meleePower = COMBAT_CONFIG.BASE_MELEE_DAMAGE + stats.combatLevel * 2.8 + crewRatio * 16 + moraleRatio * 9
-  const enemyCannonPower = COMBAT_CONFIG.BASE_CANNON_DAMAGE + encounter.threat * 4.2 + enemyCrewRatio * 8 * getEnemyAggression(encounter.type)
-  const enemyMeleePower = COMBAT_CONFIG.BASE_MELEE_DAMAGE + encounter.threat * 3.6 + enemyCrewRatio * 14 * getEnemyAggression(encounter.type)
+  const enemyCannonPower =
+    (COMBAT_CONFIG.BASE_CANNON_DAMAGE + enemyCannons * 2 + encounter.threat * 2.1 + enemyCrewRatio * 8 * getEnemyAggression(encounter.type)) *
+    enemyProfile.cannonBias
+  const enemyMeleePower =
+    (COMBAT_CONFIG.BASE_MELEE_DAMAGE + encounter.threat * 3.6 + enemyCrewRatio * 14 * getEnemyAggression(encounter.type)) *
+    enemyProfile.boardingBias
 
   if (action === 'withdraw') {
-    const escapeScore = stats.adventureLevel * 8 + shipSpeed * 1.6 + shipTurn * 0.35 + moraleRatio * 16 - encounter.threat * 10 - (distance === 'boarded' ? 16 : distance === 'close' ? 6 : 0)
+    const escapeScore =
+      stats.adventureLevel * 8 +
+      shipSpeed * 1.6 +
+      shipTurn * 0.35 +
+      moraleRatio * 16 -
+      encounter.threat * 10 -
+      enemySpeed * (1.15 + enemyProfile.escapePressure * 0.2) -
+      enemyTurn * (0.12 + enemyProfile.escapePressure * 0.03) -
+      (distance === 'boarded' ? 16 : distance === 'close' ? 6 : 0)
     const escapedCleanly = escapeScore >= 26
     if (escapedCleanly) {
       outcome = buildWithdrawalOutcome(encounter, true)
@@ -370,11 +455,15 @@ function performCombatRound(encounter: EncounterState, state: EncounterCombatSta
     enemyCrewLoss = distance === 'close' ? Math.min(state.enemyCrew, Math.floor(enemyDamage / 7)) : 0
     playerCrewLoss = distance === 'close' ? Math.min(state.playerCrew, Math.floor(playerDamage / 8)) : 0
     playerMorale = clamp(playerMorale + 2 - Math.floor(playerDamage / 6), 0, 100)
-    if (distance === 'long') distance = encounter.type === 'derelict' ? 'close' : Math.random() > 0.35 ? 'close' : 'long'
-    else if (distance === 'close' && encounter.type === 'pirate' && Math.random() > 0.55) distance = 'boarded'
+    if (distance === 'long') {
+      if (encounter.type === 'derelict') distance = 'close'
+      else if (enemyProfile.preferredDistance !== 'long' && Math.random() > enemyProfile.closeInBias) distance = 'close'
+    } else if (distance === 'close' && enemyProfile.preferredDistance === 'boarded' && Math.random() > 0.55) {
+      distance = 'boarded'
+    }
   } else {
     if (distance === 'long') {
-      distance = 'boarded'
+      distance = enemyProfile.preferredDistance === 'close' ? 'close' : 'boarded'
       enemyDamage = Math.max(1, Math.round((cannonPower * 0.35) / 4.3))
       playerDamage = Math.max(1, Math.round((enemyCannonPower * 0.5) / 4.8))
     } else {
@@ -393,9 +482,9 @@ function performCombatRound(encounter: EncounterState, state: EncounterCombatSta
   const playerCrew = clamp(state.playerCrew - playerCrewLoss, 0, state.playerMaxCrew)
 
   const summaryMap: Record<CombatAction, string> = {
-    cannon: '砲撃を交わしました。',
-    board: distance === 'boarded' ? '接舷して白兵戦を展開しました。' : '接近を試みました。',
-    withdraw: outcome?.message ?? '離脱を試みました。',
+    cannon: getCombatSummary(encounter, 'cannon', distance),
+    board: getCombatSummary(encounter, 'board', distance),
+    withdraw: getCombatSummary(encounter, 'withdraw', distance, outcome),
   }
 
   const log = [

@@ -25,10 +25,25 @@ const DISTANCE_LABELS = {
   boarded: 'Boarded',
 } as const
 
+const SHIP_CLASS_LABELS: Record<string, string> = {
+  small_sail: '小型帆船',
+  medium_sail: '中型帆船',
+  large_sail: '大型帆船',
+  galley: 'ガレー系',
+  oriental: '東洋船',
+}
+
 const RECOMMENDED_ACTION_MAP: Record<EncounterAction, CombatAction[]> = {
   engage: ['cannon', 'board'],
   evade: ['withdraw'],
   ignore: ['withdraw'],
+}
+
+const TACTIC_LABELS: Record<string, string> = {
+  pirate: '接舷寄り',
+  navy: '砲戦寄り',
+  merchant: '逃走寄り',
+  derelict: '無力船',
 }
 
 export function EncounterOverlay() {
@@ -57,8 +72,13 @@ export function EncounterOverlay() {
             <p style={styles.description}>{encounter.description}</p>
             <div style={styles.grid}>
               <div style={styles.info}><span style={styles.label}>Ship</span><strong>{encounter.shipName}</strong></div>
+              <div style={styles.info}><span style={styles.label}>Class</span><strong>{encounter.shipClass ? SHIP_CLASS_LABELS[encounter.shipClass] ?? encounter.shipClass : '不明'}</strong></div>
               <div style={styles.info}><span style={styles.label}>Crew</span><strong>{encounter.enemyCrew}</strong></div>
               <div style={styles.info}><span style={styles.label}>Durability</span><strong>{encounter.enemyDurability}</strong></div>
+              <div style={styles.info}><span style={styles.label}>Cannons</span><strong>{encounter.enemyCannonSlots}</strong></div>
+              <div style={styles.info}><span style={styles.label}>Speed</span><strong>{encounter.enemySpeed}</strong></div>
+              <div style={styles.info}><span style={styles.label}>Turn</span><strong>{encounter.enemyTurnRate}</strong></div>
+              <div style={styles.info}><span style={styles.label}>Tactic</span><strong>{TACTIC_LABELS[encounter.type] ?? '不明'}</strong></div>
               <div style={styles.info}><span style={styles.label}>Zone</span><strong>{encounter.zoneName ?? 'Open Sea'}</strong></div>
               <div style={styles.info}><span style={styles.label}>Weather</span><strong>{encounter.weatherType}</strong></div>
               <div style={styles.info}><span style={styles.label}>Hint</span><strong>{encounter.lootHint ?? 'No clear gain'}</strong></div>
@@ -98,6 +118,7 @@ export function EncounterOverlay() {
               <div style={styles.battleMetric}><span style={styles.label}>Round</span><strong>{combatState.round}</strong></div>
               <div style={styles.battleMetric}><span style={styles.label}>Distance</span><strong>{DISTANCE_LABELS[combatState.distance]}</strong></div>
               <div style={styles.battleMetric}><span style={styles.label}>Enemy</span><strong>{encounter.shipName}</strong></div>
+              <div style={styles.battleMetric}><span style={styles.label}>Cannons</span><strong>{encounter.enemyCannonSlots}</strong></div>
             </div>
             <div style={styles.duelGrid}>
               <StatusCard
