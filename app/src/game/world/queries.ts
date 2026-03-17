@@ -1,6 +1,7 @@
 import type { Position2D } from '@/types/common.ts'
 import type { Port } from '@/types/port.ts'
 import type { Zone } from '@/types/world.ts'
+import { WORLD_DISTANCE_SCALE } from '@/config/gameConfig.ts'
 
 export function getZoneAtPosition(position: Position2D, zones: Zone[]): Zone | undefined {
   return zones.find(
@@ -30,8 +31,14 @@ export function getNearestPort(position: Position2D, ports: Port[]): { port: Por
   return { port: bestPort, distanceKm: bestDistance }
 }
 
+/** 2点間の実距離 (km) — マップ座標 × WORLD_DISTANCE_SCALE */
 export function getDistanceKm(a: Position2D, b: Position2D): number {
   const dx = b.x - a.x
   const dy = b.y - a.y
-  return Math.hypot(dx, dy)
+  return Math.hypot(dx, dy) * WORLD_DISTANCE_SCALE
+}
+
+/** 2点間のマップ座標上の距離 (スケール未適用) */
+export function getDistanceMap(a: Position2D, b: Position2D): number {
+  return Math.hypot(b.x - a.x, b.y - a.y)
 }

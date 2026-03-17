@@ -55,7 +55,7 @@ function getTypeBonus(type: EncounterType, action: EncounterAction): number {
 }
 
 function resolveNavigationMode(): 'sailing' | 'anchored' {
-  return useNavigationStore.getState().destination ? 'sailing' : 'anchored'
+  return useNavigationStore.getState().sailRatio > 0 ? 'sailing' : 'anchored'
 }
 
 function mergeInventoryStacks(base: PlayerItemStack[], loot: EncounterLoot[]): PlayerItemStack[] {

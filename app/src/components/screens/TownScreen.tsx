@@ -253,7 +253,12 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
           <div style={styles.heroActions}>
             <button style={styles.secondaryButton} onClick={onManualSave}>Manual Save</button>
             <button style={styles.secondaryButton} onClick={onLoadLatest}>Load Latest</button>
-            <button style={styles.leaveButton} onClick={() => setPhase('playing')}>Back To Sea</button>
+            <button style={styles.leaveButton} onClick={() => {
+              // 出航: 現在のheadingを維持して航海モードに移行
+              const nav = useNavigationStore.getState()
+              nav.departPort(nav.heading)
+              setPhase('playing')
+            }}>Back To Sea</button>
           </div>
         </div>
 

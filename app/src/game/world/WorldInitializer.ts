@@ -17,7 +17,7 @@ export function initializeWorld(): void {
   if (!currentPort) return
 
   navigationStore.setPosition(currentPort.position)
-  navigationStore.setDestination(null)
+  navigationStore.setSailRatio(0)
   navigationStore.setDockedPort(createPortId(currentPort.id))
   navigationStore.setMode('docked')
 }

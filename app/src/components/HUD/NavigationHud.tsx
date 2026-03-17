@@ -39,9 +39,16 @@ export function NavigationHud() {
   const speedBonus = riggingLevel * 4
   const turnBonus = riggingLevel * 6
 
+  // 帆走状態の表示
+  const modeLabel = navigation.mode === 'docked' ? '停泊中'
+    : navigation.mode === 'anchored' ? '投錨中'
+    : navigation.mode === 'sailing' ? '航海中'
+    : navigation.mode === 'combat' ? '戦闘中'
+    : navigation.mode
+
   return (
     <div style={styles.panel}>
-      <div style={styles.row}><span style={styles.label}>Mode</span><strong>{navigation.mode}</strong></div>
+      <div style={styles.row}><span style={styles.label}>Mode</span><strong>{modeLabel}</strong></div>
       <div style={styles.row}><span style={styles.label}>Ship</span><span>{shipType?.name ?? activeShip?.name ?? 'none'}</span></div>
       <div style={styles.row}><span style={styles.label}>Base Speed</span><span>{shipType?.speed ?? '-'} kt</span></div>
       <div style={styles.row}><span style={styles.label}>Turn</span><span>{shipType?.turnRate ?? '-'} deg/s</span></div>
@@ -55,8 +62,8 @@ export function NavigationHud() {
       <div style={styles.row}><span style={styles.label}>Water</span><span>{activeShip ? activeShip.supplies.water.toFixed(1) : '-'} / {activeShip?.supplies.maxWater ?? '-'}</span></div>
       <div style={styles.row}><span style={styles.label}>Position</span><span>{navigation.position.x.toFixed(1)}, {navigation.position.y.toFixed(1)}</span></div>
       <div style={styles.row}><span style={styles.label}>Speed</span><span>{navigation.currentSpeed.toFixed(1)} kt</span></div>
+      <div style={styles.row}><span style={styles.label}>Sail</span><span>{Math.round(navigation.sailRatio * 100)}%</span></div>
       <div style={styles.row}><span style={styles.label}>Wind</span><span>{navigation.wind.direction.toFixed(0)} deg / {navigation.wind.speed.toFixed(1)} kt</span></div>
-      <div style={styles.row}><span style={styles.label}>Destination</span><span>{navigation.destinationName ?? 'none'}</span></div>
       <div style={styles.row}><span style={styles.label}>Nearest Port</span><span>{nearest ? `${nearest.port.name} (${nearest.distanceKm.toFixed(1)} km)` : 'none'}</span></div>
       {player && <div style={styles.row}><span style={styles.label}>Captain</span><span>{player.name}</span></div>}
       {encounter && <div style={styles.alert}>Encounter: {encounter.title}</div>}
@@ -75,7 +82,11 @@ export function NavigationHud() {
         </div>
       )}
       {dockedPort && <button style={styles.portButton} onClick={() => setPhase('port')}>Enter {dockedPort.name}</button>}
-      <div style={styles.hint}>Click a port marker to set sail.</div>
+      <div style={styles.hint}>
+        {navigation.mode === 'docked'
+          ? '港マーカーをクリックして出航'
+          : '海面クリックで舵を切る / 帆を下ろして港近くで入港'}
+      </div>
     </div>
   )
 }
@@ -94,9 +105,11 @@ const styles: Record<string, React.CSSProperties> = {
     backdropFilter: 'blur(10px)',
     fontSize: 12,
     zIndex: 120,
+    pointerEvents: 'auto' as const,
   },
   row: { display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 6 },
   label: { color: '#8fb1d8', textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 },
+  alert: { marginTop: 8, padding: 8, borderRadius: 8, background: 'rgba(239,68,68,0.2)', color: '#fca5a5', fontWeight: 600 },
   noticeWrap: { marginTop: 10, padding: 10, borderRadius: 10, background: 'rgba(37, 99, 235, 0.16)', border: '1px solid rgba(142, 197, 255, 0.2)' },
   noticeTitle: { color: '#8fb1d8', textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10, marginBottom: 4 },
   noticeText: { color: '#dbeafe', lineHeight: 1.4 },
@@ -107,4 +120,3 @@ const styles: Record<string, React.CSSProperties> = {
   },
   hint: { marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.08)', color: '#b8c9de' },
 }
-

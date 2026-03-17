@@ -6,6 +6,10 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import { TitleScreen } from './screens/TitleScreen.tsx'
 import { LoadingScreen } from './screens/LoadingScreen.tsx'
 import { NavigationHud } from './HUD/NavigationHud.tsx'
+import { MiniMap } from './HUD/MiniMap.tsx'
+import { Compass } from './HUD/Compass.tsx'
+import { StatusBar } from './HUD/StatusBar.tsx'
+import { SailControl } from './HUD/SailControl.tsx'
 import { EncounterOverlay } from './EncounterOverlay.tsx'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
@@ -139,7 +143,8 @@ export function App() {
   const handleStart = useCallback(() => {
     initPlayer('航海者')
     initializeMarkets()
-    setPhase('playing')
+    // 初期位置はリスボン停泊中なので港画面から開始
+    setPhase('port')
     gameLoop.start()
   }, [initPlayer, initializeMarkets, setPhase])
 
@@ -165,10 +170,37 @@ export function App() {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (phase !== 'playing') return
+
+      const nav = useNavigationStore.getState()
+
       switch (e.key) {
         case 'F1': e.preventDefault(); setShowDataInspector((v) => !v); break
         case 'F2': e.preventDefault(); openAssetPreviewWindow(); break
         case ' ': e.preventDefault(); useGameStore.getState().togglePause(); break
+
+        // --- 帆操作: W/S または ↑/↓ ---
+        case 'w': case 'W': case 'ArrowUp':
+          e.preventDefault()
+          if (nav.mode === 'docked') break
+          nav.setSailRatio(Math.min(1, nav.sailRatio + 0.25))
+          break
+        case 's': case 'S': case 'ArrowDown':
+          e.preventDefault()
+          if (nav.mode === 'docked') break
+          nav.setSailRatio(Math.max(0, nav.sailRatio - 0.25))
+          break
+
+        // --- 舵操作: A/D または ←/→ ---
+        case 'a': case 'A': case 'ArrowLeft':
+          e.preventDefault()
+          if (nav.mode === 'docked') break
+          nav.setTargetHeading(((nav.targetHeading - 15) + 360) % 360)
+          break
+        case 'd': case 'D': case 'ArrowRight':
+          e.preventDefault()
+          if (nav.mode === 'docked') break
+          nav.setTargetHeading((nav.targetHeading + 15) % 360)
+          break
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -182,8 +214,12 @@ export function App() {
       {(phase === 'playing' || phase === 'paused') && (
         <Suspense fallback={<LoadingScreen message="シーンを準備中..." />}>
           <GameCanvas />
+          <StatusBar />
           <GameTimeControl />
           <NavigationHud />
+          <SailControl />
+          <Compass />
+          <MiniMap />
           <EncounterOverlay />
           <DebugPanel />
           {debugFlags.showDebugPanel && showDataInspector && <DataInspector />}

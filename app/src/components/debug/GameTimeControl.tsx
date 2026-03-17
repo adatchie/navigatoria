@@ -64,7 +64,7 @@ export function GameTimeControl() {
 const styles: Record<string, React.CSSProperties> = {
   container: {
     position: 'fixed',
-    top: 10,
+    top: 42,
     left: '50%',
     transform: 'translateX(-50%)',
     display: 'flex',
@@ -76,8 +76,9 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#eee',
     fontFamily: 'monospace',
     fontSize: 14,
-    zIndex: 100,
+    zIndex: 140,
     userSelect: 'none',
+    pointerEvents: 'auto',
     border: '1px solid rgba(100, 120, 180, 0.3)',
   },
   date: { color: '#8899bb' },
