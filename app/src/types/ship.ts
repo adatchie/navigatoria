@@ -90,6 +90,7 @@ export interface ShipInstance {
   upgrades?: {
     rigging: number
     cargo: number
+    gunnery: number
   }
 }
 

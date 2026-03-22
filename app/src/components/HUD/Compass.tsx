@@ -3,6 +3,7 @@
 // ============================================================
 
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
+import { uiText } from '@/i18n/uiText.ts'
 
 const SIZE = 80
 const CENTER = SIZE / 2
@@ -10,10 +11,10 @@ const RADIUS = 32
 
 // 方位ラベル
 const CARDINAL_LABELS = [
-  { angle: 0, label: 'N' },
-  { angle: 90, label: 'E' },
-  { angle: 180, label: 'S' },
-  { angle: 270, label: 'W' },
+  { angle: 0, label: uiText.compass.cardinals.N },
+  { angle: 90, label: uiText.compass.cardinals.E },
+  { angle: 180, label: uiText.compass.cardinals.S },
+  { angle: 270, label: uiText.compass.cardinals.W },
 ]
 
 const TICK_ANGLES = Array.from({ length: 36 }, (_, i) => i * 10)
@@ -65,9 +66,9 @@ export function Compass() {
                 x={CENTER + Math.sin(rad) * labelR}
                 y={CENTER - Math.cos(rad) * labelR + 3}
                 textAnchor="middle"
-                fill={label === 'N' ? '#f87171' : 'rgba(200, 230, 255, 0.7)'}
-                fontSize={label === 'N' ? 9 : 7}
-                fontWeight={label === 'N' ? 700 : 400}
+                fill={label === uiText.compass.cardinals.N ? '#f87171' : 'rgba(200, 230, 255, 0.7)'}
+                fontSize={label === uiText.compass.cardinals.N ? 9 : 7}
+                fontWeight={label === uiText.compass.cardinals.N ? 700 : 400}
               >
                 {label}
               </text>
@@ -112,14 +113,14 @@ export function Compass() {
 
 function getHeadingLabel(heading: number): string {
   const h = ((heading % 360) + 360) % 360
-  if (h < 22.5 || h >= 337.5) return 'N'
-  if (h < 67.5) return 'NE'
-  if (h < 112.5) return 'E'
-  if (h < 157.5) return 'SE'
-  if (h < 202.5) return 'S'
-  if (h < 247.5) return 'SW'
-  if (h < 292.5) return 'W'
-  return 'NW'
+  if (h < 22.5 || h >= 337.5) return uiText.compass.cardinals.N
+  if (h < 67.5) return uiText.compass.cardinals.NE
+  if (h < 112.5) return uiText.compass.cardinals.E
+  if (h < 157.5) return uiText.compass.cardinals.SE
+  if (h < 202.5) return uiText.compass.cardinals.S
+  if (h < 247.5) return uiText.compass.cardinals.SW
+  if (h < 292.5) return uiText.compass.cardinals.W
+  return uiText.compass.cardinals.NW
 }
 
 const styles: Record<string, React.CSSProperties> = {

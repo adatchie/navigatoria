@@ -5,8 +5,9 @@
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
+import { uiText } from '@/i18n/uiText.ts'
 
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const MONTH_NAMES = uiText.statusBar.months
 
 export function StatusBar() {
   const timeState = useGameStore((s) => s.timeState)
@@ -26,7 +27,7 @@ export function StatusBar() {
   const hourStr = `${Math.floor(timeState.hour).toString().padStart(2, '0')}:${Math.floor((timeState.hour % 1) * 60).toString().padStart(2, '0')}`
 
   // 速度ラベル
-  const speedLabel = paused ? 'PAUSED' : speed === 0 ? 'STOP' : `x${speed}`
+  const speedLabel = paused ? uiText.statusBar.paused : speed === 0 ? uiText.statusBar.stop : `x${speed}`
 
   // 補給状況の警告色
   const foodRatio = activeShip ? activeShip.supplies.food / Math.max(1, activeShip.supplies.maxFood) : 1
@@ -52,7 +53,7 @@ export function StatusBar() {
       {/* 所持金 */}
       {player && (
         <div style={styles.segment}>
-          <span style={styles.label}>Gold</span>
+          <span style={styles.label}>{uiText.statusBar.money}</span>
           <span style={styles.value}>{player.money.toLocaleString()} d</span>
         </div>
       )}
@@ -60,7 +61,7 @@ export function StatusBar() {
       {/* 航海情報 */}
       {navMode === 'sailing' && (
         <div style={styles.segment}>
-          <span style={styles.label}>Speed</span>
+          <span style={styles.label}>{uiText.statusBar.speed}</span>
           <span style={styles.value}>{currentSpeed.toFixed(1)} kt</span>
         </div>
       )}
@@ -69,21 +70,21 @@ export function StatusBar() {
       {activeShip && (
         <>
           <div style={styles.segment}>
-            <span style={styles.label}>Hull</span>
+            <span style={styles.label}>{uiText.statusBar.hull}</span>
             <span style={{ ...styles.value, color: durColor }}>
               {activeShip.currentDurability}/{activeShip.maxDurability}
             </span>
           </div>
           <div style={styles.segment}>
-            <span style={styles.label}>Crew</span>
+            <span style={styles.label}>{uiText.statusBar.crew}</span>
             <span style={styles.value}>{activeShip.currentCrew}/{activeShip.maxCrew}</span>
           </div>
           <div style={styles.segment}>
-            <span style={{ ...styles.label, color: foodColor }}>Food</span>
+            <span style={{ ...styles.label, color: foodColor }}>{uiText.statusBar.food}</span>
             <span style={{ ...styles.value, color: foodColor }}>{activeShip.supplies.food.toFixed(0)}</span>
           </div>
           <div style={styles.segment}>
-            <span style={{ ...styles.label, color: waterColor }}>Water</span>
+            <span style={{ ...styles.label, color: waterColor }}>{uiText.statusBar.water}</span>
             <span style={{ ...styles.value, color: waterColor }}>{activeShip.supplies.water.toFixed(0)}</span>
           </div>
         </>

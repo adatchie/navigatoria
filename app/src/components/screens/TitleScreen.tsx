@@ -1,3 +1,5 @@
+import { uiText } from '@/i18n/uiText.ts'
+
 interface TitleScreenProps {
   onStart: () => void
   onContinue?: () => void
@@ -9,19 +11,19 @@ export function TitleScreen({ onStart, onContinue, canContinue = false }: TitleS
     <div style={styles.container}>
       <div style={styles.card}>
         <h1 style={styles.title}>大航海時代</h1>
-        <h2 style={styles.subtitle}>Age of Discovery</h2>
+        <h2 style={styles.subtitle}>{uiText.title.subtitle}</h2>
         <div style={styles.actions}>
           <button style={styles.startBtn} onClick={onStart}>
-            New Voyage
+            {uiText.title.newVoyage}
           </button>
           {canContinue && onContinue && (
             <button style={styles.continueBtn} onClick={onContinue}>
-              Continue
+              {uiText.title.continue}
             </button>
           )}
         </div>
       </div>
-      <p style={styles.version}>Phase 1 — Navigation Prototype</p>
+      <p style={styles.version}>{uiText.title.version}</p>
     </div>
   )
 }

@@ -6,6 +6,7 @@
 
 import { useCallback } from 'react'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
+import { uiText } from '@/i18n/uiText.ts'
 
 // 帆の段階（ボタン操作用）
 const SAIL_STEPS = [0, 0.25, 0.5, 0.75, 1.0]
@@ -16,12 +17,6 @@ export function SailControl() {
   const sailRatio = useNavigationStore((s) => s.sailRatio)
   const setSailRatio = useNavigationStore((s) => s.setSailRatio)
   const currentSpeed = useNavigationStore((s) => s.currentSpeed)
-
-  // 停泊中は表示しない
-  if (mode === 'docked') return null
-
-  const percent = Math.round(sailRatio * 100)
-
   const handleSliderChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setSailRatio(Number(e.target.value) / 100)
@@ -29,11 +24,16 @@ export function SailControl() {
     [setSailRatio],
   )
 
+  // 停泊中は表示しない
+  if (mode === 'docked') return null
+
+  const percent = Math.round(sailRatio * 100)
+
   return (
     <div style={styles.container}>
       {/* 帆の状態表示 */}
       <div style={styles.header}>
-        <span style={styles.label}>SAIL</span>
+        <span style={styles.label}>{uiText.sail.label}</span>
         <span style={styles.value}>{percent}%</span>
       </div>
 
@@ -66,15 +66,15 @@ export function SailControl() {
 
       {/* 速度表示 */}
       <div style={styles.speedRow}>
-        <span style={styles.speedLabel}>Speed</span>
+        <span style={styles.speedLabel}>{uiText.sail.speed}</span>
         <span style={styles.speedValue}>{currentSpeed.toFixed(1)} kt</span>
       </div>
 
       {/* 操作ヒント */}
       <div style={styles.hint}>
         {sailRatio === 0
-          ? '帆を開くと航行開始'
-          : '海面クリックで舵を切る'}
+          ? uiText.sail.openToSail
+          : uiText.sail.clickSea}
       </div>
     </div>
   )

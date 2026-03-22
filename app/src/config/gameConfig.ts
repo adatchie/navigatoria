@@ -9,13 +9,13 @@ export const GRID_SIZE = 5
 /**
  * 距離スケール: 1座標単位 = 何km か
  * 港座標はマップ単位。実際のkm距離はマップ距離×このスケールで計算する。
- * 例: リスボン→ボルドー = 約18マップ単位 = 180km (デバッグ用)
- * ※デバッグ用に縮小中 (本番: 100)
+ * 例: リスボン→ボルドー = 約18マップ単位 = 180km (本番時)
+ * デバッグ用に1/10に縮小 (本番: 100, デバッグ: 10)
  */
 export const WORLD_DISTANCE_SCALE = 10
 
 export const TIME_CONFIG = {
-  REAL_SECONDS_PER_GAME_DAY: 120,
+  REAL_SECONDS_PER_GAME_DAY: 30, // デバッグ用に短縮 (本番: 120)
   START_YEAR: 1522,
   START_MONTH: 1,
   START_DAY: 1,

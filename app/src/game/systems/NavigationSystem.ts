@@ -12,6 +12,12 @@ import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { windSpeedFactor } from '@/game/utils/math.ts'
 
+declare global {
+  interface Window {
+    __NAV_LOG_COUNT__?: number
+  }
+}
+
 // 乗組員充足率による性能補正
 function getCrewPerformance(activeCrew: number, requiredCrew: number): number {
   if (requiredCrew <= 0) return 1
@@ -143,9 +149,11 @@ export class NavigationSystem implements GameSystem {
 
     const nx = Math.sin(headingRad)
     const ny = Math.cos(headingRad)
+    const rawX = nav.position.x + nx * stepMap
+    const rawY = nav.position.y + ny * stepMap
     const nextPosition = {
-      x: Math.max(0, Math.min(WORLD_WIDTH, nav.position.x + nx * stepMap)),
-      y: Math.max(0, Math.min(WORLD_HEIGHT, nav.position.y + ny * stepMap)),
+      x: Math.max(0, Math.min(WORLD_WIDTH, rawX)),
+      y: Math.max(0, Math.min(WORLD_HEIGHT, rawY)),
     }
 
     nav.setPosition(nextPosition)
@@ -153,5 +161,14 @@ export class NavigationSystem implements GameSystem {
     playerStore.setPosition(nextPosition)
     playerStore.setHeading(newHeading)
     playerStore.updatePlayer({ currentPortId: undefined })
+
+    // ストア更新直後の確認
+    const w = window
+    if (!w.__NAV_LOG_COUNT__) w.__NAV_LOG_COUNT__ = 0
+    if (w.__NAV_LOG_COUNT__ < 3) {
+      const storedNav = useNavigationStore.getState().position
+      console.log(`[Nav] After update: stored=(${storedNav.x.toFixed(1)},${storedNav.y.toFixed(1)}) set_to=(${nextPosition.x.toFixed(1)},${nextPosition.y.toFixed(1)})`)
+      w.__NAV_LOG_COUNT__++
+    }
   }
 }

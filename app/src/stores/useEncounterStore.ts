@@ -406,6 +406,7 @@ function performCombatRound(encounter: EncounterState, state: EncounterCombatSta
   const enemyCrewRatio = state.enemyCrew / Math.max(1, state.enemyMaxCrew)
   const cannonSlots = shipType?.cannonSlots ?? 2
   const riggingLevel = activeShip.upgrades?.rigging ?? 0
+  const gunneryLevel = activeShip.upgrades?.gunnery ?? 0
   const shipSpeed = (shipType?.speed ?? 8) * (1 + riggingLevel * 0.04)
   const shipTurn = (shipType?.turnRate ?? 40) * (1 + riggingLevel * 0.05)
   const enemySpeed = encounter.enemySpeed
@@ -421,8 +422,17 @@ function performCombatRound(encounter: EncounterState, state: EncounterCombatSta
   let playerMorale = state.playerMorale
   let outcome: EncounterOutcome | undefined
 
-  const cannonPower = COMBAT_CONFIG.BASE_CANNON_DAMAGE + cannonSlots * 2.2 + stats.combatLevel * 3.4 + moraleRatio * 8 + crewRatio * 10 + riggingLevel * 2.4
-  const meleePower = COMBAT_CONFIG.BASE_MELEE_DAMAGE + stats.combatLevel * 2.8 + crewRatio * 16 + moraleRatio * 9
+  const cannonPower =
+    (COMBAT_CONFIG.BASE_CANNON_DAMAGE +
+      cannonSlots * 2.2 +
+      stats.combatLevel * 3.4 +
+      moraleRatio * 8 +
+      crewRatio * 10 +
+      riggingLevel * 2.4) *
+    (1 + gunneryLevel * 0.08)
+  const meleePower =
+    (COMBAT_CONFIG.BASE_MELEE_DAMAGE + stats.combatLevel * 2.8 + crewRatio * 16 + moraleRatio * 9) *
+    (1 + gunneryLevel * 0.04)
   const enemyCannonPower =
     (COMBAT_CONFIG.BASE_CANNON_DAMAGE + enemyCannons * 2 + encounter.threat * 2.1 + enemyCrewRatio * 8 * getEnemyAggression(encounter.type)) *
     enemyProfile.cannonBias
@@ -597,4 +607,3 @@ export const useEncounterStore = create<EncounterStoreState>()((set, get) => ({
 
   clearEncounterNotice: () => set({ lastEncounterNotice: null }),
 }))
-

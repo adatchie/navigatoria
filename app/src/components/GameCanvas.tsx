@@ -5,7 +5,7 @@
 
 import { Suspense, lazy, useMemo, useRef, useEffect } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { MeshBasicMaterial, RingGeometry, SphereGeometry, Raycaster, Vector2, Plane, Vector3, type Mesh } from 'three'
+import { MeshBasicMaterial, RingGeometry, SphereGeometry, Raycaster, Vector2, Plane, Vector3, type Mesh, type Group } from 'three'
 import type { Port } from '@/types/port.ts'
 import { OceanScene } from '@/rendering/OceanScene.tsx'
 import { SkyBox } from '@/rendering/SkyBox.tsx'
@@ -18,7 +18,6 @@ import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { worldToScene, sceneToWorld } from '@/rendering/worldTransform.ts'
-import { getDistanceKm } from '@/game/world/queries.ts'
 
 const CameraControls = lazy(async () => import('./CameraControls.tsx').then((mod) => ({ default: mod.CameraControls })))
 const DebugGrid = lazy(async () => import('./DebugGrid.tsx').then((mod) => ({ default: mod.DebugGrid })))
@@ -31,22 +30,27 @@ const PORT_MARKER_GEOMETRIES = {
 }
 const PORT_MARKER_RING = new RingGeometry(0.8, 1.2, 32)
 
+// 港マーカーの大型クリック判定用メッシュ（透明・非表示）
+const PORT_MARKER_HITBOX = new SphereGeometry(1.5, 8, 8)
+const PORT_MARKER_HITBOX_MATERIAL = new MeshBasicMaterial({
+  transparent: true,
+  opacity: 0,
+  depthWrite: false,
+  depthTest: false,
+})
+
 const PORT_MARKER_MATERIALS: Record<string, MeshBasicMaterial> = {
-  portugal: new MeshBasicMaterial({ color: 0x34d399, depthTest: false, depthWrite: false }),
-  spain: new MeshBasicMaterial({ color: 0xf97316, depthTest: false, depthWrite: false }),
-  england: new MeshBasicMaterial({ color: 0x60a5fa, depthTest: false, depthWrite: false }),
-  netherlands: new MeshBasicMaterial({ color: 0xfacc15, depthTest: false, depthWrite: false }),
-  france: new MeshBasicMaterial({ color: 0xa78bfa, depthTest: false, depthWrite: false }),
-  venice: new MeshBasicMaterial({ color: 0xf87171, depthTest: false, depthWrite: false }),
-  ottoman: new MeshBasicMaterial({ color: 0x22c55e, depthTest: false, depthWrite: false }),
-  default: new MeshBasicMaterial({ color: 0xffffff, depthTest: false, depthWrite: false }),
+  portugal: new MeshBasicMaterial({ color: 0x34d399, depthTest: false, depthWrite: false, fog: false }),
+  spain: new MeshBasicMaterial({ color: 0xf97316, depthTest: false, depthWrite: false, fog: false }),
+  england: new MeshBasicMaterial({ color: 0x60a5fa, depthTest: false, depthWrite: false, fog: false }),
+  netherlands: new MeshBasicMaterial({ color: 0xfacc15, depthTest: false, depthWrite: false, fog: false }),
+  france: new MeshBasicMaterial({ color: 0xa78bfa, depthTest: false, depthWrite: false, fog: false }),
+  venice: new MeshBasicMaterial({ color: 0xf87171, depthTest: false, depthWrite: false, fog: false }),
+  ottoman: new MeshBasicMaterial({ color: 0x22c55e, depthTest: false, depthWrite: false, fog: false }),
+  default: new MeshBasicMaterial({ color: 0xffffff, depthTest: false, depthWrite: false, fog: false }),
 }
 
 const PORT_MARKER_HEIGHT = 1.5
-
-// 入港判定距離 (km) — getDistanceKm は WORLD_DISTANCE_SCALE 込みの値を返す
-// デバッグ用: 20km (本番: 200km)
-const PORT_DOCK_DISTANCE_KM = 20
 
 export function GameCanvas() {
   const showFPS = useUIStore((s) => s.debugFlags.showFPS)
@@ -133,7 +137,7 @@ export function GameCanvas() {
 
 /** 海面メッシュを船位置に追従させるラッパー */
 function OceanFollower({ children }: { children: React.ReactNode }) {
-  const groupRef = useRef<THREE.Group>(null)
+  const groupRef = useRef<Group>(null)
 
   useFrame(() => {
     if (!groupRef.current) return
@@ -149,14 +153,15 @@ function OceanFollower({ children }: { children: React.ReactNode }) {
 /**
  * 海面クリック → 舵操作
  * クリックした方向に船首を向ける（目的地ではなく方向指示）
- * addEventListener を使い R3F のイベントシステムと干渉しない
+ * ポートマーカークリックを判定してスキップ
  */
 function RudderClickHandler() {
-  const { camera, gl } = useThree()
+  const { camera, gl, scene } = useThree()
   const raycaster = useMemo(() => new Raycaster(), [])
   const oceanPlane = useMemo(() => new Plane(new Vector3(0, 1, 0), 0), [])
   const mouseVec = useMemo(() => new Vector2(), [])
   const intersectPoint = useMemo(() => new Vector3(), [])
+  const portMarkerRaycaster = useMemo(() => new Raycaster(), [])
 
   useEffect(() => {
     const canvas = gl.domElement
@@ -171,6 +176,18 @@ function RudderClickHandler() {
       const rect = canvas.getBoundingClientRect()
       mouseVec.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
       mouseVec.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+
+      // ポートマーカーがクリックされたかチェック
+      portMarkerRaycaster.setFromCamera(mouseVec, camera)
+      const portHits = portMarkerRaycaster.intersectObjects(scene.children, true)
+
+      // PORT_MARKER_HITBOX_MATERIAL でクリックされたら スキップ
+      for (const hit of portHits) {
+        if ((hit.object as Mesh).material === PORT_MARKER_HITBOX_MATERIAL) {
+          // ポートマーカーがクリックされたので ocean click は無視
+          return
+        }
+      }
 
       raycaster.setFromCamera(mouseVec, camera)
       const hit = raycaster.ray.intersectPlane(oceanPlane, intersectPoint)
@@ -189,50 +206,17 @@ function RudderClickHandler() {
 
     canvas.addEventListener('click', handleClick)
     return () => canvas.removeEventListener('click', handleClick)
-  }, [camera, gl, raycaster, oceanPlane, mouseVec, intersectPoint])
+  }, [camera, gl, scene, raycaster, oceanPlane, mouseVec, intersectPoint, portMarkerRaycaster])
 
   return null
 }
 
 /**
- * 港への近接を毎フレームチェック
- * 帆を下ろして（sailRatio=0）港の近くにいたら入港可能
+ * 港への近接チェック（現在は使用していない）
+ * ポートマーカークリックで直接入港するため、auto-dockは不要
  */
 function PortProximityChecker() {
-  useFrame(() => {
-    const nav = useNavigationStore.getState()
-    if (nav.mode !== 'anchored' && nav.mode !== 'sailing') return
-
-    const ports = useDataStore.getState().masterData.ports
-    // 全港との距離をチェック（getDistanceKm は km を返す）
-    let nearestPort: Port | null = null
-    let nearestDist = Infinity
-    for (const port of ports) {
-      const dist = getDistanceKm(nav.position, port.position)
-      if (dist < nearestDist) {
-        nearestDist = dist
-        nearestPort = port
-      }
-    }
-
-    if (!nearestPort || nearestDist > PORT_DOCK_DISTANCE_KM) return
-
-    // 投錨状態（帆を下ろしている）かつ港の近くなら自動入港
-    if (nav.mode === 'anchored') {
-      nav.setMode('docked')
-      nav.setDockedPort(nearestPort.id)
-      nav.setSpeed(0)
-      nav.resetVoyage()
-
-      const playerStore = usePlayerStore.getState()
-      playerStore.setPosition(nearestPort.position)
-      playerStore.updatePlayer({ currentPortId: nearestPort.id })
-
-      // 港画面に自動遷移
-      useGameStore.getState().setPhase('port')
-    }
-  })
-
+  // 暫定: ポートマーカークリックのみで入港
   return null
 }
 
@@ -251,7 +235,9 @@ function PortMarkers() {
 function PortMarker({ port }: { port: Port }) {
   const material = PORT_MARKER_MATERIALS[port.nationality] ?? PORT_MARKER_MATERIALS.default
   const geometry = PORT_MARKER_GEOMETRIES.default
+  const sphereRef = useRef<Mesh>(null)
   const ringRef = useRef<Mesh>(null)
+
   useFrame(() => {
     if (ringRef.current) {
       ringRef.current.rotation.z += 0.01
@@ -264,28 +250,59 @@ function PortMarker({ port }: { port: Port }) {
     e.stopPropagation()
 
     const nav = useNavigationStore.getState()
-    const dx = port.position.x - nav.position.x
-    const dy = port.position.y - nav.position.y
-
-    // 同じ港の場合 (dx=0, dy=0) は現在のheadingを維持
-    const heading = (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01)
-      ? nav.heading
-      : ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360
+    const gameStore = useGameStore.getState()
 
     if (nav.mode === 'docked') {
       // 停泊中 → 出航
+      const dx = port.position.x - nav.position.x
+      const dy = port.position.y - nav.position.y
+      const heading = (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01)
+        ? nav.heading
+        : ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360
       nav.departPort(heading)
     } else {
-      // 航海中 → その港の方角に舵を切る
-      nav.setTargetHeading(heading)
+      // 航海中（sailing/anchored） → 直接入港
+      nav.setMode('docked')
+      nav.setDockedPort(port.id)
+      nav.setSpeed(0)
+      nav.resetVoyage()
+
+      const playerStore = usePlayerStore.getState()
+      playerStore.setPosition(port.position)
+      playerStore.updatePlayer({ currentPortId: port.id })
+
+      // 港画面に遷移
+      gameStore.setPhase('port')
     }
   }
 
   const [x, , z] = worldToScene(port.position)
   return (
     <group position={[x, PORT_MARKER_HEIGHT, z]}>
-      <mesh geometry={geometry} material={material} onClick={handleClick} />
-      <mesh ref={ringRef} geometry={PORT_MARKER_RING} material={material} rotation={[-Math.PI / 2, 0, 0]} onClick={handleClick} />
+      {/* 大型クリック判定メッシュ（透明、raycasterが優先的に命中）*/}
+      <mesh
+        geometry={PORT_MARKER_HITBOX}
+        material={PORT_MARKER_HITBOX_MATERIAL}
+        onClick={handleClick}
+        renderOrder={102}
+      />
+      {/* メインの球 — renderOrder=100で最前面に描画 */}
+      <mesh
+        ref={sphereRef}
+        geometry={geometry}
+        material={material}
+        onClick={handleClick}
+        renderOrder={100}
+      />
+      {/* 回転リング — renderOrder=101で球の前面に描画 */}
+      <mesh
+        ref={ringRef}
+        geometry={PORT_MARKER_RING}
+        material={material}
+        rotation={[-Math.PI / 2, 0, 0]}
+        onClick={handleClick}
+        renderOrder={101}
+      />
     </group>
   )
 }

@@ -8,13 +8,14 @@ import { useEconomyStore } from '@/stores/useEconomyStore.ts'
 import { useQuestStore } from '@/stores/useQuestStore.ts'
 import { VOYAGE_CONFIG } from '@/config/gameConfig.ts'
 import type { Quest, QuestRank, QuestReward, TradeQuestCategory } from '@/types/quest.ts'
+import { uiText } from '@/i18n/uiText.ts'
 
 interface TownScreenProps {
   onManualSave: () => void
   onLoadLatest: () => void
 }
 
-type TownSection = 'overview' | 'guild' | 'market' | 'services' | 'inventory'
+type TownSection = 'overview' | 'departure' | 'market' | 'guild' | 'tavern' | 'shipyard' | 'bank' | 'inventory'
 
 const INVEST_AMOUNTS = [1000, 5000]
 const BANK_AMOUNTS = [1000, 5000]
@@ -22,26 +23,30 @@ const CREW_HIRE_AMOUNTS = [1, 5, 10]
 const REPAIR_AMOUNTS = [10, 30]
 const SUPPLY_STEP = 12
 const SECTION_LABELS: Record<TownSection, string> = {
-  overview: 'Overview',
-  guild: 'Guild',
-  market: 'Market',
-  services: 'Services',
-  inventory: 'Inventory',
+  overview: uiText.town.sections.overview,
+  departure: uiText.town.sections.departure,
+  market: uiText.town.sections.market,
+  guild: uiText.town.sections.guild,
+  tavern: uiText.town.sections.tavern,
+  shipyard: uiText.town.sections.shipyard,
+  bank: uiText.town.sections.bank,
+  inventory: uiText.town.sections.inventory,
 }
 
 const INVENTORY_SELL_FACTOR = 0.78
 const OUTFIT_OPTIONS = [
-  { option: 'rigging' as const, label: 'Rigging Tune', description: 'Hull耐久と士気が微増 / speed+4% / turn+6%' },
-  { option: 'cargo' as const, label: 'Cargo Rig', description: 'Cargo容量＋6 / 重量ペナルティを軽減' },
+  { option: 'rigging' as const, label: '帆装調整', description: '船体耐久と士気が微増 / 速力+4% / 旋回+6%' },
+  { option: 'cargo' as const, label: '船倉補強', description: '積載量+6 / 重量ペナルティを軽減' },
+  { option: 'gunnery' as const, label: '砲術訓練', description: '砲撃威力と命中感覚を改善 / 砲撃+8%' },
 ]
-const OUTFIT_BASE_COST = { rigging: 320, cargo: 280 }
-const OUTFIT_STEP = { rigging: 90, cargo: 70 }
+const OUTFIT_BASE_COST = { rigging: 320, cargo: 280, gunnery: 360 }
+const OUTFIT_STEP = { rigging: 90, cargo: 70, gunnery: 120 }
 const OUTFIT_MAX_LEVEL = 3
 
 function formatQuestRank(rank?: QuestRank): string {
-  if (rank === 'premium') return 'Premium'
-  if (rank === 'urgent') return 'Urgent'
-  return 'Standard'
+  if (rank === 'premium') return uiText.town.labels.premium
+  if (rank === 'urgent') return uiText.town.labels.urgent
+  return uiText.town.labels.standard
 }
 
 function formatQuestCategory(category?: TradeQuestCategory): string {
@@ -58,8 +63,8 @@ function getDaysRemaining(quest: Quest | null, currentDay: number): number | nul
 function formatReward(reward: QuestReward): string {
   if (reward.type === 'money') return `${reward.amount ?? 0} d`
   if (reward.type === 'exp') return `EXP +${reward.amount ?? 0}`
-  if (reward.type === 'fame') return `Fame +${reward.amount ?? 0}`
-  if (reward.type === 'influence') return `${reward.portId ?? 'port'} +${reward.amount ?? 0}`
+  if (reward.type === 'fame') return `名声 +${reward.amount ?? 0}`
+  if (reward.type === 'influence') return `${reward.portId ?? uiText.town.labels.port} +${reward.amount ?? 0}`
   if (reward.type === 'item') return `${reward.itemId ?? 'item'} x${reward.amount ?? 1}`
   return reward.type
 }
@@ -69,26 +74,34 @@ function getQuestReportPortId(quest: Quest | null): string | undefined {
 }
 
 function getQuestActionLabel(category?: TradeQuestCategory): string {
-  if (category === 'trade_procurement') return 'Deliver Purchased Goods'
-  return 'Deliver Cargo'
+  if (category === 'trade_procurement') return '買い付け品を納品'
+  return '積荷を納品'
+}
+
+function formatObjectiveLabel(type: string): string {
+  if (type === 'buy_item') return '買い付け'
+  if (type === 'sell_item') return '売却'
+  if (type === 'deliver_cargo') return '納品'
+  if (type === 'visit_port') return '目的港到着'
+  return type
 }
 
 function summarizeFacilities(facilities: { type: string; level: number }[]): string {
-  return facilities.map((facility) => `${facility.type} Lv.${facility.level}`).join(' / ')
+  return facilities.map((facility) => `${uiText.town.facilityNames[facility.type as keyof typeof uiText.town.facilityNames] ?? facility.type} Lv.${facility.level}`).join(' / ')
 }
 
 function formatMorale(morale?: number): string {
   if (morale == null) return '-'
-  if (morale >= 80) return `${morale.toFixed(0)} high`
-  if (morale >= 45) return `${morale.toFixed(0)} steady`
-  return `${morale.toFixed(0)} low`
+  if (morale >= 80) return `${morale.toFixed(0)} 高い`
+  if (morale >= 45) return `${morale.toFixed(0)} 安定`
+  return `${morale.toFixed(0)} 低い`
 }
 
 function getMoraleTone(morale?: number): string {
-  if (morale == null) return 'Unknown'
-  if (morale >= 80) return 'Excellent'
-  if (morale >= 45) return 'Stable'
-  return 'Low'
+  if (morale == null) return '不明'
+  if (morale >= 80) return '上々'
+  if (morale >= 45) return '安定'
+  return '低い'
 }
 
 
@@ -147,10 +160,14 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const activeShip = ships.find((ship) => ship.instanceId === activeShipId)
   const shipType = activeShip ? getShip(activeShip.typeId) : undefined
   const facilities = useMemo(() => port?.facilities.filter((facility) => facility.available) ?? [], [port])
+  const marketFacility = facilities.find((facility) => facility.type === 'market')
   const tavernFacility = facilities.find((facility) => facility.type === 'tavern')
   const shipyardFacility = facilities.find((facility) => facility.type === 'shipyard')
+  const bankFacility = facilities.find((facility) => facility.type === 'bank')
   const availableQuests = portId ? availableByPort[portId] ?? [] : []
   const hasGuild = facilities.some((facility) => facility.type === 'guild')
+  const hasMarket = Boolean(marketFacility)
+  const hasBank = Boolean(bankFacility)
   const tavernLevel = tavernFacility?.level ?? 1
   const shipyardLevel = shipyardFacility?.level ?? 1
 
@@ -193,7 +210,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
           unitValue,
           totalValue: unitValue * stack.quantity,
           name: good?.name ?? stack.itemId,
-          description: good?.description ?? 'No description.',
+          description: good?.description ?? '説明はまだありません。',
         }
       })
       .filter((entry) => entry.quantity > 0)
@@ -201,7 +218,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   }, [getTradeGood, player?.inventory])
   const inventoryTotalValue = inventoryRows.reduce((sum, entry) => sum + entry.totalValue, 0)
 
-  if (!port) return <div style={styles.container}><div style={styles.card}>No port selected.</div></div>
+  if (!port) return <div style={styles.container}><div style={styles.card}>港が選択されていません。</div></div>
 
   const setQuantity = (goodId: string, nextValue: number) => setQuantities((current) => ({ ...current, [goodId]: Math.max(1, Math.min(200, Math.floor(nextValue) || 1)) }))
   const handleAction = (message: { message: string }) => {
@@ -220,7 +237,17 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const canReportQuest = Boolean(activeQuest && isQuestDelivered && questReportPortId === port.id)
   const rewardSummary = (activeQuest?.rewards ?? []).map(formatReward).join(' / ')
   const activeQuestDaysRemaining = getDaysRemaining(activeQuest, day)
-  const visibleSection = activeSection === 'guild' && !hasGuild ? 'overview' : activeSection
+  const availableSections = ([
+    'overview',
+    'departure',
+    hasMarket ? 'market' : null,
+    hasGuild ? 'guild' : null,
+    tavernFacility ? 'tavern' : null,
+    shipyardFacility ? 'shipyard' : null,
+    hasBank ? 'bank' : null,
+    'inventory',
+  ] as const).filter((section): section is TownSection => section !== null)
+  const visibleSection = availableSections.includes(activeSection) ? activeSection : 'overview'
   const notice = (tradeMessageState.portId === port.id ? tradeMessageState.message : null) ?? lastQuestNotice
   const missingDurability = Math.max(0, (activeShip?.maxDurability ?? 0) - (activeShip?.currentDurability ?? 0))
   const emergencyPreview = Math.min(missingDurability, 12)
@@ -237,7 +264,8 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const shipyardOffers = shipCatalog.filter((ship) => !ownedShipTypeIds.has(ship.id)).sort((a, b) => a.requiredLevel - b.requiredLevel || a.price - b.price)
   const riggingLevel = activeShip?.upgrades?.rigging ?? 0
   const cargoLevel = activeShip?.upgrades?.cargo ?? 0
-  const outfitCost = (option: 'rigging' | 'cargo', level: number) => OUTFIT_BASE_COST[option] + level * OUTFIT_STEP[option]
+  const gunneryLevel = activeShip?.upgrades?.gunnery ?? 0
+  const outfitCost = (option: 'rigging' | 'cargo' | 'gunnery', level: number) => OUTFIT_BASE_COST[option] + level * OUTFIT_STEP[option]
   const outfitLocked = (optionLevel: number) => optionLevel >= OUTFIT_MAX_LEVEL
   const loadRatio = activeShip ? activeShip.usedCapacity / Math.max(1, activeShip.maxCapacity) : 0
 
@@ -246,55 +274,49 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
       <div style={styles.card}>
         <div style={styles.hero}>
           <div>
-            <p style={styles.eyebrow}>Port Of Call</p>
+            <p style={styles.eyebrow}>{uiText.town.labels.portOfCall}</p>
             <h2 style={styles.title}>{port.name}</h2>
-            <p style={styles.subtitle}>{port.nameEn} / {port.culture} / tax {(port.taxRate * 100).toFixed(0)}%</p>
+            <p style={styles.subtitle}>{port.nameEn} / {port.culture} / 税率 {(port.taxRate * 100).toFixed(0)}%</p>
           </div>
           <div style={styles.heroActions}>
-            <button style={styles.secondaryButton} onClick={onManualSave}>Manual Save</button>
-            <button style={styles.secondaryButton} onClick={onLoadLatest}>Load Latest</button>
-            <button style={styles.leaveButton} onClick={() => {
-              // 出航: 現在のheadingを維持して航海モードに移行
-              const nav = useNavigationStore.getState()
-              nav.departPort(nav.heading)
-              setPhase('playing')
-            }}>Back To Sea</button>
+            <button style={styles.secondaryButton} onClick={onManualSave}>{uiText.town.labels.manualSave}</button>
+            <button style={styles.secondaryButton} onClick={onLoadLatest}>{uiText.town.labels.loadLatest}</button>
           </div>
         </div>
 
         <div style={styles.statStrip}>
-          <div style={styles.statCard}><span style={styles.statLabel}>Money</span><strong>{player?.money ?? 0} d</strong></div>
-          <div style={styles.statCard}><span style={styles.statLabel}>Ship</span><strong>{shipType?.name ?? activeShip?.name ?? 'None'}</strong></div>
-          <div style={styles.statCard}><span style={styles.statLabel}>Cargo</span><strong>{cargoUsage}</strong></div>
-          <div style={styles.statCard}><span style={styles.statLabel}>Crew</span><strong>{activeShip?.currentCrew ?? 0}/{activeShip?.maxCrew ?? 0}</strong></div>
-          <div style={styles.statCard}><span style={styles.statLabel}>Morale</span><strong>{formatMorale(activeShip?.morale)}</strong></div>
-          <div style={styles.statCard}><span style={styles.statLabel}>Supplies</span><strong>F {activeShip?.supplies.food.toFixed(0) ?? 0} / W {activeShip?.supplies.water.toFixed(0) ?? 0}</strong></div>
+          <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.money}</span><strong>{player?.money ?? 0} d</strong></div>
+          <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.ship}</span><strong>{shipType?.name ?? activeShip?.name ?? uiText.town.labels.none}</strong></div>
+          <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.cargo}</span><strong>{cargoUsage}</strong></div>
+          <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.crew}</span><strong>{activeShip?.currentCrew ?? 0}/{activeShip?.maxCrew ?? 0}</strong></div>
+          <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.morale}</span><strong>{formatMorale(activeShip?.morale)}</strong></div>
+          <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.supplies}</span><strong>食 {activeShip?.supplies.food.toFixed(0) ?? 0} / 水 {activeShip?.supplies.water.toFixed(0) ?? 0}</strong></div>
         </div>
 
         <section style={styles.questBanner}>
           <div style={styles.questBannerHeader}>
             <div>
-              <p style={styles.bannerLabel}>Active Quest</p>
-              <strong>{activeQuest?.title ?? 'No active quest'}</strong>
+              <p style={styles.bannerLabel}>{uiText.town.labels.activeQuest}</p>
+              <strong>{activeQuest?.title ?? uiText.town.labels.noActiveQuest}</strong>
             </div>
-            {activeQuest && <span style={styles.bannerMeta}>{formatQuestCategory(questCategory)} / {formatQuestRank(activeQuest.rank)} / {activeQuestDaysRemaining ?? '-'} days left</span>}
+            {activeQuest && <span style={styles.bannerMeta}>{formatQuestCategory(questCategory)} / {formatQuestRank(activeQuest.rank)} / {activeQuestDaysRemaining ?? '-'} {uiText.town.labels.daysLeft}</span>}
           </div>
           {!activeQuest && <p style={styles.bannerText}>ギルド依頼を受けると、ここに進行状況がまとまって表示されます。</p>}
           {activeQuest && (
             <>
               <div style={styles.bannerFacts}>
-                <span>{questDestination?.name ?? '-'} {' -> '} {questReportPort?.name ?? '-'}</span>
+                <span>{questDestination?.name ?? '-'} {uiText.town.labels.routeArrow} {questReportPort?.name ?? '-'}</span>
                 <span>{questGood?.name ?? '-'} x {activeQuest.metadata?.quantity ?? 0}</span>
                 <span>{rewardSummary}</span>
               </div>
               <div style={styles.bannerFacts}>
-                {activeQuest.objectives.map((objective) => <span key={`${activeQuest.id}-${objective.type}`}>{objective.current}/{objective.count} {objective.type}</span>)}
+                {activeQuest.objectives.map((objective) => <span key={`${activeQuest.id}-${objective.type}`}>{objective.current}/{objective.count} {formatObjectiveLabel(objective.type)}</span>)}
               </div>
               <div style={styles.bannerActions}>
                 {(questCategory === 'trade_delivery' || questCategory === 'trade_procurement') && (
                   <button style={styles.secondaryButton} disabled={!canDeliverQuest} onClick={() => handleAction(deliverTradeQuestCargo())}>{getQuestActionLabel(questCategory)}</button>
                 )}
-                <button style={styles.primaryButton} disabled={!canReportQuest} onClick={() => handleAction(turnInQuest())}>Report Complete</button>
+                <button style={styles.primaryButton} disabled={!canReportQuest} onClick={() => handleAction(turnInQuest())}>{uiText.town.labels.reportComplete}</button>
               </div>
             </>
           )}
@@ -304,14 +326,14 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
 
         <div style={styles.shell}>
           <aside style={styles.sidebar}>
-            {(Object.keys(SECTION_LABELS) as TownSection[]).filter((section) => section !== 'guild' || hasGuild).map((section) => (
+            {availableSections.map((section) => (
               <button key={section} style={section === activeSection ? { ...styles.navButton, ...styles.navButtonActive } : styles.navButton} onClick={() => setActiveSection(section)}>
                 {SECTION_LABELS[section]}
               </button>
             ))}
             <div style={styles.sidebarMeta}>
-              <span>Facilities</span>
-              <div style={styles.facilities}>{facilities.map((facility) => <span key={facility.type} style={styles.facilityChip}>{facility.type} Lv.{facility.level}</span>)}</div>
+              <span>{uiText.town.labels.facilities}</span>
+              <div style={styles.facilities}>{facilities.map((facility) => <span key={facility.type} style={styles.facilityChip}>{uiText.town.facilityNames[facility.type as keyof typeof uiText.town.facilityNames] ?? facility.type} Lv.{facility.level}</span>)}</div>
             </div>
           </aside>
 
@@ -320,14 +342,14 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
               <div style={styles.contentStack}>
                 <section style={{ ...styles.panel, ...styles.overviewHero }}>
                   <div style={styles.overviewCopy}>
-                    <p style={styles.overviewEyebrow}>Harbor View</p>
+                    <p style={styles.overviewEyebrow}>{uiText.town.labels.harborView}</p>
                     <h3 style={styles.overviewTitle}>{port.name} に停泊中</h3>
                     <p style={styles.overviewText}>ここは将来、街の2Dビジュアルや3D移動を載せるための導入画面です。今は必要最小限の港情報だけを表示しています。</p>
                   </div>
                   <div style={styles.overviewFacts}>
-                    <div style={styles.infoBlock}><span style={styles.infoLabel}>Port</span><strong>{port.nationality} / prosperity {port.prosperity}</strong><small>{summarizeFacilities(facilities)}</small></div>
-                    <div style={styles.infoBlock}><span style={styles.infoLabel}>Captain</span><strong>{player?.name ?? 'Unknown'}</strong><small>trade exp {player?.stats.tradeExp ?? 0} / fame {player?.stats.fame ?? 0}</small></div>
-                    <div style={styles.infoBlock}><span style={styles.infoLabel}>Ship</span><strong>{shipType?.name ?? activeShip?.name ?? 'None'}</strong><small>durability {activeShip?.currentDurability ?? 0}/{activeShip?.maxDurability ?? 0} / morale {formatMorale(activeShip?.morale)}</small></div>
+                    <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.port}</span><strong>{port.nationality} / 発展度 {port.prosperity}</strong><small>{summarizeFacilities(facilities)}</small></div>
+                    <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.captain}</span><strong>{player?.name ?? uiText.town.labels.unknown}</strong><small>交易経験 {player?.stats.tradeExp ?? 0} / 名声 {player?.stats.fame ?? 0}</small></div>
+                    <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.ship}</span><strong>{shipType?.name ?? activeShip?.name ?? uiText.town.labels.none}</strong><small>耐久 {activeShip?.currentDurability ?? 0}/{activeShip?.maxDurability ?? 0} / 士気 {formatMorale(activeShip?.morale)}</small></div>
                   </div>
                 </section>
               </div>
@@ -336,7 +358,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
             {visibleSection === 'guild' && hasGuild && (
               <div style={styles.contentStack}>
                 <section style={styles.panel}>
-                  <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>Guild Board</h3><span style={styles.panelHint}>条件と報酬を圧縮表示</span></div>
+                  <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>{uiText.town.labels.guildBoard}</h3><span style={styles.panelHint}>条件と報酬を圧縮表示</span></div>
                   <div style={styles.list}>
                     {availableQuests.map((quest) => {
                       const daysRemaining = getDaysRemaining(quest, day)
@@ -344,10 +366,10 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                         <div key={quest.id} style={styles.compactActionRow}>
                           <div style={styles.tradeMeta}>
                             <strong>{quest.title}</strong>
-                            <span style={styles.tradeSub}>{formatQuestCategory(quest.metadata?.category)} / {formatQuestRank(quest.rank)} / fame {quest.requiredFame ?? 0} / lv {quest.requiredLevel ?? 1} / {daysRemaining ?? '-'} days</span>
+                            <span style={styles.tradeSub}>{formatQuestCategory(quest.metadata?.category)} / {formatQuestRank(quest.rank)} / 名声 {quest.requiredFame ?? 0} / 必要Lv {quest.requiredLevel ?? 1} / 残り {daysRemaining ?? '-'} 日</span>
                             <span style={styles.tradeSub}>{quest.rewards.map(formatReward).join(' / ')}</span>
                           </div>
-                          <button style={styles.primaryButton} disabled={Boolean(activeQuest)} onClick={() => handleAction(acceptQuest(quest.id, port.id))}>Accept</button>
+                          <button style={styles.primaryButton} disabled={Boolean(activeQuest)} onClick={() => handleAction(acceptQuest(quest.id, port.id))}>受注する</button>
                         </div>
                       )
                     })}
@@ -357,11 +379,56 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
               </div>
             )}
 
-            {visibleSection === 'market' && (
+            {visibleSection === 'departure' && (
+              <div style={styles.contentStack}>
+                <section style={{ ...styles.panel, ...styles.featurePanel }}>
+                  <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>{uiText.town.labels.shipMaintenance}</h3><span style={styles.panelHint}>補給と修理を済ませてから出航</span></div>
+                  <div style={styles.serviceColumns}>
+                    <div style={styles.featureBanner}>
+                      <span style={shipyardFacility ? styles.featureBadge : styles.featureBadgeMuted}>{shipyardFacility ? uiText.town.labels.shipyard : uiText.town.labels.workshop}</span>
+                      <div>
+                        <strong>{shipyardFacility ? `${uiText.town.labels.shipyard} Lv.${shipyardLevel}` : uiText.town.labels.emergencyWorkshop}</strong>
+                        <div style={styles.featureText}>{shipyardFacility ? '通常修理とオーバーホールが利用できます。' : 'この港では応急修理のみ可能です。'}</div>
+                      </div>
+                    </div>
+                    <div style={styles.infoGridCompact}>
+                      <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.supplies}</span><strong>{activeShip?.supplies.food.toFixed(0) ?? 0} / {activeShip?.supplies.water.toFixed(0) ?? 0}</strong><small>{SUPPLY_STEP} 単位補給または満タン補給</small></div>
+                      <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.nav.durability}</span><strong>{activeShip?.currentDurability ?? 0} / {activeShip?.maxDurability ?? 0}</strong><small>{shipyardFacility ? `${uiText.town.labels.shipyard} Lv.${shipyardLevel}` : '簡易工房のみ'}</small></div>
+                    </div>
+                    <div>
+                      <p style={styles.serviceLabel}>{uiText.town.labels.suppliesAction}</p>
+                      <div style={styles.serviceGrid}>
+                        <button style={styles.secondaryButton} onClick={() => handleAction(resupplyShip('food', SUPPLY_STEP))}>食料 +{SUPPLY_STEP}</button>
+                        <button style={styles.secondaryButton} onClick={() => handleAction(resupplyShip('water', SUPPLY_STEP))}>水 +{SUPPLY_STEP}</button>
+                        <button style={styles.primaryButton} onClick={() => handleAction(resupplyShip('all'))}>{uiText.town.labels.fullResupply}</button>
+                      </div>
+                    </div>
+                    <div>
+                      <p style={styles.serviceLabel}>{uiText.town.labels.repair}</p>
+                      <div style={styles.serviceGrid}>
+                        <button style={styles.secondaryButton} disabled={missingDurability <= 0} onClick={() => handleAction(repairShip('emergency', emergencyPreview || undefined, shipyardLevel))}>応急修理 {emergencyRepairCost} d</button>
+                        {shipyardFacility && standardRepairPreview.map(({ amount, cost }) => <button key={`repair-${amount}`} style={styles.secondaryButton} disabled={missingDurability <= 0} onClick={() => handleAction(repairShip('standard', amount, shipyardLevel))}>{uiText.town.labels.repair} {amount} {cost} d</button>)}
+                        {shipyardFacility && <button style={styles.primaryButton} disabled={missingDurability <= 0} onClick={() => handleAction(repairShip('overhaul', undefined, shipyardLevel))}>{uiText.town.labels.overhaul} {overhaulCost} d</button>}
+                      </div>
+                      <div style={styles.serviceNote}>{shipyardFacility ? 'オーバーホールは耐久を全快し、消耗の蓄積も整えます。' : '造船所がない港では応急修理のみ可能です。'}</div>
+                    </div>
+                    <div style={styles.departRow}>
+                      <button style={styles.leaveButton} onClick={() => {
+                        const nav = useNavigationStore.getState()
+                        nav.departPort(nav.heading)
+                        setPhase('playing')
+                      }}>{uiText.town.labels.depart}</button>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            )}
+
+            {visibleSection === 'market' && hasMarket && (
               <div style={styles.contentStack}>
                 <div style={styles.twoCol}>
                   <section style={styles.panel}>
-                    <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>Buy</h3><span style={styles.panelHint}>1行で判断できる形</span></div>
+                    <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>{uiText.town.labels.buy}</h3><span style={styles.panelHint}>1行で判断できる形</span></div>
                     <div style={styles.list}>
                       {marketRows.map(({ item, good, quantity, quote, limit }) => {
                         const totalWeight = good.weight * quantity
@@ -371,15 +438,15 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                           <div key={good.id} style={styles.marketRowDense}>
                             <div style={styles.tradeMeta}>
                               <strong>{good.name}</strong>
-                              <span style={styles.tradeSub}>{quote?.unitPrice ?? item.currentPrice} d / stock {item.stock} / limit {limit} / {item.trend}</span>
+                              <span style={styles.tradeSub}>{quote?.unitPrice ?? item.currentPrice} d / 在庫 {item.stock} / 上限 {limit} / {item.trend}</span>
                               {purchaseCap <= 0 && <span style={styles.tradeBlocked}>この港では今日はこれ以上買えません。</span>}
                               {exceedsCap && <span style={styles.tradeBlocked}>数量が購入上限を超えています。</span>}
                             </div>
                             <div style={styles.tradeControlsDense}>
                               <input type="number" min={1} max={Math.max(1, purchaseCap)} value={quantity} onChange={(e) => setQuantity(good.id, Number(e.target.value))} style={styles.quantityInput} disabled={purchaseCap <= 0} />
                               <span style={styles.compactFigure}>{quote?.totalPrice ?? item.currentPrice} d</span>
-                              <span style={styles.compactFigure}>{totalWeight.toFixed(1)} cargo</span>
-                              <button style={styles.primaryButton} disabled={purchaseCap <= 0 || exceedsCap} onClick={() => handleAction(buyGood(port.id, good.id, quantity))}>Buy</button>
+                              <span style={styles.compactFigure}>積載 {totalWeight.toFixed(1)}</span>
+                              <button style={styles.primaryButton} disabled={purchaseCap <= 0 || exceedsCap} onClick={() => handleAction(buyGood(port.id, good.id, quantity))}>{uiText.town.labels.buyAction}</button>
                             </div>
                           </div>
                         )
@@ -388,7 +455,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                   </section>
 
                   <section style={styles.panel}>
-                    <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>Sell</h3><span style={styles.panelHint}>利益が見える形</span></div>
+                    <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>{uiText.town.labels.sell}</h3><span style={styles.panelHint}>利益が見える形</span></div>
                     <div style={styles.list}>
                       {cargoRows.length === 0 && <div style={styles.emptyState}>積荷はまだありません。</div>}
                       {cargoRows.map(({ slot, good, quantity, quote }) => {
@@ -397,13 +464,13 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                           <div key={good.id} style={styles.marketRowDense}>
                             <div style={styles.tradeMeta}>
                               <strong>{good.name}</strong>
-                              <span style={styles.tradeSub}>have {slot.quantity} / sell {quote?.unitPrice ?? 0} d / profit {estimatedProfit >= 0 ? '+' : ''}{estimatedProfit} d</span>
+                              <span style={styles.tradeSub}>所持 {slot.quantity} / 売値 {quote?.unitPrice ?? 0} d / 利益 {estimatedProfit >= 0 ? '+' : ''}{estimatedProfit} d</span>
                             </div>
                             <div style={styles.tradeControlsDense}>
                               <input type="number" min={1} max={slot.quantity} value={quantity} onChange={(e) => setQuantity(good.id, Number(e.target.value))} style={styles.quantityInput} />
                               <span style={styles.compactFigure}>{quote?.totalPrice ?? 0} d</span>
-                              <span style={styles.compactFigure}>{(good.weight * quantity).toFixed(1)} cargo</span>
-                              <button style={styles.secondaryButton} onClick={() => handleAction(sellGood(port.id, good.id, quantity))}>Sell</button>
+                              <span style={styles.compactFigure}>積載 {(good.weight * quantity).toFixed(1)}</span>
+                              <button style={styles.secondaryButton} onClick={() => handleAction(sellGood(port.id, good.id, quantity))}>売却</button>
                             </div>
                           </div>
                         )
@@ -414,86 +481,47 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
               </div>
             )}
 
-            {visibleSection === 'services' && (
+            {visibleSection === 'tavern' && tavernFacility && (
               <div style={styles.contentStack}>
-                <div style={styles.twoCol}>
-                  <section style={{ ...styles.panel, ...styles.featurePanel }}>
-                    <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>Tavern</h3><span style={styles.panelHint}>士気と雇用</span></div>
-                    {tavernFacility ? (
-                      <div style={styles.serviceColumns}>
-                        <div style={styles.featureBanner}>
-                          <span style={styles.featureBadge}>Open</span>
-                          <div>
-                            <strong>Harbor Tavern Lv.{tavernLevel}</strong>
-                            <div style={styles.featureText}>士気 {getMoraleTone(activeShip?.morale)} / 新規雇用 {tavernRecruitUnitCost} d</div>
-                          </div>
-                        </div>
-                        <div style={styles.infoGridCompact}>
-                          <div style={styles.infoBlock}><span style={styles.infoLabel}>Mood</span><strong>{formatMorale(activeShip?.morale)}</strong><small>meal で小回復 / rounds で大回復</small></div>
-                          <div style={styles.infoBlock}><span style={styles.infoLabel}>Recruitment</span><strong>{tavernRecruitUnitCost} d / crew</strong><small>酒場 Lv.{tavernLevel} の割引を反映</small></div>
-                        </div>
-                        <div>
-                          <p style={styles.serviceLabel}>Morale Care</p>
-                          <div style={styles.serviceGrid}>
-                            <button style={styles.secondaryButton} onClick={() => handleAction(visitTavern('meal', undefined, tavernLevel))}>Crew Meal {tavernMealCost} d</button>
-                            <button style={styles.primaryButton} onClick={() => handleAction(visitTavern('rounds', undefined, tavernLevel))}>Buy Rounds {tavernRoundsCost} d</button>
-                          </div>
-                        </div>
-                        <div>
-                          <p style={styles.serviceLabel}>Recruit</p>
-                          <div style={styles.serviceGrid}>
-                            {CREW_HIRE_AMOUNTS.map((amount) => <button key={`crew-${amount}`} style={styles.secondaryButton} onClick={() => handleAction(visitTavern('recruit', amount, tavernLevel))}>Hire {amount}</button>)}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={styles.emptyState}>この港には酒場がありません。船員の士気調整と雇用はできません。</div>
-                    )}
-                  </section>
-
-                  <section style={{ ...styles.panel, ...styles.featurePanel }}>
-                    <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>Ship Maintenance</h3><span style={styles.panelHint}>補給と修理</span></div>
-                    <div style={styles.serviceColumns}>
-                      <div style={styles.featureBanner}>
-                        <span style={shipyardFacility ? styles.featureBadge : styles.featureBadgeMuted}>{shipyardFacility ? 'Shipyard' : 'Workshop'}</span>
-                        <div>
-                          <strong>{shipyardFacility ? `Shipyard Lv.${shipyardLevel}` : 'Emergency Workshop'}</strong>
-                          <div style={styles.featureText}>{shipyardFacility ? '通常修理とオーバーホールが利用できます。' : 'この港では応急修理のみ可能です。'}</div>
-                        </div>
-                      </div>
-                      <div style={styles.infoGridCompact}>
-                        <div style={styles.infoBlock}><span style={styles.infoLabel}>Supplies</span><strong>{activeShip?.supplies.food.toFixed(0) ?? 0} / {activeShip?.supplies.water.toFixed(0) ?? 0}</strong><small>{SUPPLY_STEP} 単位補給または満タン補給</small></div>
-                        <div style={styles.infoBlock}><span style={styles.infoLabel}>Durability</span><strong>{activeShip?.currentDurability ?? 0} / {activeShip?.maxDurability ?? 0}</strong><small>{shipyardFacility ? `shipyard Lv.${shipyardLevel}` : '簡易工房のみ'}</small></div>
-                      </div>
+                <section style={{ ...styles.panel, ...styles.featurePanel }}>
+                  <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>{uiText.town.labels.tavern}</h3><span style={styles.panelHint}>士気と雇用</span></div>
+                  <div style={styles.serviceColumns}>
+                    <div style={styles.featureBanner}>
+                      <span style={styles.featureBadge}>{uiText.town.labels.tavern}</span>
                       <div>
-                        <p style={styles.serviceLabel}>Supplies</p>
-                        <div style={styles.serviceGrid}>
-                          <button style={styles.secondaryButton} onClick={() => handleAction(resupplyShip('food', SUPPLY_STEP))}>Food +{SUPPLY_STEP}</button>
-                          <button style={styles.secondaryButton} onClick={() => handleAction(resupplyShip('water', SUPPLY_STEP))}>Water +{SUPPLY_STEP}</button>
-                          <button style={styles.primaryButton} onClick={() => handleAction(resupplyShip('all'))}>Full Resupply</button>
-                        </div>
-                      </div>
-                      <div>
-                        <p style={styles.serviceLabel}>Repair</p>
-                        <div style={styles.serviceGrid}>
-                          <button style={styles.secondaryButton} disabled={missingDurability <= 0} onClick={() => handleAction(repairShip('emergency', emergencyPreview || undefined, shipyardLevel))}>Emergency Patch {emergencyRepairCost} d</button>
-                          {shipyardFacility && standardRepairPreview.map(({ amount, cost }) => <button key={`repair-${amount}`} style={styles.secondaryButton} disabled={missingDurability <= 0} onClick={() => handleAction(repairShip('standard', amount, shipyardLevel))}>Repair {amount} {cost} d</button>)}
-                          {shipyardFacility && <button style={styles.primaryButton} disabled={missingDurability <= 0} onClick={() => handleAction(repairShip('overhaul', undefined, shipyardLevel))}>Overhaul {overhaulCost} d</button>}
-                        </div>
-                        <div style={styles.serviceNote}>{shipyardFacility ? 'オーバーホールは耐久を全快し、消耗の蓄積も整えます。' : '造船所がない港では応急修理のみ可能です。'}</div>
+                        <strong>{uiText.town.labels.tavern} Lv.{tavernLevel}</strong>
+                        <div style={styles.featureText}>士気 {getMoraleTone(activeShip?.morale)} / 新規雇用 {tavernRecruitUnitCost} d</div>
                       </div>
                     </div>
-                  </section>
-                </div>
+                    <div style={styles.infoGridCompact}>
+                      <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.mood}</span><strong>{formatMorale(activeShip?.morale)}</strong><small>食事で小回復 / 景気づけで大回復</small></div>
+                      <div style={styles.infoBlock}><span style={styles.infoLabel}>雇用単価</span><strong>{tavernRecruitUnitCost} d / 人</strong><small>酒場 Lv.{tavernLevel} の割引を反映</small></div>
+                    </div>
+                    <div>
+                      <p style={styles.serviceLabel}>士気回復</p>
+                      <div style={styles.serviceGrid}>
+                        <button style={styles.secondaryButton} onClick={() => handleAction(visitTavern('meal', undefined, tavernLevel))}>船員に食事 {tavernMealCost} d</button>
+                        <button style={styles.primaryButton} onClick={() => handleAction(visitTavern('rounds', undefined, tavernLevel))}>景気づけ {tavernRoundsCost} d</button>
+                      </div>
+                    </div>
+                    <div>
+                      <p style={styles.serviceLabel}>船員雇用</p>
+                      <div style={styles.serviceGrid}>
+                        {CREW_HIRE_AMOUNTS.map((amount) => <button key={`crew-${amount}`} style={styles.secondaryButton} onClick={() => handleAction(visitTavern('recruit', amount, tavernLevel))}>{amount} 人雇う</button>)}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            )}
 
-
+            {visibleSection === 'shipyard' && shipyardFacility && (
+              <div style={styles.contentStack}>
                 <section style={styles.panel}>
-                  <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>Shipyard</h3><span style={styles.panelHint}>購入と旗艦切替</span></div>
-                  {!shipyardFacility && <div style={styles.emptyState}>この港では新造船の購入はできません。</div>}
-                  {shipyardFacility && (
-                    <div style={styles.contentStack}>
+                  <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>{uiText.town.labels.shipyard}</h3><span style={styles.panelHint}>購入と旗艦切替</span></div>
+                  <div style={styles.contentStack}>
                       <div>
-                        <p style={styles.serviceLabel}>Owned Ships</p>
+                        <p style={styles.serviceLabel}>{uiText.town.labels.ownedShips}</p>
                         <div style={styles.list}>
                           {ships.map((ship) => {
                             const type = getShip(ship.typeId)
@@ -501,18 +529,18 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                             return (
                               <div key={ship.instanceId} style={styles.compactActionRow}>
                                 <div style={styles.tradeMeta}>
-                                  <strong>{type?.name ?? ship.name}{isActive ? ' / Active' : ''}</strong>
-                                  <span style={styles.tradeSub}>crew {ship.currentCrew}/{ship.maxCrew} / hull {ship.currentDurability}/{ship.maxDurability} / cargo {ship.usedCapacity}/{ship.maxCapacity}</span>
-                                  <span style={styles.tradeSub}>speed {type?.speed ?? '-'} / turn {type?.turnRate ?? '-'} / cannons {type?.cannonSlots ?? '-'}</span>
+                                  <strong>{type?.name ?? ship.name}{isActive ? ` / ${uiText.town.labels.active}` : ''}</strong>
+                                  <span style={styles.tradeSub}>船員 {ship.currentCrew}/{ship.maxCrew} / 船体 {ship.currentDurability}/{ship.maxDurability} / 積荷 {ship.usedCapacity}/{ship.maxCapacity}</span>
+                                  <span style={styles.tradeSub}>速力 {type?.speed ?? '-'} / 旋回 {type?.turnRate ?? '-'} / 砲門 {type?.cannonSlots ?? '-'}</span>
                                 </div>
-                                <button style={isActive ? styles.secondaryButton : styles.primaryButton} disabled={isActive} onClick={() => { setActiveShip(ship.instanceId); handleAction({ message: `${type?.name ?? ship.name} を旗艦に設定しました。` }) }}>Set Active</button>
+                                <button style={isActive ? styles.secondaryButton : styles.primaryButton} disabled={isActive} onClick={() => { setActiveShip(ship.instanceId); handleAction({ message: `${type?.name ?? ship.name} を旗艦に設定しました。` }) }}>{uiText.town.labels.setActive}</button>
                               </div>
                             )
                           })}
                         </div>
                       </div>
                       <div>
-                        <p style={styles.serviceLabel}>Shipyard Offers</p>
+                        <p style={styles.serviceLabel}>{uiText.town.labels.shipyardOffers}</p>
                           <div style={styles.list}>
                             {shipyardOffers.length === 0 && <div style={styles.emptyState}>現在購入できる未保有船はありません。</div>}
                             {shipyardOffers.map((ship) => {
@@ -523,27 +551,28 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                               <div key={ship.id} style={styles.compactActionRow}>
                                 <div style={styles.tradeMeta}>
                                   <strong>{ship.name}</strong>
-                                  <span style={styles.tradeSub}>{ship.price} d / req lv {ship.requiredLevel} / shipyard lv {requiredFacility}</span>
-                                  <span style={styles.tradeSub}>cargo {ship.capacity} / hull {ship.durability.max} / crew {ship.crew.min}-{ship.crew.max} / cannons {ship.cannonSlots} / speed {ship.speed}</span>
+                                  <span style={styles.tradeSub}>{ship.price} d / 必要Lv {ship.requiredLevel} / 造船所Lv {requiredFacility}</span>
+                                  <span style={styles.tradeSub}>積載 {ship.capacity} / 船体 {ship.durability.max} / 船員 {ship.crew.min}-{ship.crew.max} / 砲門 {ship.cannonSlots} / 速力 {ship.speed}</span>
                                   {(blockedByLevel || blockedByFacility) && <span style={styles.tradeBlocked}>{blockedByLevel ? 'レベル不足' : '造船所レベル不足'}</span>}
                                 </div>
-                                <button style={styles.primaryButton} disabled={blockedByLevel || blockedByFacility || (player?.money ?? 0) < ship.price} onClick={() => handleAction(purchaseShip(ship.id, shipyardLevel))}>Buy</button>
+                                <button style={styles.primaryButton} disabled={blockedByLevel || blockedByFacility || (player?.money ?? 0) < ship.price} onClick={() => handleAction(purchaseShip(ship.id, shipyardLevel))}>{uiText.town.labels.buyAction}</button>
                               </div>
                               )
                             })}
                           </div>
                             <div style={styles.outfitPanel}>
                               <div style={styles.outfitHeader}>
-                                <span>Outfitting</span>
-                                <span>Rigging Lv {riggingLevel} / Cargo Lv {cargoLevel}</span>
+                                <span>{uiText.town.labels.outfitting}</span>
+                                <span>帆装 Lv {riggingLevel} / 船倉 Lv {cargoLevel} / 砲装 Lv {gunneryLevel}</span>
                               </div>
                               <div style={styles.outfitSummary}>
-                                <span>Current bonus: speed +{riggingLevel * 4}% / turn +{riggingLevel * 6}%</span>
-                                <span>Load state: {(loadRatio * 100).toFixed(0)}% full / cargo rig mitigation Lv {cargoLevel}</span>
+                                <span>{uiText.town.labels.currentBonus}: 速力 +{riggingLevel * 4}% / 旋回 +{riggingLevel * 6}%</span>
+                                <span>{uiText.town.labels.loadState}: {(loadRatio * 100).toFixed(0)}% / 船倉補強 Lv {cargoLevel}</span>
+                                <span>{uiText.town.labels.batteryDrill}: 砲撃 +{gunneryLevel * 8}% / 白兵圧 +{gunneryLevel * 4}%</span>
                               </div>
                               <div style={styles.outfitGrid}>
                                 {OUTFIT_OPTIONS.map((option) => {
-                                const level = option.option === 'rigging' ? riggingLevel : cargoLevel
+                                const level = option.option === 'rigging' ? riggingLevel : option.option === 'cargo' ? cargoLevel : gunneryLevel
                                 const cost = outfitCost(option.option, level)
                                 const isMaxed = outfitLocked(level)
                                 const disabled = !activeShip || isMaxed || (player?.money ?? 0) < cost
@@ -551,9 +580,9 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                                   <div key={option.option} style={styles.outfitCard}>
                                     <strong>{option.label}</strong>
                                     <span style={styles.outfitNote}>{option.description}</span>
-                                    <span style={styles.outfitMeta}>{isMaxed ? 'Maxed' : `Cost ${cost} d / Lv ${level + 1}`}</span>
+                                    <span style={styles.outfitMeta}>{isMaxed ? uiText.town.labels.maxed : `費用 ${cost} d / Lv ${level + 1}`}</span>
                                     <button style={styles.primaryButton} disabled={disabled} onClick={() => handleAction(outfitShip(option.option))}>
-                                      {isMaxed ? 'Maxed' : 'Apply'}
+                                      {isMaxed ? uiText.town.labels.maxed : uiText.town.labels.apply}
                                     </button>
                                   </div>
                                 )
@@ -562,33 +591,37 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                           </div>
                         </div>
                     </div>
-                  )}
                 </section>
+              </div>
+            )}
+
+            {visibleSection === 'bank' && hasBank && (
+              <div style={styles.contentStack}>
                 <section style={styles.panel}>
-                  <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>Finance & Investment</h3><span style={styles.panelHint}>港でまとめて済ませる</span></div>
+                  <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>{uiText.town.labels.financeAndInvestment}</h3><span style={styles.panelHint}>港でまとめて済ませる</span></div>
                   <div style={styles.serviceColumns}>
                     <div>
-                      <p style={styles.serviceLabel}>Investment</p>
-                      <div style={styles.serviceGrid}>{INVEST_AMOUNTS.map((amount) => <button key={amount} style={styles.secondaryButton} onClick={() => handleAction(investInPort(port.id, amount))}>{amount} Invest</button>)}</div>
+                      <p style={styles.serviceLabel}>{uiText.town.labels.investment}</p>
+                      <div style={styles.serviceGrid}>{INVEST_AMOUNTS.map((amount) => <button key={amount} style={styles.secondaryButton} onClick={() => handleAction(investInPort(port.id, amount))}>{amount} {uiText.town.labels.investAction}</button>)}</div>
                     </div>
                     <div>
-                      <p style={styles.serviceLabel}>Bank</p>
+                      <p style={styles.serviceLabel}>{uiText.town.labels.bank}</p>
                       <div style={styles.serviceGrid}>
-                        {BANK_AMOUNTS.map((amount) => <button key={`d-${amount}`} style={styles.secondaryButton} onClick={() => handleAction(depositMoney(amount))}>{amount} Deposit</button>)}
-                        {BANK_AMOUNTS.map((amount) => <button key={`w-${amount}`} style={styles.secondaryButton} onClick={() => handleAction(withdrawMoney(amount))}>{amount} Withdraw</button>)}
-                        {BANK_AMOUNTS.map((amount) => <button key={`b-${amount}`} style={styles.secondaryButton} onClick={() => handleAction(borrowMoney(amount))}>{amount} Borrow</button>)}
-                        {BANK_AMOUNTS.map((amount) => <button key={`r-${amount}`} style={styles.secondaryButton} onClick={() => handleAction(repayDebt(amount))}>{amount} Repay</button>)}
+                        {BANK_AMOUNTS.map((amount) => <button key={`d-${amount}`} style={styles.secondaryButton} onClick={() => handleAction(depositMoney(amount))}>{amount} {uiText.town.labels.deposit}</button>)}
+                        {BANK_AMOUNTS.map((amount) => <button key={`w-${amount}`} style={styles.secondaryButton} onClick={() => handleAction(withdrawMoney(amount))}>{amount} {uiText.town.labels.withdraw}</button>)}
+                        {BANK_AMOUNTS.map((amount) => <button key={`b-${amount}`} style={styles.secondaryButton} onClick={() => handleAction(borrowMoney(amount))}>{amount} {uiText.town.labels.borrow}</button>)}
+                        {BANK_AMOUNTS.map((amount) => <button key={`r-${amount}`} style={styles.secondaryButton} onClick={() => handleAction(repayDebt(amount))}>{amount} {uiText.town.labels.repay}</button>)}
                       </div>
                     </div>
                   </div>
                 </section>
               </div>
-              )}
+            )}
             {visibleSection === 'inventory' && (
               <div style={styles.contentStack}>
                 <section style={styles.panel}>
                   <div style={styles.panelHeader}>
-                    <h3 style={styles.sectionTitle}>Inventory</h3>
+                    <h3 style={styles.sectionTitle}>{uiText.town.labels.inventory}</h3>
                     <span style={styles.panelHint}>クエスト報酬や保管品を確認・売却</span>
                   </div>
                   {inventoryRows.length === 0 ? (
@@ -596,9 +629,9 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                   ) : (
                     <>
                       <div style={styles.infoBlock}>
-                        <span style={styles.infoLabel}>Total Value</span>
+                        <span style={styles.infoLabel}>{uiText.town.labels.totalValue}</span>
                         <strong>{inventoryTotalValue} d</strong>
-                        <small>Sell は 78% の価格で即時入金されます。</small>
+                        <small>78% の価格で即時入金されます。</small>
                       </div>
                       <div style={styles.list}>
                         {inventoryRows.map((entry) => (
@@ -606,10 +639,10 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                             <div style={styles.tradeMeta}>
                               <strong>{entry.name}</strong>
                               <span style={styles.tradeSub}>{entry.description}</span>
-                              <span style={styles.tradeSub}>x{entry.quantity} / {entry.unitValue} d each / {entry.totalValue} d total</span>
+                              <span style={styles.tradeSub}>x{entry.quantity} / 単価 {entry.unitValue} d / 合計 {entry.totalValue} d</span>
                             </div>
                             <button style={styles.primaryButton} onClick={() => handleAction(sellInventoryItem(entry.itemId, entry.quantity, entry.unitValue))}>
-                              Sell All
+                              {uiText.town.labels.sellAll}
                             </button>
                           </div>
                         ))}
@@ -676,6 +709,7 @@ const styles: Record<string, React.CSSProperties> = {
   emptyState: { color: '#7b8fab', fontSize: 13, padding: '14px 4px' },
   serviceGrid: { display: 'flex', flexWrap: 'wrap', gap: 10 },
   serviceColumns: { display: 'grid', gridTemplateColumns: '1fr', gap: 16 },
+  departRow: { display: 'flex', justifyContent: 'flex-end', paddingTop: 4 },
   featurePanel: { border: '1px solid rgba(112, 170, 228, 0.16)', background: 'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.035))' },
   featureBanner: { display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 14, background: 'linear-gradient(135deg, rgba(29,78,216,0.18), rgba(14,165,233,0.10))', border: '1px solid rgba(112, 170, 228, 0.16)' },
   featureBadge: { padding: '6px 10px', borderRadius: 999, background: 'rgba(37, 99, 235, 0.7)', color: '#fff', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' },

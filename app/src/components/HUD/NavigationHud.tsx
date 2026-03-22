@@ -6,12 +6,13 @@ import { useDataStore } from '@/stores/useDataStore.ts'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { useEncounterStore } from '@/stores/useEncounterStore.ts'
 import { getNearestPort } from '@/game/world/queries.ts'
+import { uiText } from '@/i18n/uiText.ts'
 
 function formatMoraleLabel(morale: number | null): string {
   if (morale == null) return '-'
-  if (morale >= 80) return `${morale.toFixed(0)} high`
-  if (morale >= 45) return `${morale.toFixed(0)} steady`
-  return `${morale.toFixed(0)} low`
+  if (morale >= 80) return `${morale.toFixed(0)} ${uiText.nav.moraleLabels.high}`
+  if (morale >= 45) return `${morale.toFixed(0)} ${uiText.nav.moraleLabels.steady}`
+  return `${morale.toFixed(0)} ${uiText.nav.moraleLabels.low}`
 }
 
 export function NavigationHud() {
@@ -35,57 +36,60 @@ export function NavigationHud() {
   const crewRatio = activeShip && shipType ? activeShip.currentCrew / Math.max(1, shipType.crew.min) : null
   const riggingLevel = activeShip?.upgrades?.rigging ?? 0
   const cargoUpgradeLevel = activeShip?.upgrades?.cargo ?? 0
+  const gunneryLevel = activeShip?.upgrades?.gunnery ?? 0
   const loadRatio = activeShip ? activeShip.usedCapacity / Math.max(1, activeShip.maxCapacity) : 0
   const speedBonus = riggingLevel * 4
   const turnBonus = riggingLevel * 6
+  const cannonBonus = gunneryLevel * 8
 
   // 帆走状態の表示
-  const modeLabel = navigation.mode === 'docked' ? '停泊中'
-    : navigation.mode === 'anchored' ? '投錨中'
-    : navigation.mode === 'sailing' ? '航海中'
-    : navigation.mode === 'combat' ? '戦闘中'
+  const modeLabel = navigation.mode === 'docked' ? uiText.nav.modeLabels.docked
+    : navigation.mode === 'anchored' ? uiText.nav.modeLabels.anchored
+    : navigation.mode === 'sailing' ? uiText.nav.modeLabels.sailing
+    : navigation.mode === 'combat' ? uiText.nav.modeLabels.combat
     : navigation.mode
 
   return (
     <div style={styles.panel}>
-      <div style={styles.row}><span style={styles.label}>Mode</span><strong>{modeLabel}</strong></div>
-      <div style={styles.row}><span style={styles.label}>Ship</span><span>{shipType?.name ?? activeShip?.name ?? 'none'}</span></div>
-      <div style={styles.row}><span style={styles.label}>Base Speed</span><span>{shipType?.speed ?? '-'} kt</span></div>
-      <div style={styles.row}><span style={styles.label}>Turn</span><span>{shipType?.turnRate ?? '-'} deg/s</span></div>
-      <div style={styles.row}><span style={styles.label}>Durability</span><span>{activeShip?.currentDurability ?? '-'} / {activeShip?.maxDurability ?? '-'}</span></div>
-      <div style={styles.row}><span style={styles.label}>Crew</span><span>{activeShip?.currentCrew ?? '-'} / {activeShip?.maxCrew ?? '-'}</span></div>
-      <div style={styles.row}><span style={styles.label}>Morale</span><span>{formatMoraleLabel(activeShip?.morale ?? null)}</span></div>
-      <div style={styles.row}><span style={styles.label}>Rigging</span><span>Lv {riggingLevel} / speed +{speedBonus}% / turn +{turnBonus}%</span></div>
-      <div style={styles.row}><span style={styles.label}>Cargo Rig</span><span>Lv {cargoUpgradeLevel} / load {(loadRatio * 100).toFixed(0)}%</span></div>
-      <div style={styles.row}><span style={styles.label}>Crew Load</span><span>{crewRatio ? `${crewRatio.toFixed(2)}x req` : '-'}</span></div>
-      <div style={styles.row}><span style={styles.label}>Food</span><span>{activeShip ? activeShip.supplies.food.toFixed(1) : '-'} / {activeShip?.supplies.maxFood ?? '-'}</span></div>
-      <div style={styles.row}><span style={styles.label}>Water</span><span>{activeShip ? activeShip.supplies.water.toFixed(1) : '-'} / {activeShip?.supplies.maxWater ?? '-'}</span></div>
-      <div style={styles.row}><span style={styles.label}>Position</span><span>{navigation.position.x.toFixed(1)}, {navigation.position.y.toFixed(1)}</span></div>
-      <div style={styles.row}><span style={styles.label}>Speed</span><span>{navigation.currentSpeed.toFixed(1)} kt</span></div>
-      <div style={styles.row}><span style={styles.label}>Sail</span><span>{Math.round(navigation.sailRatio * 100)}%</span></div>
-      <div style={styles.row}><span style={styles.label}>Wind</span><span>{navigation.wind.direction.toFixed(0)} deg / {navigation.wind.speed.toFixed(1)} kt</span></div>
-      <div style={styles.row}><span style={styles.label}>Nearest Port</span><span>{nearest ? `${nearest.port.name} (${nearest.distanceKm.toFixed(1)} km)` : 'none'}</span></div>
-      {player && <div style={styles.row}><span style={styles.label}>Captain</span><span>{player.name}</span></div>}
-      {encounter && <div style={styles.alert}>Encounter: {encounter.title}</div>}
+      <div style={styles.row}><span style={styles.label}>{uiText.nav.mode}</span><strong>{modeLabel}</strong></div>
+      <div style={styles.row}><span style={styles.label}>{uiText.nav.ship}</span><span>{shipType?.name ?? activeShip?.name ?? uiText.nav.none}</span></div>
+      <div style={styles.row}><span style={styles.label}>{uiText.nav.baseSpeed}</span><span>{shipType?.speed ?? '-'} kt</span></div>
+      <div style={styles.row}><span style={styles.label}>{uiText.nav.turn}</span><span>{shipType?.turnRate ?? '-'} deg/s</span></div>
+      <div style={styles.row}><span style={styles.label}>{uiText.nav.durability}</span><span>{activeShip?.currentDurability ?? '-'} / {activeShip?.maxDurability ?? '-'}</span></div>
+      <div style={styles.row}><span style={styles.label}>{uiText.nav.crew}</span><span>{activeShip?.currentCrew ?? '-'} / {activeShip?.maxCrew ?? '-'}</span></div>
+      <div style={styles.row}><span style={styles.label}>{uiText.nav.morale}</span><span>{formatMoraleLabel(activeShip?.morale ?? null)}</span></div>
+      <div style={styles.row}><span style={styles.label}>{uiText.nav.rigging}</span><span>Lv {riggingLevel} / speed +{speedBonus}% / turn +{turnBonus}%</span></div>
+      <div style={styles.row}><span style={styles.label}>{uiText.nav.cargoRig}</span><span>Lv {cargoUpgradeLevel} / load {(loadRatio * 100).toFixed(0)}%</span></div>
+      <div style={styles.row}><span style={styles.label}>{uiText.nav.gunnery}</span><span>Lv {gunneryLevel} / cannon +{cannonBonus}%</span></div>
+      <div style={styles.row}><span style={styles.label}>{uiText.nav.crewLoad}</span><span>{crewRatio ? `${crewRatio.toFixed(2)}x` : '-'}</span></div>
+      <div style={styles.row}><span style={styles.label}>{uiText.nav.food}</span><span>{activeShip ? activeShip.supplies.food.toFixed(1) : '-'} / {activeShip?.supplies.maxFood ?? '-'}</span></div>
+      <div style={styles.row}><span style={styles.label}>{uiText.nav.water}</span><span>{activeShip ? activeShip.supplies.water.toFixed(1) : '-'} / {activeShip?.supplies.maxWater ?? '-'}</span></div>
+      <div style={styles.row}><span style={styles.label}>{uiText.nav.position}</span><span>{navigation.position.x.toFixed(1)}, {navigation.position.y.toFixed(1)}</span></div>
+      <div style={styles.row}><span style={styles.label}>{uiText.nav.speed}</span><span>{navigation.currentSpeed.toFixed(1)} kt</span></div>
+      <div style={styles.row}><span style={styles.label}>{uiText.nav.sail}</span><span>{Math.round(navigation.sailRatio * 100)}%</span></div>
+      <div style={styles.row}><span style={styles.label}>{uiText.nav.wind}</span><span>{navigation.wind.direction.toFixed(0)} deg / {navigation.wind.speed.toFixed(1)} kt</span></div>
+      <div style={styles.row}><span style={styles.label}>{uiText.nav.nearestPort}</span><span>{nearest ? `${nearest.port.name} (${nearest.distanceKm.toFixed(1)} km)` : uiText.nav.none}</span></div>
+      {player && <div style={styles.row}><span style={styles.label}>{uiText.nav.captain}</span><span>{player.name}</span></div>}
+      {encounter && <div style={styles.alert}>{uiText.nav.encounter}: {encounter.title}</div>}
       {voyageNotice && (
         <div style={styles.noticeWrap}>
-          <div style={styles.noticeTitle}>Voyage Event</div>
+          <div style={styles.noticeTitle}>{uiText.nav.voyageEvent}</div>
           <div style={styles.noticeText}>{voyageNotice}</div>
-          <button style={styles.noticeButton} onClick={clearVoyageNotice}>dismiss</button>
+          <button style={styles.noticeButton} onClick={clearVoyageNotice}>{uiText.nav.dismiss}</button>
         </div>
       )}
       {encounterNotice && !encounter && (
         <div style={styles.noticeWrap}>
-          <div style={styles.noticeTitle}>Encounter Result</div>
+          <div style={styles.noticeTitle}>{uiText.nav.encounterResult}</div>
           <div style={styles.noticeText}>{encounterNotice}</div>
-          <button style={styles.noticeButton} onClick={clearEncounterNotice}>dismiss</button>
+          <button style={styles.noticeButton} onClick={clearEncounterNotice}>{uiText.nav.dismiss}</button>
         </div>
       )}
-      {dockedPort && <button style={styles.portButton} onClick={() => setPhase('port')}>Enter {dockedPort.name}</button>}
+      {dockedPort && <button style={styles.portButton} onClick={() => setPhase('port')}>{uiText.nav.enterPort} {dockedPort.name}</button>}
       <div style={styles.hint}>
         {navigation.mode === 'docked'
-          ? '港マーカーをクリックして出航'
-          : '海面クリックで舵を切る / 帆を下ろして港近くで入港'}
+          ? uiText.nav.clickMarker
+          : uiText.nav.clickSea}
       </div>
     </div>
   )

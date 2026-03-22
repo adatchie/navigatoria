@@ -29,6 +29,7 @@ import { EconomySystem } from '@/game/systems/EconomySystem.ts'
 import { QuestSystem } from '@/game/systems/QuestSystem.ts'
 import { AutoSave } from '@/persistence/AutoSave.ts'
 import { captureGameState, loadLatestSave, restoreGameState, saveCurrentGame } from '@/persistence/GameState.ts'
+import { uiText } from '@/i18n/uiText.ts'
 
 const GameCanvas = lazy(async () => import('./GameCanvas.tsx').then((mod) => ({ default: mod.GameCanvas })))
 const DebugPanel = lazy(async () => import('./debug/DebugPanel.tsx').then((mod) => ({ default: mod.DebugPanel })))
@@ -225,9 +226,9 @@ export function App() {
           {debugFlags.showDebugPanel && showDataInspector && <DataInspector />}
           {debugFlags.showDebugPanel && (
             <div style={styles.keybinds}>
-              <span>F1: Data Inspector</span>
-              <button style={styles.linkButton} onClick={openAssetPreviewWindow}>F2: Asset Preview</button>
-              <span>Space: Pause</span>
+              <span>F1: {uiText.app.dataInspector}</span>
+              <button style={styles.linkButton} onClick={openAssetPreviewWindow}>F2: {uiText.app.assetPreview}</button>
+              <span>Space: {uiText.app.pause}</span>
             </div>
           )}
         </Suspense>
@@ -242,4 +243,3 @@ const styles: Record<string, React.CSSProperties> = {
   keybinds: { position: 'fixed', bottom: 8, left: 8, display: 'flex', gap: 12, alignItems: 'center', color: '#556', fontSize: 10, fontFamily: 'monospace', zIndex: 100 },
   linkButton: { padding: 0, background: 'none', border: 'none', color: '#7ab5ff', fontSize: 10, fontFamily: 'monospace', cursor: 'pointer' },
 }
-

@@ -8,6 +8,7 @@ import { useWorldStore } from '@/stores/useWorldStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { WORLD_WIDTH, WORLD_HEIGHT } from '@/config/gameConfig.ts'
 import type { Port } from '@/types/port.ts'
+import { uiText } from '@/i18n/uiText.ts'
 
 // ミニマップのサイズ (CSS px)
 const MAP_WIDTH = 240
@@ -120,7 +121,7 @@ export function MiniMap() {
         height={MAP_HEIGHT * PIXEL_RATIO}
         style={styles.canvas}
       />
-      <div style={styles.label}>CHART</div>
+      <div style={styles.label}>{uiText.minimap.chart}</div>
     </div>
   )
 }
@@ -151,7 +152,7 @@ function drawPort(ctx: CanvasRenderingContext2D, port: Port, playerNationality?:
     ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'
     ctx.font = `${8 * PIXEL_RATIO}px sans-serif`
     ctx.textAlign = 'center'
-    ctx.fillText(port.nameEn, cx, cy - r - 2 * PIXEL_RATIO)
+    ctx.fillText(port.name, cx, cy - r - 2 * PIXEL_RATIO)
   }
 }
 
@@ -219,7 +220,7 @@ function drawWindArrow(ctx: CanvasRenderingContext2D, direction: number, speed: 
   ctx.fillStyle = 'rgba(200, 230, 255, 0.5)'
   ctx.font = `${7 * pr}px sans-serif`
   ctx.textAlign = 'center'
-  ctx.fillText(`${speed.toFixed(0)}kt`, cx, cy + 14 * pr)
+  ctx.fillText(`${speed.toFixed(0)}${uiText.minimap.speedUnit}`, cx, cy + 14 * pr)
 }
 
 const styles: Record<string, React.CSSProperties> = {

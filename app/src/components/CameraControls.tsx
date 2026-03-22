@@ -2,11 +2,10 @@
 // CameraControls — 船追従カメラ (OrbitControls + 自動追従)
 // ============================================================
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, type ComponentRef } from 'react'
 import { OrbitControls } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Vector3 } from 'three'
-import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { worldToScene } from '@/rendering/worldTransform.ts'
 
@@ -14,8 +13,9 @@ import { worldToScene } from '@/rendering/worldTransform.ts'
 const FOLLOW_LERP = 3.5
 
 export function CameraControls() {
-  const controlsRef = useRef<OrbitControlsImpl>(null)
+  const controlsRef = useRef<ComponentRef<typeof OrbitControls> | null>(null)
   const targetRef = useRef(new Vector3())
+  const desiredTargetRef = useRef(new Vector3())
   const { camera } = useThree()
   const initializedRef = useRef(false)
 
@@ -41,17 +41,16 @@ export function CameraControls() {
 
     // ターゲットを船位置へ滑らかに追従
     const lerpFactor = 1 - Math.exp(-FOLLOW_LERP * delta)
-    targetRef.current.lerp(new Vector3(sx, 0, sz), lerpFactor)
+    desiredTargetRef.current.set(sx, 0, sz)
+    targetRef.current.lerp(desiredTargetRef.current, lerpFactor)
 
     // OrbitControlsのターゲットとカメラ位置を同時に移動
     const controls = controlsRef.current
     const offsetX = targetRef.current.x - controls.target.x
     const offsetZ = targetRef.current.z - controls.target.z
 
-    controls.target.x += offsetX
-    controls.target.z += offsetZ
-    camera.position.x += offsetX
-    camera.position.z += offsetZ
+    controls.target.set(controls.target.x + offsetX, controls.target.y, controls.target.z + offsetZ)
+    camera.position.add(new Vector3(offsetX, 0, offsetZ))
 
     controls.update()
   })

@@ -48,7 +48,7 @@ interface PlayerStoreState {
   hireCrew: (amount: number) => PortActionResult
   visitTavern: (service: TavernService, amount?: number, tavernLevel?: number) => PortActionResult
   repairShip: (mode?: RepairMode, amount?: number, facilityLevel?: number) => PortActionResult
-  outfitShip: (option: 'rigging' | 'cargo') => PortActionResult
+  outfitShip: (option: 'rigging' | 'cargo' | 'gunnery') => PortActionResult
   resolveVoyageEvent: (currentDay: number, weatherType: WeatherType) => void
   logEncounterEvent: (message: string) => void
   clearVoyageNotice: () => void
@@ -130,7 +130,7 @@ function createShipInstanceFromType(shipType: ShipType, instanceId: string, name
     supplies: createInitialSupplies(maxCrew),
     reinforceCount: 0,
     maxReinforce: 5,
-    upgrades: { rigging: 0, cargo: 0 },
+    upgrades: { rigging: 0, cargo: 0, gunnery: 0 },
   }
 }
 
@@ -171,7 +171,7 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
           supplies: createInitialSupplies(maxCrew),
           reinforceCount: 0,
           maxReinforce: 5,
-          upgrades: { rigging: 0, cargo: 0 },
+          upgrades: { rigging: 0, cargo: 0, gunnery: 0 },
         }
 
     const player: Player = {
@@ -555,24 +555,31 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
       const maxLevel = 3
       if (currentLevel >= maxLevel) return { ok: false, message: 'これ以上装備を強化できません。' }
 
-      const baseCost = option === 'rigging' ? 320 : 280
-      const stepIncrease = option === 'rigging' ? 90 : 70
+      const baseCost = option === 'rigging' ? 320 : option === 'cargo' ? 280 : 360
+      const stepIncrease = option === 'rigging' ? 90 : option === 'cargo' ? 70 : 120
       const cost = baseCost + currentLevel * stepIncrease
       if (player.money < cost) return { ok: false, message: '資金が足りません。' }
 
       const nextShips = state.ships.map((entry) => {
         if (entry.instanceId !== state.activeShipId) return entry
-        const nextUpgrades = { rigging: entry.upgrades?.rigging ?? 0, cargo: entry.upgrades?.cargo ?? 0, [option]: currentLevel + 1 }
+        const nextUpgrades = {
+          rigging: entry.upgrades?.rigging ?? 0,
+          cargo: entry.upgrades?.cargo ?? 0,
+          gunnery: entry.upgrades?.gunnery ?? 0,
+          [option]: currentLevel + 1,
+        }
         const nextShip = {
           ...entry,
           upgrades: nextUpgrades,
-          morale: clamp(entry.morale + (option === 'rigging' ? 4 : 2), 0, 100),
+          morale: clamp(entry.morale + (option === 'rigging' ? 4 : option === 'cargo' ? 2 : 3), 0, 100),
         }
         if (option === 'rigging') {
           nextShip.maxDurability = entry.maxDurability + 4
           nextShip.currentDurability = Math.min(nextShip.maxDurability, entry.currentDurability + 5)
-        } else {
+        } else if (option === 'cargo') {
           nextShip.maxCapacity = entry.maxCapacity + 6
+        } else {
+          nextShip.currentDurability = Math.min(nextShip.maxDurability, entry.currentDurability + 2)
         }
         return nextShip
       })
@@ -582,7 +589,7 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
         ships: nextShips,
       })
 
-      const label = option === 'rigging' ? 'Rigging Tune' : 'Cargo Rig'
+      const label = option === 'rigging' ? 'Rigging Tune' : option === 'cargo' ? 'Cargo Rig' : 'Gunnery Drill'
       return { ok: true, message: `${label} を適用しました（Lv ${currentLevel + 1}）。` }
     },
 

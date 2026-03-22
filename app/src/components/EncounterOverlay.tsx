@@ -1,16 +1,17 @@
 import type { CombatAction, CombatDistance, EncounterAction } from '@/types/encounter.ts'
 import { useEncounterStore } from '@/stores/useEncounterStore.ts'
+import { uiText } from '@/i18n/uiText.ts'
 
 const ACTION_LABELS: Record<CombatAction, string> = {
-  cannon: 'Fire Cannons',
-  board: 'Board',
-  withdraw: 'Withdraw',
+  cannon: uiText.encounter.actionLabels.cannon,
+  board: uiText.encounter.actionLabels.board,
+  withdraw: uiText.encounter.actionLabels.withdraw,
 }
 
 const ACTION_DESCRIPTIONS: Record<CombatAction, string> = {
-  cannon: '距離が長くても安定した砲撃。close で追加 Crew ダメージ。',
-  board: '接近・接舷で威力を発揮。long では距離を詰める準備。',
-  withdraw: '逃走/包囲回避。距離が近いほど失敗リスクが高まる。',
+  cannon: uiText.encounter.actionDescriptions.cannon,
+  board: uiText.encounter.actionDescriptions.board,
+  withdraw: uiText.encounter.actionDescriptions.withdraw,
 }
 
 const DISTANCE_VALUES: Record<CombatDistance, number> = {
@@ -20,9 +21,9 @@ const DISTANCE_VALUES: Record<CombatDistance, number> = {
 }
 
 const DISTANCE_LABELS = {
-  long: 'Long Range',
-  close: 'Close Range',
-  boarded: 'Boarded',
+  long: uiText.encounter.long,
+  close: uiText.encounter.close,
+  boarded: uiText.encounter.boarded,
 } as const
 
 const SHIP_CLASS_LABELS: Record<string, string> = {
@@ -40,10 +41,10 @@ const RECOMMENDED_ACTION_MAP: Record<EncounterAction, CombatAction[]> = {
 }
 
 const TACTIC_LABELS: Record<string, string> = {
-  pirate: '接舷寄り',
-  navy: '砲戦寄り',
-  merchant: '逃走寄り',
-  derelict: '無力船',
+  pirate: uiText.encounter.tactics.pirate,
+  navy: uiText.encounter.tactics.navy,
+  merchant: uiText.encounter.tactics.merchant,
+  derelict: uiText.encounter.tactics.derelict,
 }
 
 export function EncounterOverlay() {
@@ -61,33 +62,33 @@ export function EncounterOverlay() {
       <div style={styles.card}>
         <div style={styles.header}>
           <div>
-            <div style={styles.eyebrow}>{combatState ? 'Battle Screen' : 'Sea Encounter'}</div>
+            <div style={styles.eyebrow}>{combatState ? uiText.encounter.battleScreen : uiText.encounter.seaEncounter}</div>
             <h2 style={styles.title}>{encounter.title}</h2>
           </div>
-          <div style={styles.badge}>Threat {encounter.threat}</div>
+          <div style={styles.badge}>{uiText.encounter.threat} {encounter.threat}</div>
         </div>
 
         {!combatState && (
           <>
             <p style={styles.description}>{encounter.description}</p>
             <div style={styles.grid}>
-              <div style={styles.info}><span style={styles.label}>Ship</span><strong>{encounter.shipName}</strong></div>
-              <div style={styles.info}><span style={styles.label}>Class</span><strong>{encounter.shipClass ? SHIP_CLASS_LABELS[encounter.shipClass] ?? encounter.shipClass : '不明'}</strong></div>
-              <div style={styles.info}><span style={styles.label}>Crew</span><strong>{encounter.enemyCrew}</strong></div>
-              <div style={styles.info}><span style={styles.label}>Durability</span><strong>{encounter.enemyDurability}</strong></div>
-              <div style={styles.info}><span style={styles.label}>Cannons</span><strong>{encounter.enemyCannonSlots}</strong></div>
-              <div style={styles.info}><span style={styles.label}>Speed</span><strong>{encounter.enemySpeed}</strong></div>
-              <div style={styles.info}><span style={styles.label}>Turn</span><strong>{encounter.enemyTurnRate}</strong></div>
-              <div style={styles.info}><span style={styles.label}>Tactic</span><strong>{TACTIC_LABELS[encounter.type] ?? '不明'}</strong></div>
-              <div style={styles.info}><span style={styles.label}>Zone</span><strong>{encounter.zoneName ?? 'Open Sea'}</strong></div>
-              <div style={styles.info}><span style={styles.label}>Weather</span><strong>{encounter.weatherType}</strong></div>
-              <div style={styles.info}><span style={styles.label}>Hint</span><strong>{encounter.lootHint ?? 'No clear gain'}</strong></div>
+              <div style={styles.info}><span style={styles.label}>{uiText.encounter.ship}</span><strong>{encounter.shipName}</strong></div>
+              <div style={styles.info}><span style={styles.label}>{uiText.encounter.class}</span><strong>{encounter.shipClass ? SHIP_CLASS_LABELS[encounter.shipClass] ?? encounter.shipClass : uiText.town.labels.unknown}</strong></div>
+              <div style={styles.info}><span style={styles.label}>{uiText.encounter.crew}</span><strong>{encounter.enemyCrew}</strong></div>
+              <div style={styles.info}><span style={styles.label}>{uiText.encounter.durability}</span><strong>{encounter.enemyDurability}</strong></div>
+              <div style={styles.info}><span style={styles.label}>{uiText.encounter.cannons}</span><strong>{encounter.enemyCannonSlots}</strong></div>
+              <div style={styles.info}><span style={styles.label}>{uiText.encounter.speed}</span><strong>{encounter.enemySpeed}</strong></div>
+              <div style={styles.info}><span style={styles.label}>{uiText.encounter.turn}</span><strong>{encounter.enemyTurnRate}</strong></div>
+              <div style={styles.info}><span style={styles.label}>{uiText.encounter.tactic}</span><strong>{TACTIC_LABELS[encounter.type] ?? uiText.town.labels.unknown}</strong></div>
+              <div style={styles.info}><span style={styles.label}>{uiText.encounter.zone}</span><strong>{encounter.zoneName ?? uiText.encounter.openSea}</strong></div>
+              <div style={styles.info}><span style={styles.label}>{uiText.encounter.weather}</span><strong>{encounter.weatherType}</strong></div>
+              <div style={styles.info}><span style={styles.label}>{uiText.encounter.hint}</span><strong>{encounter.lootHint ?? uiText.encounter.noGain}</strong></div>
             </div>
-            <div style={styles.recommend}>Recommended: {encounter.recommendedAction}</div>
+            <div style={styles.recommend}>{uiText.encounter.recommended}: {uiText.encounter.recommendedActions[encounter.recommendedAction]}</div>
             <div style={styles.actions}>
-              <button style={styles.secondaryButton} onClick={() => resolveEncounter('ignore')}>Ignore</button>
-              <button style={styles.secondaryButton} onClick={() => resolveEncounter('evade')}>Evade</button>
-              <button style={styles.primaryButton} onClick={() => resolveEncounter('engage')}>Engage</button>
+              <button style={styles.secondaryButton} onClick={() => resolveEncounter('ignore')}>{uiText.encounter.ignore}</button>
+              <button style={styles.secondaryButton} onClick={() => resolveEncounter('evade')}>{uiText.encounter.evade}</button>
+              <button style={styles.primaryButton} onClick={() => resolveEncounter('engage')}>{uiText.encounter.engage}</button>
             </div>
           </>
         )}
@@ -96,11 +97,11 @@ export function EncounterOverlay() {
           <>
             <div style={styles.hudRow}>
               <div style={styles.distancePanel}>
-                <span style={styles.distanceLabel}>Distance</span>
+                <span style={styles.distanceLabel}>{uiText.encounter.distance}</span>
                 <div style={styles.distanceTrack}>
                   <div style={{ ...styles.distanceFill, width: `${DISTANCE_VALUES[combatState.distance] * 100}%` }} />
                 </div>
-                <span style={styles.distanceSub}>{DISTANCE_LABELS[combatState.distance]} / Round {combatState.round}</span>
+                <span style={styles.distanceSub}>{DISTANCE_LABELS[combatState.distance]} / {uiText.encounter.round} {combatState.round}</span>
               </div>
               <div style={styles.actionInsights}>
                 {(Object.keys(ACTION_LABELS) as CombatAction[]).map((action) => {
@@ -115,14 +116,14 @@ export function EncounterOverlay() {
               </div>
             </div>
             <div style={styles.battleHeaderRow}>
-              <div style={styles.battleMetric}><span style={styles.label}>Round</span><strong>{combatState.round}</strong></div>
-              <div style={styles.battleMetric}><span style={styles.label}>Distance</span><strong>{DISTANCE_LABELS[combatState.distance]}</strong></div>
-              <div style={styles.battleMetric}><span style={styles.label}>Enemy</span><strong>{encounter.shipName}</strong></div>
-              <div style={styles.battleMetric}><span style={styles.label}>Cannons</span><strong>{encounter.enemyCannonSlots}</strong></div>
+              <div style={styles.battleMetric}><span style={styles.label}>{uiText.encounter.round}</span><strong>{combatState.round}</strong></div>
+              <div style={styles.battleMetric}><span style={styles.label}>{uiText.encounter.distance}</span><strong>{DISTANCE_LABELS[combatState.distance]}</strong></div>
+              <div style={styles.battleMetric}><span style={styles.label}>{uiText.encounter.enemy}</span><strong>{encounter.shipName}</strong></div>
+              <div style={styles.battleMetric}><span style={styles.label}>{uiText.encounter.cannons}</span><strong>{encounter.enemyCannonSlots}</strong></div>
             </div>
             <div style={styles.duelGrid}>
               <StatusCard
-                title="Player Ship"
+                title={uiText.encounter.playerShip}
                 durability={combatState.playerDurability}
                 maxDurability={combatState.playerMaxDurability}
                 crew={combatState.playerCrew}
@@ -141,27 +142,27 @@ export function EncounterOverlay() {
               />
             </div>
             <div style={styles.logPanel}>
-              <div style={styles.logTitle}>{combatState.phase === 'resolved' ? 'Battle Result' : 'Battle Log'}</div>
+              <div style={styles.logTitle}>{combatState.phase === 'resolved' ? uiText.encounter.battleResult : uiText.encounter.battleLog}</div>
               {combatState.result && <div style={styles.resultText}>{combatState.result.message}</div>}
-              {combatState.log.length === 0 && <div style={styles.logEntryMuted}>最初の一手を選ぶと、ここに戦況が流れます。</div>}
+              {combatState.log.length === 0 && <div style={styles.logEntryMuted}>{uiText.encounter.firstMove}</div>}
               {combatState.log.map((entry) => (
                 <div key={`${entry.round}-${entry.action}`} style={styles.logEntry}>
-                  <div style={styles.logRound}>Round {entry.round} / {ACTION_LABELS[entry.action]}</div>
+                  <div style={styles.logRound}>{uiText.encounter.round} {entry.round} / {ACTION_LABELS[entry.action]}</div>
                   <div>{entry.summary}</div>
-                  <div style={styles.logStats}>You -{entry.playerDamage} hull / -{entry.playerCrewLoss} crew | Enemy -{entry.enemyDamage} hull / -{entry.enemyCrewLoss} crew</div>
+                  <div style={styles.logStats}>{uiText.encounter.you} -{entry.playerDamage} / -{entry.playerCrewLoss} | {uiText.encounter.enemy} -{entry.enemyDamage} / -{entry.enemyCrewLoss}</div>
                 </div>
               ))}
             </div>
             {combatState.phase !== 'resolved' && (
               <div style={styles.actions}>
-                <button style={styles.secondaryButton} onClick={() => performCombatAction('withdraw')}>Withdraw</button>
-                <button style={styles.secondaryButton} onClick={() => performCombatAction('board')}>Board</button>
-                <button style={styles.primaryButton} onClick={() => performCombatAction('cannon')}>Fire Cannons</button>
+                <button style={styles.secondaryButton} onClick={() => performCombatAction('withdraw')}>{ACTION_LABELS.withdraw}</button>
+                <button style={styles.secondaryButton} onClick={() => performCombatAction('board')}>{ACTION_LABELS.board}</button>
+                <button style={styles.primaryButton} onClick={() => performCombatAction('cannon')}>{ACTION_LABELS.cannon}</button>
               </div>
             )}
             {combatState.phase === 'resolved' && (
               <div style={styles.actions}>
-                <button style={styles.primaryButton} onClick={closeEncounter}>Continue Voyage</button>
+                <button style={styles.primaryButton} onClick={closeEncounter}>{uiText.encounter.continueVoyage}</button>
               </div>
             )}
           </>
@@ -184,9 +185,9 @@ function StatusCard(props: {
   return (
     <div style={styles.statusCard}>
       <div style={{ ...styles.statusTitle, color: accent }}>{props.title}</div>
-      <ProgressRow label="Hull" value={props.durability} max={props.maxDurability} color={accent} />
-      <ProgressRow label="Crew" value={props.crew} max={props.maxCrew} color={accent} />
-      <ProgressRow label="Morale" value={props.morale} max={100} color={accent} />
+      <ProgressRow label={uiText.encounter.hull} value={props.durability} max={props.maxDurability} color={accent} />
+      <ProgressRow label={uiText.encounter.crew} value={props.crew} max={props.maxCrew} color={accent} />
+      <ProgressRow label={uiText.encounter.morale} value={props.morale} max={100} color={accent} />
     </div>
   )
 }

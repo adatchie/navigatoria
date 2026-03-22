@@ -195,6 +195,7 @@ export function OceanScene({ size = 500, segments = 128 }: OceanSceneProps) {
           fragmentShader={oceanFragmentShader}
           uniforms={outerUniforms}
           transparent
+          depthWrite={false}
           side={DoubleSide}
         />
       </mesh>
@@ -206,6 +207,7 @@ export function OceanScene({ size = 500, segments = 128 }: OceanSceneProps) {
           fragmentShader={oceanFragmentShader}
           uniforms={innerUniforms}
           transparent
+          depthWrite={false}
           side={DoubleSide}
         />
       </mesh>
