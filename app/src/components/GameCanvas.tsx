@@ -5,7 +5,7 @@
 
 import { Suspense, lazy, useMemo, useRef, useEffect } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { CircleGeometry, CylinderGeometry, MeshBasicMaterial, Raycaster, Vector2, Plane, Vector3, type Mesh, type Group } from 'three'
+import { CircleGeometry, CylinderGeometry, MeshBasicMaterial, Raycaster, SphereGeometry, Vector2, Plane, Vector3, type Mesh, type Group } from 'three'
 import type { Port } from '@/types/port.ts'
 import { OceanScene } from '@/rendering/OceanScene.tsx'
 import { SkyBox } from '@/rendering/SkyBox.tsx'
@@ -24,9 +24,11 @@ const DebugGrid = lazy(async () => import('./DebugGrid.tsx').then((mod) => ({ de
 const DebugStats = lazy(async () => import('./DebugStats.tsx').then((mod) => ({ default: mod.DebugStats })))
 
 const PORT_MARKER_GEOMETRIES = {
-  core: new CircleGeometry(0.18, 20),
-  halo: new CircleGeometry(0.34, 24),
-  hitbox: new CylinderGeometry(0.26, 0.26, 0.6, 10),
+  base: new CircleGeometry(0.18, 20),
+  orb: new SphereGeometry(0.22, 16, 16),
+  halo: new CircleGeometry(0.42, 28),
+  pin: new CylinderGeometry(0.022, 0.022, 1.4, 10),
+  hitbox: new CylinderGeometry(0.22, 0.22, 1.8, 10),
 }
 const PORT_MARKER_HITBOX_MATERIAL = new MeshBasicMaterial({
   transparent: true,
@@ -46,20 +48,30 @@ const PORT_MARKER_MATERIALS: Record<string, MeshBasicMaterial> = {
   default: new MeshBasicMaterial({ color: 0xffffff, depthTest: true, depthWrite: false, fog: false }),
 }
 const PORT_MARKER_HALO_MATERIALS: Record<string, MeshBasicMaterial> = {
-  portugal: new MeshBasicMaterial({ color: 0x34d399, depthTest: true, depthWrite: false, fog: false, transparent: true, opacity: 0.18 }),
-  spain: new MeshBasicMaterial({ color: 0xf97316, depthTest: true, depthWrite: false, fog: false, transparent: true, opacity: 0.18 }),
-  england: new MeshBasicMaterial({ color: 0x60a5fa, depthTest: true, depthWrite: false, fog: false, transparent: true, opacity: 0.18 }),
-  netherlands: new MeshBasicMaterial({ color: 0xfacc15, depthTest: true, depthWrite: false, fog: false, transparent: true, opacity: 0.18 }),
-  france: new MeshBasicMaterial({ color: 0xa78bfa, depthTest: true, depthWrite: false, fog: false, transparent: true, opacity: 0.18 }),
-  venice: new MeshBasicMaterial({ color: 0xf87171, depthTest: true, depthWrite: false, fog: false, transparent: true, opacity: 0.18 }),
-  ottoman: new MeshBasicMaterial({ color: 0x22c55e, depthTest: true, depthWrite: false, fog: false, transparent: true, opacity: 0.18 }),
-  default: new MeshBasicMaterial({ color: 0xffffff, depthTest: true, depthWrite: false, fog: false, transparent: true, opacity: 0.18 }),
+  portugal: new MeshBasicMaterial({ color: 0x34d399, depthTest: false, depthWrite: false, fog: false, transparent: true, opacity: 0.2 }),
+  spain: new MeshBasicMaterial({ color: 0xf97316, depthTest: false, depthWrite: false, fog: false, transparent: true, opacity: 0.2 }),
+  england: new MeshBasicMaterial({ color: 0x60a5fa, depthTest: false, depthWrite: false, fog: false, transparent: true, opacity: 0.2 }),
+  netherlands: new MeshBasicMaterial({ color: 0xfacc15, depthTest: false, depthWrite: false, fog: false, transparent: true, opacity: 0.2 }),
+  france: new MeshBasicMaterial({ color: 0xa78bfa, depthTest: false, depthWrite: false, fog: false, transparent: true, opacity: 0.2 }),
+  venice: new MeshBasicMaterial({ color: 0xf87171, depthTest: false, depthWrite: false, fog: false, transparent: true, opacity: 0.2 }),
+  ottoman: new MeshBasicMaterial({ color: 0x22c55e, depthTest: false, depthWrite: false, fog: false, transparent: true, opacity: 0.2 }),
+  default: new MeshBasicMaterial({ color: 0xffffff, depthTest: false, depthWrite: false, fog: false, transparent: true, opacity: 0.2 }),
 }
 
-const PORT_MARKER_HEIGHT = 0.035
-const PORT_MARKER_CORE_Y = 0.0
-const PORT_MARKER_HALO_Y = 0.002
-const PORT_MARKER_HITBOX_Y = 0.3
+const PORT_MARKER_HEIGHT = 0.08
+const PORT_MARKER_BASE_Y = 0.01
+const PORT_MARKER_PIN_Y = 0.72
+const PORT_MARKER_ORB_Y = 1.48
+const PORT_MARKER_HALO_Y = 1.48
+const PORT_MARKER_HITBOX_Y = 0.9
+const PORT_MARKER_PIN_MATERIAL = new MeshBasicMaterial({
+  color: 0xd8ecff,
+  depthTest: true,
+  depthWrite: false,
+  fog: false,
+  transparent: true,
+  opacity: 0.9,
+})
 
 export function GameCanvas() {
   const showFPS = useUIStore((s) => s.debugFlags.showFPS)
@@ -243,6 +255,13 @@ function PortMarkers() {
 function PortMarker({ port }: { port: Port }) {
   const material = PORT_MARKER_MATERIALS[port.nationality] ?? PORT_MARKER_MATERIALS.default
   const haloMaterial = PORT_MARKER_HALO_MATERIALS[port.nationality] ?? PORT_MARKER_HALO_MATERIALS.default
+  const haloRef = useRef<Mesh>(null)
+  const { camera } = useThree()
+
+  useFrame(() => {
+    if (!haloRef.current) return
+    haloRef.current.lookAt(camera.position)
+  })
 
   const handleClick = (e: { stopPropagation: () => void }) => {
     // R3Fイベントの伝搬を止めて RudderClickHandler との競合を防ぐ
@@ -286,19 +305,31 @@ function PortMarker({ port }: { port: Port }) {
         renderOrder={5}
       />
       <mesh
-        geometry={PORT_MARKER_GEOMETRIES.halo}
+        geometry={PORT_MARKER_GEOMETRIES.base}
         material={haloMaterial}
-        position={[0, PORT_MARKER_HALO_Y, 0]}
+        position={[0, PORT_MARKER_BASE_Y, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
         renderOrder={6}
       />
       <mesh
-        geometry={PORT_MARKER_GEOMETRIES.core}
-        material={material}
-        position={[0, PORT_MARKER_CORE_Y, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        onClick={handleClick}
+        geometry={PORT_MARKER_GEOMETRIES.pin}
+        material={PORT_MARKER_PIN_MATERIAL}
+        position={[0, PORT_MARKER_PIN_Y, 0]}
         renderOrder={7}
+      />
+      <mesh
+        geometry={PORT_MARKER_GEOMETRIES.orb}
+        material={material}
+        position={[0, PORT_MARKER_ORB_Y, 0]}
+        onClick={handleClick}
+        renderOrder={8}
+      />
+      <mesh
+        ref={haloRef}
+        geometry={PORT_MARKER_GEOMETRIES.halo}
+        material={haloMaterial}
+        position={[0, PORT_MARKER_HALO_Y, 0]}
+        renderOrder={9}
       />
     </group>
   )

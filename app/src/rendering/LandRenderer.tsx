@@ -40,6 +40,9 @@ function LandMesh({ polygon }: { polygon: LandPolygon }) {
       depthTest: true,
       depthWrite: true,
       transparent: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -2,
     })
     return { geometry: geo, material: mat }
   }, [polygon])
@@ -50,9 +53,9 @@ function LandMesh({ polygon }: { polygon: LandPolygon }) {
     <mesh
       geometry={geometry}
       material={material}
-      position={[0, 0.15, 0]}
+      position={[0, 1.8, 0]}
       rotation={[Math.PI / 2, 0, 0]}
-      renderOrder={5}
+      renderOrder={20}
     />
   )
 }
