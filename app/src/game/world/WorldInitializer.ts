@@ -1,4 +1,4 @@
-import { DEFAULT_ZONES } from './zones.ts'
+import { buildZonesFromPorts } from './zones.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
@@ -10,7 +10,7 @@ export function initializeWorld(): void {
   const navigationStore = useNavigationStore.getState()
 
   worldStore.setPorts(ports)
-  worldStore.setZones(DEFAULT_ZONES)
+  worldStore.setZones(buildZonesFromPorts(ports))
   worldStore.setLoaded(true)
 
   const currentPort = ports.find((port) => port.id === 'lisbon') ?? ports[0]

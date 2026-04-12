@@ -6,6 +6,8 @@ import { useWorldStore } from '@/stores/useWorldStore.ts'
 import { useEconomyStore } from '@/stores/useEconomyStore.ts'
 import { useQuestStore } from '@/stores/useQuestStore.ts'
 import { useEncounterStore } from '@/stores/useEncounterStore.ts'
+import { useDataStore } from '@/stores/useDataStore.ts'
+import type { Port } from '@/types/port.ts'
 
 export interface GameSnapshot {
   version: number
@@ -63,10 +65,52 @@ export function restoreGameState(snapshot: GameSnapshot): void {
   gameStore.gameTime.speed = snapshot.speed
   gameStore.gameTime.paused = snapshot.paused
 
+  const ports = useDataStore.getState().masterData.ports
+  const portsById = new Map(ports.map((port) => [port.id, port]))
+  const normalizedWorldPorts = snapshot.world.ports.map((savedPort) => {
+    const masterPort = portsById.get(savedPort.id)
+    if (!masterPort) return savedPort
+    return {
+      ...savedPort,
+      position: masterPort.position,
+      zoneId: masterPort.zoneId,
+      name: masterPort.name,
+      nameEn: masterPort.nameEn,
+      size: masterPort.size,
+      culture: masterPort.culture,
+      nationality: savedPort.nationality ?? masterPort.nationality,
+      facilities: savedPort.facilities?.length ? savedPort.facilities : masterPort.facilities,
+      specialProducts: savedPort.specialProducts?.length ? savedPort.specialProducts : masterPort.specialProducts,
+      taxRate: savedPort.taxRate ?? masterPort.taxRate,
+      prosperity: savedPort.prosperity ?? masterPort.prosperity,
+      influence: savedPort.influence ?? masterPort.influence,
+    } satisfies Port
+  })
+  const dockedPortId = snapshot.navigation.dockedPortId ?? snapshot.player.player?.currentPortId
+  const dockedPort = dockedPortId ? normalizedWorldPorts.find((port) => port.id === dockedPortId) : undefined
+  const navigationState = dockedPort
+    ? { ...snapshot.navigation, position: dockedPort.position }
+    : snapshot.navigation
+  const playerState = dockedPort && snapshot.player.player
+    ? {
+      ...snapshot.player,
+      player: {
+        ...snapshot.player.player,
+        currentPortId: dockedPort.id,
+        position: dockedPort.position,
+      },
+    }
+    : snapshot.player
+
+  const worldState = {
+    ...snapshot.world,
+    ports: normalizedWorldPorts,
+  }
+
   useGameStore.setState({ speed: snapshot.speed, paused: snapshot.paused, phase: snapshot.phase, timeState: gameStore.gameTime.getState() })
-  useNavigationStore.setState(snapshot.navigation)
-  usePlayerStore.setState(snapshot.player)
-  useWorldStore.setState(snapshot.world)
+  useNavigationStore.setState(navigationState)
+  usePlayerStore.setState(playerState)
+  useWorldStore.setState(worldState)
   useEconomyStore.setState(snapshot.economy)
   useQuestStore.setState(snapshot.quest)
   useEncounterStore.setState(snapshot.encounter)

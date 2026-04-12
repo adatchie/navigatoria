@@ -5,7 +5,7 @@
 
 import { Suspense, lazy, useMemo, useRef, useEffect } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { MeshBasicMaterial, RingGeometry, SphereGeometry, Raycaster, Vector2, Plane, Vector3, type Mesh, type Group } from 'three'
+import { CircleGeometry, CylinderGeometry, MeshBasicMaterial, Raycaster, Vector2, Plane, Vector3, type Mesh, type Group } from 'three'
 import type { Port } from '@/types/port.ts'
 import { OceanScene } from '@/rendering/OceanScene.tsx'
 import { SkyBox } from '@/rendering/SkyBox.tsx'
@@ -23,15 +23,11 @@ const CameraControls = lazy(async () => import('./CameraControls.tsx').then((mod
 const DebugGrid = lazy(async () => import('./DebugGrid.tsx').then((mod) => ({ default: mod.DebugGrid })))
 const DebugStats = lazy(async () => import('./DebugStats.tsx').then((mod) => ({ default: mod.DebugStats })))
 
-// 港マーカーのサイズ (SCENE_WORLD_SCALE に合わせて調整)
 const PORT_MARKER_GEOMETRIES = {
-  default: new SphereGeometry(0.5, 14, 14),
-  active: new SphereGeometry(0.7, 14, 14),
+  core: new CircleGeometry(0.18, 20),
+  halo: new CircleGeometry(0.34, 24),
+  hitbox: new CylinderGeometry(0.26, 0.26, 0.6, 10),
 }
-const PORT_MARKER_RING = new RingGeometry(0.8, 1.2, 32)
-
-// 港マーカーの大型クリック判定用メッシュ（透明・非表示）
-const PORT_MARKER_HITBOX = new SphereGeometry(1.5, 8, 8)
 const PORT_MARKER_HITBOX_MATERIAL = new MeshBasicMaterial({
   transparent: true,
   opacity: 0,
@@ -40,17 +36,30 @@ const PORT_MARKER_HITBOX_MATERIAL = new MeshBasicMaterial({
 })
 
 const PORT_MARKER_MATERIALS: Record<string, MeshBasicMaterial> = {
-  portugal: new MeshBasicMaterial({ color: 0x34d399, depthTest: false, depthWrite: false, fog: false }),
-  spain: new MeshBasicMaterial({ color: 0xf97316, depthTest: false, depthWrite: false, fog: false }),
-  england: new MeshBasicMaterial({ color: 0x60a5fa, depthTest: false, depthWrite: false, fog: false }),
-  netherlands: new MeshBasicMaterial({ color: 0xfacc15, depthTest: false, depthWrite: false, fog: false }),
-  france: new MeshBasicMaterial({ color: 0xa78bfa, depthTest: false, depthWrite: false, fog: false }),
-  venice: new MeshBasicMaterial({ color: 0xf87171, depthTest: false, depthWrite: false, fog: false }),
-  ottoman: new MeshBasicMaterial({ color: 0x22c55e, depthTest: false, depthWrite: false, fog: false }),
-  default: new MeshBasicMaterial({ color: 0xffffff, depthTest: false, depthWrite: false, fog: false }),
+  portugal: new MeshBasicMaterial({ color: 0x34d399, depthTest: true, depthWrite: false, fog: false }),
+  spain: new MeshBasicMaterial({ color: 0xf97316, depthTest: true, depthWrite: false, fog: false }),
+  england: new MeshBasicMaterial({ color: 0x60a5fa, depthTest: true, depthWrite: false, fog: false }),
+  netherlands: new MeshBasicMaterial({ color: 0xfacc15, depthTest: true, depthWrite: false, fog: false }),
+  france: new MeshBasicMaterial({ color: 0xa78bfa, depthTest: true, depthWrite: false, fog: false }),
+  venice: new MeshBasicMaterial({ color: 0xf87171, depthTest: true, depthWrite: false, fog: false }),
+  ottoman: new MeshBasicMaterial({ color: 0x22c55e, depthTest: true, depthWrite: false, fog: false }),
+  default: new MeshBasicMaterial({ color: 0xffffff, depthTest: true, depthWrite: false, fog: false }),
+}
+const PORT_MARKER_HALO_MATERIALS: Record<string, MeshBasicMaterial> = {
+  portugal: new MeshBasicMaterial({ color: 0x34d399, depthTest: true, depthWrite: false, fog: false, transparent: true, opacity: 0.18 }),
+  spain: new MeshBasicMaterial({ color: 0xf97316, depthTest: true, depthWrite: false, fog: false, transparent: true, opacity: 0.18 }),
+  england: new MeshBasicMaterial({ color: 0x60a5fa, depthTest: true, depthWrite: false, fog: false, transparent: true, opacity: 0.18 }),
+  netherlands: new MeshBasicMaterial({ color: 0xfacc15, depthTest: true, depthWrite: false, fog: false, transparent: true, opacity: 0.18 }),
+  france: new MeshBasicMaterial({ color: 0xa78bfa, depthTest: true, depthWrite: false, fog: false, transparent: true, opacity: 0.18 }),
+  venice: new MeshBasicMaterial({ color: 0xf87171, depthTest: true, depthWrite: false, fog: false, transparent: true, opacity: 0.18 }),
+  ottoman: new MeshBasicMaterial({ color: 0x22c55e, depthTest: true, depthWrite: false, fog: false, transparent: true, opacity: 0.18 }),
+  default: new MeshBasicMaterial({ color: 0xffffff, depthTest: true, depthWrite: false, fog: false, transparent: true, opacity: 0.18 }),
 }
 
-const PORT_MARKER_HEIGHT = 1.5
+const PORT_MARKER_HEIGHT = 0.035
+const PORT_MARKER_CORE_Y = 0.0
+const PORT_MARKER_HALO_Y = 0.002
+const PORT_MARKER_HITBOX_Y = 0.3
 
 export function GameCanvas() {
   const showFPS = useUIStore((s) => s.debugFlags.showFPS)
@@ -182,11 +191,10 @@ function RudderClickHandler() {
       const portHits = portMarkerRaycaster.intersectObjects(scene.children, true)
 
       // PORT_MARKER_HITBOX_MATERIAL でクリックされたら スキップ
-      for (const hit of portHits) {
-        if ((hit.object as Mesh).material === PORT_MARKER_HITBOX_MATERIAL) {
-          // ポートマーカーがクリックされたので ocean click は無視
-          return
-        }
+      const firstHit = portHits[0]
+      if (firstHit && (firstHit.object as Mesh).material === PORT_MARKER_HITBOX_MATERIAL) {
+        // 最前面がポートマーカーなら ocean click は無視
+        return
       }
 
       raycaster.setFromCamera(mouseVec, camera)
@@ -234,16 +242,7 @@ function PortMarkers() {
 
 function PortMarker({ port }: { port: Port }) {
   const material = PORT_MARKER_MATERIALS[port.nationality] ?? PORT_MARKER_MATERIALS.default
-  const geometry = PORT_MARKER_GEOMETRIES.default
-  const sphereRef = useRef<Mesh>(null)
-  const ringRef = useRef<Mesh>(null)
-
-  useFrame(() => {
-    if (ringRef.current) {
-      ringRef.current.rotation.z += 0.01
-      ringRef.current.rotation.y += 0.002
-    }
-  })
+  const haloMaterial = PORT_MARKER_HALO_MATERIALS[port.nationality] ?? PORT_MARKER_HALO_MATERIALS.default
 
   const handleClick = (e: { stopPropagation: () => void }) => {
     // R3Fイベントの伝搬を止めて RudderClickHandler との競合を防ぐ
@@ -279,29 +278,27 @@ function PortMarker({ port }: { port: Port }) {
   const [x, , z] = worldToScene(port.position)
   return (
     <group position={[x, PORT_MARKER_HEIGHT, z]}>
-      {/* 大型クリック判定メッシュ（透明、raycasterが優先的に命中）*/}
       <mesh
-        geometry={PORT_MARKER_HITBOX}
+        geometry={PORT_MARKER_GEOMETRIES.hitbox}
         material={PORT_MARKER_HITBOX_MATERIAL}
         onClick={handleClick}
-        renderOrder={102}
+        position={[0, PORT_MARKER_HITBOX_Y, 0]}
+        renderOrder={5}
       />
-      {/* メインの球 — renderOrder=100で最前面に描画 */}
       <mesh
-        ref={sphereRef}
-        geometry={geometry}
-        material={material}
-        onClick={handleClick}
-        renderOrder={100}
+        geometry={PORT_MARKER_GEOMETRIES.halo}
+        material={haloMaterial}
+        position={[0, PORT_MARKER_HALO_Y, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        renderOrder={6}
       />
-      {/* 回転リング — renderOrder=101で球の前面に描画 */}
       <mesh
-        ref={ringRef}
-        geometry={PORT_MARKER_RING}
+        geometry={PORT_MARKER_GEOMETRIES.core}
         material={material}
+        position={[0, PORT_MARKER_CORE_Y, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
         onClick={handleClick}
-        renderOrder={101}
+        renderOrder={7}
       />
     </group>
   )

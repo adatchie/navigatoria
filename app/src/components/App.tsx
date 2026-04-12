@@ -17,9 +17,12 @@ import { useUIStore } from '@/stores/useUIStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { useEconomyStore } from '@/stores/useEconomyStore.ts'
 import { useQuestStore } from '@/stores/useQuestStore.ts'
+import { useWorldStore } from '@/stores/useWorldStore.ts'
+import { useDataStore } from '@/stores/useDataStore.ts'
 import { loadAllMasterData } from '@/data/loader/DataLoader.ts'
 import { gameLoop } from '@/game/GameLoop.ts'
 import { initializeWorld } from '@/game/world/WorldInitializer.ts'
+import { buildZonesFromPorts } from '@/game/world/zones.ts'
 import { WindSystem } from '@/game/systems/WindSystem.ts'
 import { NavigationSystem } from '@/game/systems/NavigationSystem.ts'
 import { VoyageConditionSystem } from '@/game/systems/VoyageConditionSystem.ts'
@@ -30,6 +33,9 @@ import { QuestSystem } from '@/game/systems/QuestSystem.ts'
 import { AutoSave } from '@/persistence/AutoSave.ts'
 import { captureGameState, loadLatestSave, restoreGameState, saveCurrentGame } from '@/persistence/GameState.ts'
 import { uiText } from '@/i18n/uiText.ts'
+import { INITIAL_PLAYER } from '@/config/gameConfig.ts'
+import { getPortWorldPosition } from '@/data/master/portWorldPosition.ts'
+import { createPortId } from '@/types/common.ts'
 
 const GameCanvas = lazy(async () => import('./GameCanvas.tsx').then((mod) => ({ default: mod.GameCanvas })))
 const DebugPanel = lazy(async () => import('./debug/DebugPanel.tsx').then((mod) => ({ default: mod.DebugPanel })))
@@ -51,6 +57,8 @@ export function App() {
   const debugFlags = useUIStore((s) => s.debugFlags)
   const dockedPortId = useNavigationStore((s) => s.dockedPortId)
   const totalDays = useGameStore((s) => s.timeState.totalDays)
+  const dataVersion = useDataStore((s) => s.version)
+  const masterPorts = useDataStore((s) => s.masterData.ports)
 
   const [showDataInspector, setShowDataInspector] = useState(false)
   const [loadProgress, setLoadProgress] = useState(0)
@@ -127,6 +135,26 @@ export function App() {
   }, [dockedPortId, ensurePortQuests, totalDays])
 
   useEffect(() => {
+    if (masterPorts.length === 0) return
+
+    const worldStore = useWorldStore.getState()
+    worldStore.setPorts(masterPorts)
+    worldStore.setZones(buildZonesFromPorts(masterPorts))
+
+    const navigation = useNavigationStore.getState()
+    const playerStore = usePlayerStore.getState()
+    const currentPortId = navigation.dockedPortId ?? playerStore.player?.currentPortId
+    if (!currentPortId) return
+
+    const currentPort = masterPorts.find((port) => port.id === currentPortId)
+    if (!currentPort) return
+
+    navigation.setPosition(currentPort.position)
+    playerStore.setPosition(currentPort.position)
+    playerStore.updatePlayer({ currentPortId: currentPort.id })
+  }, [dataVersion, masterPorts])
+
+  useEffect(() => {
     autoSaveRef.current = new AutoSave(() => captureGameState())
     return () => { autoSaveRef.current?.stop(); autoSaveRef.current = null }
   }, [])
@@ -144,6 +172,18 @@ export function App() {
   const handleStart = useCallback(() => {
     initPlayer('航海者')
     initializeMarkets()
+    const startPortId = createPortId(INITIAL_PLAYER.START_PORT)
+    const startPosition = getPortWorldPosition(startPortId)
+    const navigation = useNavigationStore.getState()
+    const playerStore = usePlayerStore.getState()
+    navigation.setMode('docked')
+    navigation.setPosition(startPosition)
+    navigation.setDockedPort(startPortId)
+    navigation.setSpeed(0)
+    navigation.setSailRatio(0)
+    navigation.resetVoyage()
+    playerStore.setPosition(startPosition)
+    playerStore.updatePlayer({ currentPortId: startPortId, position: startPosition })
     // 初期位置はリスボン停泊中なので港画面から開始
     setPhase('port')
     gameLoop.start()

@@ -3,10 +3,14 @@
 // ============================================================
 
 import { create } from 'zustand'
-import type { Position2D, Heading, Wind, Weather, WeatherType, PortId } from '@/types/common.ts'
+import { createPortId, type Position2D, type Heading, type Wind, type Weather, type WeatherType, type PortId } from '@/types/common.ts'
+import { INITIAL_PLAYER } from '@/config/gameConfig.ts'
+import { getPortWorldPosition } from '@/data/master/portWorldPosition.ts'
 
 /** 航海モード */
 export type NavigationMode = 'docked' | 'sailing' | 'anchored' | 'combat'
+
+const DEFAULT_POSITION = getPortWorldPosition(INITIAL_PLAYER.START_PORT)
 
 interface NavigationStoreState {
   /** 航海モード */
@@ -48,12 +52,12 @@ interface NavigationStoreState {
 
 export const useNavigationStore = create<NavigationStoreState>()((set) => ({
   mode: 'docked',
-  position: { x: 200, y: 500 },
+  position: DEFAULT_POSITION,
   heading: 180,
   targetHeading: 180,
   sailRatio: 0,
   currentSpeed: 0,
-  dockedPortId: null,
+  dockedPortId: createPortId(INITIAL_PLAYER.START_PORT),
   wind: { direction: 0, speed: 10 },
   weather: { type: 'clear', intensity: 0, duration: 0 },
   distanceTraveled: 0,

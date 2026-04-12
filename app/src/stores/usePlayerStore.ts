@@ -9,6 +9,7 @@ import type { CargoSlot, ShipInstance, ShipSupplies, ShipType } from '@/types/sh
 import { INITIAL_PLAYER, VOYAGE_CONFIG } from '@/config/gameConfig.ts'
 import { createShipId, type CharacterId, type Position2D } from '@/types/common.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
+import { getPortWorldPosition } from '@/data/master/portWorldPosition.ts'
 
 type TavernService = 'meal' | 'rounds' | 'recruit'
 type RepairMode = 'emergency' | 'standard' | 'overhaul'
@@ -17,6 +18,7 @@ const FOOD_UNIT_COST = 6
 const WATER_UNIT_COST = 4
 const CREW_HIRE_COST = 18
 const DEFAULT_MORALE = 72
+const START_PORT_POSITION = getPortWorldPosition(INITIAL_PLAYER.START_PORT)
 
 interface PortActionResult {
   ok: boolean
@@ -197,7 +199,7 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
       debt: 0,
       inventory: [],
       currentPortId: INITIAL_PLAYER.START_PORT,
-      position: { x: 195, y: 510 },
+      position: START_PORT_POSITION,
       heading: 0,
     }
     set({ player, ships: [starterShip], activeShipId: starterShip.instanceId, lastVoyageNotice: null, lastVoyageEventDay: -1 })

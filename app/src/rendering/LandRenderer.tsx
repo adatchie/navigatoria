@@ -37,28 +37,32 @@ function LandMesh({ polygon }: { polygon: LandPolygon }) {
     const mat = new MeshBasicMaterial({
       color: polygon.color,
       side: DoubleSide,
+      depthTest: true,
       depthWrite: true,
       transparent: false,
     })
     return { geometry: geo, material: mat }
   }, [polygon])
 
-  // 海面より少し上 (Y=0.15) に配置、XZ平面に横たえる
+  // ShapeGeometry は XY 平面なので、+90deg 回転で Y をそのまま Z へ流す。
+  // 以前の -90deg は worldToScene の Z 向きと逆になり、港マーカーと陸地が鏡写しにズレていた。
   return (
     <mesh
       geometry={geometry}
       material={material}
       position={[0, 0.15, 0]}
-      rotation={[-Math.PI / 2, 0, 0]}
+      rotation={[Math.PI / 2, 0, 0]}
+      renderOrder={5}
     />
   )
 }
 
 /** 全大陸を描画するコンポーネント */
 export function LandRenderer() {
+  const polygons = useMemo(() => LANDMASSES, [])
   return (
     <group>
-      {LANDMASSES.map((polygon) => (
+      {polygons.map((polygon) => (
         <LandMesh key={polygon.id} polygon={polygon} />
       ))}
     </group>

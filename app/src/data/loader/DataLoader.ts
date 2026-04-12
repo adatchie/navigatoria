@@ -9,6 +9,8 @@ import type { Port } from '@/types/port.ts'
 import type { TradeGood } from '@/types/trade.ts'
 import type { Skill } from '@/types/character.ts'
 import { z } from 'zod/v4'
+import { PORT_GEO_COORDINATES } from '@/data/master/portGeography.ts'
+import { getPortWorldPosition } from '@/data/master/portWorldPosition.ts'
 
 // JSON imports (Vite handles these as modules)
 import shipsRaw from '@/data/master/ships.json'
@@ -41,7 +43,14 @@ export async function loadAllMasterData(): Promise<LoadResult> {
   // Ports
   const portsResult = validateArray(portsRaw, PortSchema, 'ports.json')
   if (portsResult.errors.length > 0) errors.push(portsResult.errors[0]!)
-  const ports = portsResult.data as Port[]
+  const ports = (portsResult.data as Port[]).map((port) => {
+    const geo = PORT_GEO_COORDINATES[port.id]
+    if (!geo) return port
+    return {
+      ...port,
+      position: getPortWorldPosition(port.id),
+    }
+  })
 
   // Trade Goods
   const tradeGoodsResult = validateArray(tradeGoodsRaw, TradeGoodSchema, 'tradeGoods.json')

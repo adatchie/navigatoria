@@ -11,10 +11,13 @@ import { useGameStore } from '@/stores/useGameStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { windSpeedFactor } from '@/game/utils/math.ts'
+import { isPointOnLand } from '@/data/master/landmasses.ts'
+import { useUIStore } from '@/stores/useUIStore.ts'
 
 declare global {
   interface Window {
     __NAV_LOG_COUNT__?: number
+    __LAND_NOTICE__?: number
   }
 }
 
@@ -58,6 +61,7 @@ export class NavigationSystem implements GameSystem {
     const nav = useNavigationStore.getState()
     const playerStore = usePlayerStore.getState()
     const { paused, speed } = useGameStore.getState()
+    const w = window as Window & { __LAND_NOTICE__?: number }
 
     // 停泊中・戦闘中・ポーズ中は移動しない
     if (paused || nav.mode === 'docked' || nav.mode === 'combat') {
@@ -156,6 +160,19 @@ export class NavigationSystem implements GameSystem {
       y: Math.max(0, Math.min(WORLD_HEIGHT, rawY)),
     }
 
+    const isBlockedByLand = isPointOnLand([nextPosition.x, nextPosition.y])
+    if (isBlockedByLand) {
+      nav.setSpeed(0)
+      if (nav.mode !== 'anchored') nav.setMode('anchored')
+      playerStore.setHeading(newHeading)
+      const now = performance.now()
+      if (now - (w.__LAND_NOTICE__ ?? 0) > 3000) {
+        useUIStore.getState().addNotification('陸地に接近しすぎたため停止しました。', 'warning', 2200)
+        w.__LAND_NOTICE__ = now
+      }
+      return
+    }
+
     nav.setPosition(nextPosition)
     nav.addDistance(stepKm)
     playerStore.setPosition(nextPosition)
@@ -163,7 +180,6 @@ export class NavigationSystem implements GameSystem {
     playerStore.updatePlayer({ currentPortId: undefined })
 
     // ストア更新直後の確認
-    const w = window
     if (!w.__NAV_LOG_COUNT__) w.__NAV_LOG_COUNT__ = 0
     if (w.__NAV_LOG_COUNT__ < 3) {
       const storedNav = useNavigationStore.getState().position
