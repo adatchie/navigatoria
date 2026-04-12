@@ -5,7 +5,7 @@ import { WORLD_GEOMETRY_SCALE, WORLD_HEIGHT, WORLD_WIDTH } from '@/config/gameCo
 export const SCENE_WORLD_SCALE = 0.3 / WORLD_GEOMETRY_SCALE
 
 export function worldToScene(position: Position2D): [number, number, number] {
-  const centeredX = position.x - WORLD_WIDTH / 2
+  const centeredX = WORLD_WIDTH / 2 - position.x
   const centeredZ = position.y - WORLD_HEIGHT / 2
 
   return [centeredX * SCENE_WORLD_SCALE, 0, centeredZ * SCENE_WORLD_SCALE]
@@ -14,7 +14,7 @@ export function worldToScene(position: Position2D): [number, number, number] {
 /** シーン座標 → ワールド座標 (worldToSceneの逆変換) */
 export function sceneToWorld(sceneX: number, sceneZ: number): Position2D {
   return {
-    x: sceneX / SCENE_WORLD_SCALE + WORLD_WIDTH / 2,
+    x: WORLD_WIDTH / 2 - sceneX / SCENE_WORLD_SCALE,
     y: sceneZ / SCENE_WORLD_SCALE + WORLD_HEIGHT / 2,
   }
 }

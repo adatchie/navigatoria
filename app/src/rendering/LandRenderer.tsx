@@ -5,24 +5,16 @@
 import { useMemo } from 'react'
 import { Shape, ShapeGeometry, MeshBasicMaterial, DoubleSide } from 'three'
 import { LANDMASSES, type LandPolygon } from '@/data/master/landmasses.ts'
-import { WORLD_WIDTH, WORLD_HEIGHT } from '@/config/gameConfig.ts'
-import { SCENE_WORLD_SCALE } from '@/rendering/worldTransform.ts'
-
-// ワールド座標 → シーン座標 (XZ平面)
-function toScene(wx: number, wy: number): [number, number] {
-  const sx = (wx - WORLD_WIDTH / 2) * SCENE_WORLD_SCALE
-  const sz = (wy - WORLD_HEIGHT / 2) * SCENE_WORLD_SCALE
-  return [sx, sz]
-}
+import { worldToScene } from '@/rendering/worldTransform.ts'
 
 // ポリゴンデータから Three.js の Shape を生成
 function createLandShape(polygon: LandPolygon): Shape {
   const shape = new Shape()
-  const [startX, startZ] = toScene(polygon.points[0]![0], polygon.points[0]![1])
+  const [startX, , startZ] = worldToScene({ x: polygon.points[0]![0], y: polygon.points[0]![1] })
   shape.moveTo(startX, startZ)
 
   for (let i = 1; i < polygon.points.length; i++) {
-    const [x, z] = toScene(polygon.points[i]![0], polygon.points[i]![1])
+    const [x, , z] = worldToScene({ x: polygon.points[i]![0], y: polygon.points[i]![1] })
     shape.lineTo(x, z)
   }
   shape.closePath()
