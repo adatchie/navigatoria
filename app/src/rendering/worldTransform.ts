@@ -1,10 +1,8 @@
 import type { Position2D } from '@/types/common.ts'
-import { WORLD_HEIGHT, WORLD_WIDTH } from '@/config/gameConfig.ts'
+import { WORLD_GEOMETRY_SCALE, WORLD_HEIGHT, WORLD_WIDTH } from '@/config/gameConfig.ts'
 
-// 3Dシーンでの1マップ単位のサイズ
-// 大きいほど港同士が離れて見え、一画面で見渡せる範囲が狭くなる
-// ※デバッグ用に縮小中 (本番: 3.0)
-export const SCENE_WORLD_SCALE = 0.3
+// 内部地図を拡大しても見た目のスケール感は保つ。
+export const SCENE_WORLD_SCALE = 0.3 / WORLD_GEOMETRY_SCALE
 
 export function worldToScene(position: Position2D): [number, number, number] {
   const centeredX = position.x - WORLD_WIDTH / 2

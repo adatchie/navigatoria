@@ -25,7 +25,7 @@ export function CameraControls() {
     const [sx, , sz] = worldToScene(position)
     targetRef.current.set(sx, 0, sz)
 
-    camera.position.set(sx, 15, sz + 20)
+    camera.position.set(sx, 15, sz - 20)
     if (controlsRef.current) {
       controlsRef.current.target.copy(targetRef.current)
       controlsRef.current.update()

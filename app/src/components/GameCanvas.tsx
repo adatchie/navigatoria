@@ -108,7 +108,7 @@ export function GameCanvas() {
       dpr={[1, 1.5]}
       performance={{ min: 0.75 }}
       camera={{
-        position: [shipScenePos[0], 60, shipScenePos[2] + 80],
+        position: [shipScenePos[0], 60, shipScenePos[2] - 80],
         fov: 55,
         near: 0.1,
         far: 3000,

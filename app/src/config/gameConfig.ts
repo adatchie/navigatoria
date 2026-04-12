@@ -2,17 +2,22 @@
 // ゲーム定数 — 時間倍率、世界サイズ、バランスパラメータ
 // ============================================================
 
-export const WORLD_WIDTH = 1600
-export const WORLD_HEIGHT = 800
+/**
+ * 地理投影を内部的に拡大して、細い海峡や海岸線まわりの通行精度を上げる。
+ * 港・陸地は同じ投影式を通るため、相対座標は崩れない。
+ */
+export const WORLD_GEOMETRY_SCALE = 4
+export const WORLD_WIDTH = 1600 * WORLD_GEOMETRY_SCALE
+export const WORLD_HEIGHT = 800 * WORLD_GEOMETRY_SCALE
 export const GRID_SIZE = 5
 
 /**
  * 距離スケール: 1座標単位 = 何km か
  * 港座標はマップ単位。実際のkm距離はマップ距離×このスケールで計算する。
- * 例: リスボン→ボルドー = 約18マップ単位 = 180km (本番時)
- * デバッグ用に1/10に縮小 (本番: 100, デバッグ: 10)
+ * 内部地図を WORLD_GEOMETRY_SCALE 倍したぶん、距離スケールは逆に縮めて
+ * 実際の航海距離と速度感を従来どおりに保つ。
  */
-export const WORLD_DISTANCE_SCALE = 10
+export const WORLD_DISTANCE_SCALE = 10 / WORLD_GEOMETRY_SCALE
 
 export const TIME_CONFIG = {
   REAL_SECONDS_PER_GAME_DAY: 30, // デバッグ用に短縮 (本番: 120)
