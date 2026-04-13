@@ -213,10 +213,9 @@ function RudderClickHandler() {
       const hit = raycaster.ray.intersectPlane(oceanPlane, intersectPoint)
       if (!hit) return
 
-      // シーン座標 → ワールド座標
+      // 現在は worldToScene の左右反転をやめているため、
+      // クリック地点も通常のワールド座標へ戻してから方位角を出す。
       const worldPos = sceneToWorld(intersectPoint.x, intersectPoint.z)
-
-      // クリック地点への方位角を計算して舵の方向に設定
       const dx = worldPos.x - nav.position.x
       const dy = worldPos.y - nav.position.y
       const targetHeading = ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360
@@ -281,6 +280,7 @@ function PortMarker({ port }: { port: Port }) {
     } else {
       // 航海中（sailing/anchored） → 直接入港
       nav.setMode('docked')
+      nav.setPosition(port.position)
       nav.setDockedPort(port.id)
       nav.setSpeed(0)
       nav.resetVoyage()

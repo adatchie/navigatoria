@@ -31,6 +31,10 @@ interface GeoJsonFeatureCollection {
 const LAND_COLOR = '#3f5f34'
 const MIN_RING_POINTS = 3
 const PORT_SEA_OFFSET = 0.12
+const DEPARTURE_SEA_OFFSET = 1.6
+const SEA_SEARCH_MAX_RADIUS = 2.4
+const SEA_SEARCH_RADIAL_STEPS = 24
+const SEA_SEARCH_ANGLE_STEPS = 48
 
 function projectRing(ring: number[][]): [number, number][] {
   const projected = ring.map(([lon, lat]) => projectGeoPairToWorld([lon, lat]))
@@ -174,6 +178,12 @@ function findNearestSeaAroundCoast(
   return bestSeaPoint
 }
 
+function normalizeVector(dx: number, dy: number): [number, number] | null {
+  const length = Math.hypot(dx, dy)
+  if (length <= 0.0001) return null
+  return [dx / length, dy / length]
+}
+
 /**
  * 港座標を海岸線に吸着し、最小限だけ海側へオフセットする。
  * 座標系の差があっても、港マーカーが海岸線から大きく離れないようにする。
@@ -186,5 +196,61 @@ export function anchorPortPointToCoast(point: [number, number], offset = PORT_SE
 
 export function snapPointToNearestSea(point: [number, number], offset = PORT_SEA_OFFSET): [number, number] {
   if (!isPointOnLand(point)) return point
+
+  let bestPoint: [number, number] | null = null
+  let bestDistance = Number.POSITIVE_INFINITY
+
+  for (let radiusStep = 1; radiusStep <= SEA_SEARCH_RADIAL_STEPS; radiusStep++) {
+    const radius = (SEA_SEARCH_MAX_RADIUS * radiusStep) / SEA_SEARCH_RADIAL_STEPS
+    for (let angleStep = 0; angleStep < SEA_SEARCH_ANGLE_STEPS; angleStep++) {
+      const angle = (angleStep / SEA_SEARCH_ANGLE_STEPS) * Math.PI * 2
+      const candidate: [number, number] = [
+        point[0] + Math.cos(angle) * radius,
+        point[1] + Math.sin(angle) * radius,
+      ]
+      if (isPointOnLand(candidate)) continue
+
+      const candidateDistance = distanceSq(point, candidate)
+      if (candidateDistance < bestDistance) {
+        bestDistance = candidateDistance
+        bestPoint = candidate
+      }
+    }
+
+    if (bestPoint && bestDistance <= radius * radius) {
+      break
+    }
+  }
+
+  if (bestPoint) {
+    if (offset <= 0) return bestPoint
+    const direction = normalizeVector(bestPoint[0] - point[0], bestPoint[1] - point[1])
+    if (!direction) return bestPoint
+    const paddedPoint: [number, number] = [
+      bestPoint[0] + direction[0] * offset,
+      bestPoint[1] + direction[1] * offset,
+    ]
+    return isPointOnLand(paddedPoint) ? bestPoint : paddedPoint
+  }
+
   return anchorPortPointToCoast(point, offset)
+}
+
+export function getSeawardDeparture(point: [number, number], offset = DEPARTURE_SEA_OFFSET): { point: [number, number]; heading: number } {
+  const coast = findNearestCoastPoint(point)
+  const fallbackSeaPoint = findNearestSeaAroundCoast(point, coast, offset)
+  const direction = normalizeVector(point[0] - coast[0], point[1] - coast[1])
+
+  const seaPoint: [number, number] = direction
+    ? [point[0] + direction[0] * offset, point[1] + direction[1] * offset]
+    : fallbackSeaPoint
+
+  const safePoint = isPointOnLand(seaPoint) ? fallbackSeaPoint : seaPoint
+  const safeDirection = normalizeVector(safePoint[0] - coast[0], safePoint[1] - coast[1]) ?? [0, 1]
+  const heading = (Math.atan2(safeDirection[0], safeDirection[1]) * 180) / Math.PI
+
+  return {
+    point: safePoint,
+    heading: (heading + 360) % 360,
+  }
 }

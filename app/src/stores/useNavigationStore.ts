@@ -5,6 +5,7 @@
 import { create } from 'zustand'
 import { createPortId, type Position2D, type Heading, type Wind, type Weather, type WeatherType, type PortId } from '@/types/common.ts'
 import { INITIAL_PLAYER } from '@/config/gameConfig.ts'
+import { getSeawardDeparture } from '@/data/master/landmasses.ts'
 import { getPortWorldPosition } from '@/data/master/portWorldPosition.ts'
 
 /** 航海モード */
@@ -77,13 +78,18 @@ export const useNavigationStore = create<NavigationStoreState>()((set) => ({
   resetVoyage: () => set({ distanceTraveled: 0 }),
 
   departPort: (heading) =>
-    set({
-      mode: 'sailing',
-      dockedPortId: null,
-      heading,
-      targetHeading: heading,
-      sailRatio: 0.5,
-      distanceTraveled: 0,
+    set((state) => {
+      const departure = getSeawardDeparture([state.position.x, state.position.y])
+      const nextHeading = departure.heading ?? heading
+      return {
+        mode: 'sailing',
+        dockedPortId: null,
+        position: { x: departure.point[0], y: departure.point[1] },
+        heading: nextHeading,
+        targetHeading: nextHeading,
+        sailRatio: 0.5,
+        distanceTraveled: 0,
+      }
     }),
 
   debugTeleport: (position) =>

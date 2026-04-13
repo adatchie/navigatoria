@@ -97,29 +97,31 @@ export function ShipRenderer({
   heading = 0,
   scale = 1,
 }: ShipRendererProps) {
-  const groupRef = useRef<Group>(null)
+  const motionGroupRef = useRef<Group>(null)
 
   useFrame((state) => {
-    if (!groupRef.current) return
+    if (!motionGroupRef.current) return
     const time = state.clock.elapsedTime
-    groupRef.current.rotation.x = Math.sin(time * 0.8) * 0.03
-    groupRef.current.rotation.z = Math.sin(time * 0.6 + 1) * 0.05
-    groupRef.current.position.y = position[1] + Math.sin(time * 0.7) * 0.15
+    motionGroupRef.current.rotation.x = Math.sin(time * 0.8) * 0.03
+    motionGroupRef.current.rotation.z = Math.sin(time * 0.6 + 1) * 0.05
+    motionGroupRef.current.position.y = Math.sin(time * 0.7) * 0.15
   })
 
   const headingRad = (heading * Math.PI) / 180
 
   return (
-    <group ref={groupRef} position={position} rotation={[0, headingRad, 0]} scale={scale}>
-      {shipParts.map((part, index) => (
-        <mesh
-          key={index}
-          geometry={part.geometry}
-          material={part.material}
-          position={part.position}
-          rotation={part.rotation}
-        />
-      ))}
+    <group position={position} rotation={[0, headingRad, 0]} scale={scale}>
+      <group ref={motionGroupRef}>
+        {shipParts.map((part, index) => (
+          <mesh
+            key={index}
+            geometry={part.geometry}
+            material={part.material}
+            position={part.position}
+            rotation={part.rotation}
+          />
+        ))}
+      </group>
     </group>
   )
 }

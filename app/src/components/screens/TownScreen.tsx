@@ -415,7 +415,12 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                     <div style={styles.departRow}>
                       <button style={styles.leaveButton} onClick={() => {
                         const nav = useNavigationStore.getState()
+                        nav.setPosition(port.position)
                         nav.departPort(nav.heading)
+                        const departedNav = useNavigationStore.getState()
+                        usePlayerStore.getState().setPosition(departedNav.position)
+                        usePlayerStore.getState().setHeading(departedNav.heading)
+                        usePlayerStore.getState().updatePlayer({ currentPortId: undefined, position: departedNav.position, heading: departedNav.heading })
                         setPhase('playing')
                       }}>{uiText.town.labels.depart}</button>
                     </div>
