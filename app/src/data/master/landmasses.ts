@@ -35,6 +35,9 @@ const DEPARTURE_SEA_OFFSET = 1.6
 const SEA_SEARCH_MAX_RADIUS = 2.4
 const SEA_SEARCH_RADIAL_STEPS = 24
 const SEA_SEARCH_ANGLE_STEPS = 48
+const DEPARTURE_CLEARANCE_STEP = 0.6
+const DEPARTURE_CLEARANCE_SAMPLES = 8
+const DEPARTURE_CLEARANCE_TRIES = 12
 
 function projectRing(ring: number[][]): [number, number][] {
   const projected = ring.map(([lon, lat]) => projectGeoPairToWorld([lon, lat]))
@@ -184,6 +187,17 @@ function normalizeVector(dx: number, dy: number): [number, number] | null {
   return [dx / length, dy / length]
 }
 
+function isSeaCorridorClear(origin: [number, number], direction: [number, number]): boolean {
+  for (let i = 0; i <= DEPARTURE_CLEARANCE_SAMPLES; i++) {
+    const sample: [number, number] = [
+      origin[0] + direction[0] * DEPARTURE_CLEARANCE_STEP * i,
+      origin[1] + direction[1] * DEPARTURE_CLEARANCE_STEP * i,
+    ]
+    if (isPointOnLand(sample)) return false
+  }
+  return true
+}
+
 /**
  * 港座標を海岸線に吸着し、最小限だけ海側へオフセットする。
  * 座標系の差があっても、港マーカーが海岸線から大きく離れないようにする。
@@ -247,10 +261,26 @@ export function getSeawardDeparture(point: [number, number], offset = DEPARTURE_
 
   const safePoint = isPointOnLand(seaPoint) ? fallbackSeaPoint : seaPoint
   const safeDirection = normalizeVector(safePoint[0] - coast[0], safePoint[1] - coast[1]) ?? [0, 1]
+  let departurePoint = safePoint
+
+  if (!isSeaCorridorClear(departurePoint, safeDirection)) {
+    for (let i = 1; i <= DEPARTURE_CLEARANCE_TRIES; i++) {
+      const candidate: [number, number] = [
+        safePoint[0] + safeDirection[0] * DEPARTURE_CLEARANCE_STEP * i,
+        safePoint[1] + safeDirection[1] * DEPARTURE_CLEARANCE_STEP * i,
+      ]
+      if (isPointOnLand(candidate)) continue
+      if (isSeaCorridorClear(candidate, safeDirection)) {
+        departurePoint = candidate
+        break
+      }
+    }
+  }
+
   const heading = (Math.atan2(safeDirection[0], safeDirection[1]) * 180) / Math.PI
 
   return {
-    point: safePoint,
+    point: departurePoint,
     heading: (heading + 360) % 360,
   }
 }

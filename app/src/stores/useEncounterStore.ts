@@ -14,6 +14,7 @@ import { useDataStore } from '@/stores/useDataStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import type { PlayerItemStack } from '@/types/character.ts'
+import { useUIStore } from '@/stores/useUIStore.ts'
 
 interface EncounterResolution {
   ok: boolean
@@ -66,6 +67,11 @@ function mergeInventoryStacks(base: PlayerItemStack[], loot: EncounterLoot[]): P
 }
 
 function applyEncounterOutcome(outcome: EncounterOutcome, combatState?: EncounterCombatState): void {
+  const playerBefore = usePlayerStore.getState()
+  const activeShipBefore = playerBefore.ships.find((ship) => ship.instanceId === playerBefore.activeShipId)
+  const previousCrew = activeShipBefore?.currentCrew ?? 0
+  const previousDurability = activeShipBefore?.currentDurability ?? 0
+
   usePlayerStore.setState((state) => {
     if (!state.player) return state
 
@@ -100,6 +106,20 @@ function applyEncounterOutcome(outcome: EncounterOutcome, combatState?: Encounte
       ships,
     }
   })
+
+  const playerAfter = usePlayerStore.getState()
+  const activeShipAfter = playerAfter.ships.find((ship) => ship.instanceId === playerAfter.activeShipId)
+  const nextCrew = activeShipAfter?.currentCrew ?? previousCrew
+  const nextDurability = activeShipAfter?.currentDurability ?? previousDurability
+  const crewLoss = Math.max(0, previousCrew - nextCrew)
+  const durabilityLoss = Math.max(0, previousDurability - nextDurability)
+
+  if (crewLoss > 0) {
+    useUIStore.getState().addNotification(`船員が ${crewLoss} 人減りました。`, nextCrew <= 0 ? 'error' : 'warning', 3600)
+  }
+  if (durabilityLoss >= 10) {
+    useUIStore.getState().addNotification(`船体が ${durabilityLoss} 損傷しました。`, 'warning', 3000)
+  }
 }
 
 function resolveImmediateOutcome(encounter: EncounterState, action: EncounterAction): EncounterOutcome {

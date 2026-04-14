@@ -28,6 +28,8 @@ interface NavigationStoreState {
   currentSpeed: number
   /** 現在停泊している港 */
   dockedPortId: PortId | null
+  /** 直近に出航した港 */
+  lastDeparturePortId: PortId | null
   /** 現在の風 */
   wind: Wind
   /** 現在の天候 */
@@ -42,6 +44,7 @@ interface NavigationStoreState {
   setSailRatio: (ratio: number) => void
   setSpeed: (speed: number) => void
   setDockedPort: (portId: PortId | null) => void
+  setLastDeparturePort: (portId: PortId | null) => void
   setWind: (wind: Wind) => void
   setWeather: (type: WeatherType, intensity: number) => void
   addDistance: (km: number) => void
@@ -59,6 +62,7 @@ export const useNavigationStore = create<NavigationStoreState>()((set) => ({
   sailRatio: 0,
   currentSpeed: 0,
   dockedPortId: createPortId(INITIAL_PLAYER.START_PORT),
+  lastDeparturePortId: createPortId(INITIAL_PLAYER.START_PORT),
   wind: { direction: 0, speed: 10 },
   weather: { type: 'clear', intensity: 0, duration: 0 },
   distanceTraveled: 0,
@@ -70,6 +74,7 @@ export const useNavigationStore = create<NavigationStoreState>()((set) => ({
   setSailRatio: (ratio) => set({ sailRatio: Math.max(0, Math.min(1, ratio)) }),
   setSpeed: (currentSpeed) => set({ currentSpeed }),
   setDockedPort: (dockedPortId) => set({ dockedPortId }),
+  setLastDeparturePort: (lastDeparturePortId) => set({ lastDeparturePortId }),
   setWind: (wind) => set({ wind }),
   setWeather: (type, intensity) =>
     set({ weather: { type, intensity, duration: 0 } }),
@@ -83,6 +88,7 @@ export const useNavigationStore = create<NavigationStoreState>()((set) => ({
       const nextHeading = departure.heading ?? heading
       return {
         mode: 'sailing',
+        lastDeparturePortId: state.dockedPortId ?? state.lastDeparturePortId,
         dockedPortId: null,
         position: { x: departure.point[0], y: departure.point[1] },
         heading: nextHeading,

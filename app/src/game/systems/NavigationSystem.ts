@@ -10,9 +10,11 @@ import { useDataStore } from '@/stores/useDataStore.ts'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
+import type { Position2D } from '@/types/common.ts'
 import { windSpeedFactor } from '@/game/utils/math.ts'
 import { isPointOnLand } from '@/data/master/landmasses.ts'
 import { useUIStore } from '@/stores/useUIStore.ts'
+import { useWorldStore } from '@/stores/useWorldStore.ts'
 
 declare global {
   interface Window {
@@ -53,6 +55,83 @@ function getLoadPerformance(usedCapacity: number, maxCapacity: number, cargoUpgr
   return 1 - rawPenalty * Math.max(0.2, mitigation)
 }
 
+function clampWorldPosition(x: number, y: number): Position2D {
+  return {
+    x: Math.max(0, Math.min(WORLD_WIDTH, x)),
+    y: Math.max(0, Math.min(WORLD_HEIGHT, y)),
+  }
+}
+
+function isSailable(position: Position2D): boolean {
+  return !isPointOnLand([position.x, position.y])
+}
+
+function buildSlideDirection(dx: number, dy: number, steeringBias: number): [number, number][] {
+  const length = Math.hypot(dx, dy)
+  if (length <= 0.0001) return []
+
+  const rightTangent: [number, number] = [dy / length, -dx / length]
+  const leftTangent: [number, number] = [-dy / length, dx / length]
+
+  if (steeringBias > 0) return [rightTangent, leftTangent]
+  if (steeringBias < 0) return [leftTangent, rightTangent]
+  return [rightTangent, leftTangent]
+}
+
+function trySlideAlongCoast(origin: Position2D, dx: number, dy: number, steeringBias: number): Position2D | null {
+  const step = Math.hypot(dx, dy)
+  if (step <= 0.0001) return null
+
+  const tangents = buildSlideDirection(dx, dy, steeringBias)
+  const slideFractions = [1, 0.8, 0.6, 0.4]
+
+  for (const [tx, ty] of tangents) {
+    for (const fraction of slideFractions) {
+      const candidate = clampWorldPosition(
+        origin.x + tx * step * fraction,
+        origin.y + ty * step * fraction,
+      )
+      if (isSailable(candidate)) return candidate
+    }
+  }
+
+  const axisCandidates = [
+    clampWorldPosition(origin.x + dx, origin.y),
+    clampWorldPosition(origin.x, origin.y + dy),
+  ]
+
+  for (const candidate of axisCandidates) {
+    if (isSailable(candidate)) return candidate
+  }
+
+  return null
+}
+
+function rescueToDeparturePort(reason: string): void {
+  const nav = useNavigationStore.getState()
+  const departurePortId = nav.lastDeparturePortId
+  if (!departurePortId) return
+
+  const departurePort = useWorldStore.getState().ports.find((port) => port.id === departurePortId)
+  if (!departurePort) return
+
+  useNavigationStore.setState({
+    mode: 'docked',
+    position: departurePort.position,
+    dockedPortId: departurePort.id,
+    currentSpeed: 0,
+    sailRatio: 0,
+    targetHeading: nav.heading,
+  })
+
+  const playerStore = usePlayerStore.getState()
+  playerStore.setPosition(departurePort.position)
+  playerStore.updatePlayer({ currentPortId: departurePort.id })
+
+  useGameStore.getState().setPhase('port')
+  useUIStore.getState().addNotification(reason, 'error', 5200)
+}
+
 export class NavigationSystem implements GameSystem {
   name = 'NavigationSystem'
   priority = 10
@@ -80,6 +159,12 @@ export class NavigationSystem implements GameSystem {
 
     const minimumCrew = shipType?.crew.min ?? 1
     const crewPerformance = getCrewPerformance(activeShip?.currentCrew ?? minimumCrew, minimumCrew)
+
+    if ((activeShip?.currentCrew ?? 0) <= 0) {
+      rescueToDeparturePort('船員が全滅しました。救助船により出航元の港へ曳航されました。')
+      nav.setSpeed(0)
+      return
+    }
 
     // 最低限の乗組員がいないと動けない
     if (crewPerformance < NAVIGATION_CONFIG.MINIMUM_MOVABLE_CREW_FACTOR) {
@@ -155,13 +240,25 @@ export class NavigationSystem implements GameSystem {
     const ny = Math.cos(headingRad)
     const rawX = nav.position.x + nx * stepMap
     const rawY = nav.position.y + ny * stepMap
-    const nextPosition = {
-      x: Math.max(0, Math.min(WORLD_WIDTH, rawX)),
-      y: Math.max(0, Math.min(WORLD_HEIGHT, rawY)),
-    }
+    const nextPosition = clampWorldPosition(rawX, rawY)
 
-    const isBlockedByLand = isPointOnLand([nextPosition.x, nextPosition.y])
+    const isBlockedByLand = !isSailable(nextPosition)
     if (isBlockedByLand) {
+      const slidePosition = trySlideAlongCoast(
+        nav.position,
+        nx * stepMap,
+        ny * stepMap,
+        Math.sign(headingDiff),
+      )
+      if (slidePosition) {
+        nav.setPosition(slidePosition)
+        nav.addDistance(stepKm)
+        playerStore.setPosition(slidePosition)
+        playerStore.setHeading(newHeading)
+        playerStore.updatePlayer({ currentPortId: undefined })
+        return
+      }
+
       nav.setSpeed(0)
       if (nav.mode !== 'anchored') nav.setMode('anchored')
       playerStore.setHeading(newHeading)

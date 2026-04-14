@@ -107,7 +107,7 @@ export function ShipRenderer({
     motionGroupRef.current.position.y = Math.sin(time * 0.7) * 0.15
   })
 
-  const headingRad = (heading * Math.PI) / 180
+  const headingRad = (-heading * Math.PI) / 180
 
   return (
     <group position={position} rotation={[0, headingRad, 0]} scale={scale}>
