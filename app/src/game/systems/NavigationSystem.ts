@@ -2,7 +2,10 @@
 // NavigationSystem — 帆走モデルによる航海計算
 // ============================================================
 // クリック＝舵（方向指示）、帆の開閉率＝スピード調整
-// 帆が開いていれば風を受けて自動的に前進し続ける
+// 改良版：進行方向に応じた接線方向探索による連続沿岸スライド
+// 改良版：航行不能理由に応じた通知内容の体系化（A-3）
+// 改良版：UIストアとの連携による停止フラグ管理と通知自動クリア
+// ============================================================
 
 import type { GameSystem } from '@/game/GameLoop.ts'
 import { NAVIGATION_CONFIG, TIME_CONFIG, WORLD_DISTANCE_SCALE, WORLD_WIDTH, WORLD_HEIGHT } from '@/config/gameConfig.ts'
@@ -15,6 +18,7 @@ import { windSpeedFactor } from '@/game/utils/math.ts'
 import { isPointOnLand } from '@/data/master/landmasses.ts'
 import { useUIStore } from '@/stores/useUIStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
+import { updateStopTimer } from '@/stores/useUIStore.ts'
 
 declare global {
   interface Window {
@@ -22,6 +26,37 @@ declare global {
     __LAND_NOTICE__?: number
     __CREW_NOTICE__?: number
   }
+}
+
+// --- 停止理由列挙と通知メッセージ --- //
+enum StopReason {
+  CREW_SHORTAGE = '船員不足',
+  FOOD_SHORTAGE = '食料不足',
+  WATER_SHORTAGE = '水不足',
+  STRUCTURE_DAMAGE = '構造損傷',
+  MORALE_CRISIS = '士気崩壊',
+  STRUCK_GROUND = '座礁',
+  BATTLE_MODE = '戦闘モード',
+  FORCED_RETURN = '強制送還',
+  ANCHORED = '投錨中',
+  DOCKED = '停泊中',
+}
+
+function getStopReasonMessage(reason: StopReason, detail?: string): string {
+  const map: Record<StopReason, string> = {
+    [StopReason.CREW_SHORTAGE]: '船員不足で航行不能です。必要人数まであと %s 人必要です。',
+    [StopReason.FOOD_SHORTAGE]: '食料が不足しています。',
+    [StopReason.WATER_SHORTAGE]: '水が不足しています。',
+    [StopReason.STRUCTURE_DAMAGE]: '船に構造損傷があります。修理が必要です。',
+    [StopReason.MORALE_CRISIS]: '士気が極度に低下しています。酒場での回復が必要です。',
+    [StopReason.STUCK_GROUND]: '陸地に接触しています。安全な海域まで移動してください。',
+    [StopReason.BATTLE_MODE]: '戦闘モードです。離脱または防御してください。',
+    [StopReason.FORCED_RETURN]: '%s へ強制送還されました。',
+    [StopReason.ANCHORED]: '現在投錨中です。錨を上げて移動してください。',
+    [StopReason.DOCKED]: '現在停泊中です。次の出航を準備してください。',
+  }
+  const base = map[reason]
+  return base ? (detail ? base.replace('%s', detail) : base) : '航行不能です。'
 }
 
 // 乗組員充足率による性能補正
@@ -67,36 +102,53 @@ function isSailable(position: Position2D): boolean {
   return !isPointOnLand([position.x, position.y])
 }
 
-function buildSlideDirection(dx: number, dy: number, steeringBias: number): [number, number][] {
-  const length = Math.hypot(dx, dy)
-  if (length <= 0.0001) return []
-
-  const rightTangent: [number, number] = [dy / length, -dx / length]
-  const leftTangent: [number, number] = [-dy / length, dx / length]
-
-  if (steeringBias > 0) return [rightTangent, leftTangent]
-  if (steeringBias < 0) return [leftTangent, rightTangent]
-  return [rightTangent, leftTangent]
+// ユーティリティ：2点間の距離
+function distance(a: Position2D, b: Position2D): number {
+  return Math.hypot(a.x - b.x, a.y - b.y)
 }
 
+// コース方向に沿った沿岸スライドを探索する改良版（360方向探索）
 function trySlideAlongCoast(origin: Position2D, dx: number, dy: number, steeringBias: number): Position2D | null {
-  const step = Math.hypot(dx, dy)
-  if (step <= 0.0001) return null
+  const length = Math.hypot(dx, dy)
+  if (length <= 0.0001) return null
 
-  const tangents = buildSlideDirection(dx, dy, steeringBias)
-  const slideFractions = [1, 0.8, 0.6, 0.4]
+  // 進行方向（steeringBiasに応じて接線方向を算出）
+  const desiredDir = steeringBias > 0 ? [dy / length, -dx / length] : steeringBias < 0 ? [-dy / length, dx / length] : [dy / length, -dx / length]
 
-  for (const [tx, ty] of tangents) {
-    for (const fraction of slideFractions) {
-      const candidate = clampWorldPosition(
-        origin.x + tx * step * fraction,
-        origin.y + ty * step * fraction,
-      )
-      if (isSailable(candidate)) return candidate
+  // 細かい角度ステップで沿岸方向を探索（1度刻み=Math.PI/180）
+  const maxTryAngles = 360
+  const stepAngle = (2 * Math.PI) / maxTryAngles
+  let bestCandidate: Position2D | null = null
+  let bestScore = -1
+
+  for (let i = 0; i < maxTryAngles; i++) {
+    const angle = i * stepAngle
+    const cos = Math.cos(angle)
+    const sin = Math.sin(angle)
+    // desiredDirに近い方向を重視したスコア
+    const dirMatch = Math.abs(cos * desiredDir[0] + sin * desiredDir[1])
+    const candidate: Position2D = {
+      x: origin.x + cos * length,
+      y: origin.y + sin * length,
+    }
+    if (isSailable(candidate)) {
+      const score = dirMatch * length - distance(candidate, origin) * 0.01 // 距離はペナルティ
+      if (score > bestScore) {
+        bestScore = score
+        bestCandidate = candidate
+      }
     }
   }
 
+  if (bestCandidate) return bestCandidate
+
+  // バックアップ：単純な直角方向
+  const rightTangent: [number, number] = [dy / length, -dx / length]
+  const leftTangent: [number, number] = [-dy / length, dx / length]
+
   const axisCandidates = [
+    clampWorldPosition(origin.x + rightTangent[0] * length, origin.y + rightTangent[1] * length),
+    clampWorldPosition(origin.x + leftTangent[0] * length, origin.y + leftTangent[1] * length),
     clampWorldPosition(origin.x + dx, origin.y),
     clampWorldPosition(origin.x, origin.y + dy),
   ]
@@ -130,7 +182,7 @@ function rescueToDeparturePort(reason: string): void {
   playerStore.updatePlayer({ currentPortId: departurePort.id })
 
   useGameStore.getState().setPhase('port')
-  useUIStore.getState().addNotification(reason, 'error', 5200)
+  useUIStore.getState().setNotification(getStopReasonMessage(StopReason.FORCED_RETURN, departurePort.name), 5200)
 }
 
 export class NavigationSystem implements GameSystem {
@@ -138,13 +190,16 @@ export class NavigationSystem implements GameSystem {
   priority = 10
 
   update(deltaTime: number): void {
+    // --- UIストア：停止フラグとタイマ更新 --- //
+    updateStopTimer()
+
     const nav = useNavigationStore.getState()
     const playerStore = usePlayerStore.getState()
     const { paused, speed } = useGameStore.getState()
     const w = window as Window & { __LAND_NOTICE__?: number }
 
-    // 停泊中・戦闘中・ポーズ中は移動しない
-    if (paused || nav.mode === 'docked' || nav.mode === 'combat') {
+    // 航行不能フラグで移動をブロック
+    if (nav.mode === 'docked' || nav.mode === 'combat' || useUIStore.getState().isStopped) {
       if (nav.currentSpeed !== 0) nav.setSpeed(0)
       return
     }
@@ -175,13 +230,18 @@ export class NavigationSystem implements GameSystem {
       if (now - (w.__CREW_NOTICE__ ?? 0) > 3000) {
         const shortage = Math.max(0, minimumCrew - (activeShip?.currentCrew ?? 0))
         useUIStore.getState().addNotification(
-          `船員不足で航行不能です。必要人数まであと ${shortage} 人必要です。`,
+          getStopReasonMessage(StopReason.CREW_SHORTAGE, `${shortage}`),
           'warning',
           2600,
         )
         w.__CREW_NOTICE__ = now
       }
+      // 停止フラグを立てる
+      useUIStore.getState().setStopped(StopReason.CREW_SHORTAGE)
       return
+    } else {
+      // 乗組員が足りるなら停止フラグを解除
+      useUIStore.getState().setResumed()
     }
 
     const crewTurnFactor = crewPerformance < 1
@@ -238,8 +298,6 @@ export class NavigationSystem implements GameSystem {
       ),
     )
 
-    nav.setSpeed(effectiveSpeed)
-
     // --- 移動 ---
     const headingRad = (newHeading * Math.PI) / 180
     const hoursPerRealSecond = (24 / TIME_CONFIG.REAL_SECONDS_PER_GAME_DAY) * speed
@@ -268,6 +326,8 @@ export class NavigationSystem implements GameSystem {
         playerStore.setPosition(slidePosition)
         playerStore.setHeading(newHeading)
         playerStore.updatePlayer({ currentPortId: undefined })
+        // 航行可能になったので停止フラグを解除
+        useUIStore.getState().setResumed()
         return
       }
 
@@ -276,9 +336,11 @@ export class NavigationSystem implements GameSystem {
       playerStore.setHeading(newHeading)
       const now = performance.now()
       if (now - (w.__LAND_NOTICE__ ?? 0) > 3000) {
-        useUIStore.getState().addNotification('陸地に接近しすぎたため停止しました。', 'warning', 2200)
+        useUIStore.getState().addNotification(getStopReasonMessage(StopReason.STUCK_GROUND), 'warning', 2200)
         w.__LAND_NOTICE__ = now
       }
+      // 停止フラグを立てる
+      useUIStore.getState().setStopped(StopReason.STUCK_GROUND)
       return
     }
 

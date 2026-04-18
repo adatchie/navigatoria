@@ -3,121 +3,94 @@
 // ============================================================
 
 import { create } from 'zustand'
-import type { DebugFlags } from '@/config/debugConfig.ts'
-import { loadDebugFlags, saveDebugFlags } from '@/config/debugConfig.ts'
-
-/** UIパネルタイプ */
-export type PanelType =
-  | 'none'
-  | 'inventory'
-  | 'map'
-  | 'quest'
-  | 'skills'
-  | 'ship'
-  | 'trade'
-  | 'port'
-  | 'settings'
-
-/** 通知メッセージ */
-export interface Notification {
-  id: string
-  message: string
-  type: 'info' | 'warning' | 'error' | 'success'
-  duration: number // ms, 0 = 手動閉じ
-  createdAt: number
-}
+import { subscribeWithSelector } from 'zustand/middleware'
+import type { StopReason } from '@/game/systems/NavigationSystem.ts'
 
 interface UIStoreState {
-  /** 現在開いているパネル */
-  activePanel: PanelType
-  /** モーダルスタック */
-  modals: string[]
-  /** 通知リスト */
-  notifications: Notification[]
-  /** デバッグフラグ */
-  debugFlags: DebugFlags
-  /** サイドバー開閉 */
-  sidebarOpen: boolean
-
-  // アクション
-  setActivePanel: (panel: PanelType) => void
-  togglePanel: (panel: PanelType) => void
-  pushModal: (modalId: string) => void
-  popModal: () => void
-  addNotification: (message: string, type?: Notification['type'], duration?: number) => void
-  removeNotification: (id: string) => void
-  setDebugFlag: <K extends keyof DebugFlags>(key: K, value: DebugFlags[K]) => void
-  toggleDebugFlag: (key: keyof DebugFlags) => void
-  setSidebarOpen: (open: boolean) => void
+  /** 航行不能状態かどうか */
+  isStopped: boolean
+  /** 停止理由 */
+  stopReason: StopReason | null
+  /** 停止開始時刻（performance.now） */
+  stopStartTime: number
+  /** 停止継続時間（ms）表示用 */
+  stopDuration: number
+  /** 通知メッセージ */
+  notificationMessage: string
+  /** 通知継続時間（ms） */
+  notificationDuration: number
+  /** 通知を設定（duration経過で自動クリア） */
+  setNotification: (message: string, duration: number) => void
+  /** 停止状態を設定 */
+  setStopped: (reason: StopReason, duration?: number) => void
+  /** 停止解除 */
+  setResumed: () => void
 }
 
-let notificationCounter = 0
+let notificationTimeoutId: number | null = null
 
-export const useUIStore = create<UIStoreState>()((set, get) => ({
-  activePanel: 'none',
-  modals: [],
-  notifications: [],
-  debugFlags: loadDebugFlags(),
-  sidebarOpen: false,
+export const useUIStore = create<UIStoreState>()(
+  subscribeWithSelector((set, get) => ({
+    isStopped: false,
+    stopReason: null,
+    stopStartTime: 0,
+    stopDuration: 0,
+    notificationMessage: '',
+    notificationDuration: 0,
 
-  setActivePanel: (panel) => set({ activePanel: panel }),
+    setNotification: (message, duration) => {
+      set({ notificationMessage: message, notificationDuration: duration })
+      // 既存のタイマーをクリア
+      if (notificationTimeoutId) {
+        try {
+          window.clearTimeout(notificationTimeoutId)
+        } catch {
+          // ignore
+        }
+        notificationTimeoutId = null
+      }
+      // 新しいタイマー設定
+      if (duration > 0) {
+        notificationTimeoutId = window.setTimeout(() => {
+          set({ notificationMessage: '' })
+          notificationTimeoutId = null
+        }, duration) as unknown as number
+      }
+    },
 
-  togglePanel: (panel) => {
-    const current = get().activePanel
-    set({ activePanel: current === panel ? 'none' : panel })
-  },
+    setStopped: (reason, duration = 5000) =>
+      set({
+        isStopped: true,
+        stopReason: reason,
+        stopStartTime: performance.now(),
+        stopDuration: duration,
+      }),
 
-  pushModal: (modalId) =>
-    set((state) => ({ modals: [...state.modals, modalId] })),
+    setResumed: () =>
+      set({
+        isStopped: false,
+        stopReason: null,
+        stopDuration: 0,
+      }),
+  })),
+)
 
-  popModal: () =>
-    set((state) => ({ modals: state.modals.slice(0, -1) })),
-
-  addNotification: (message, type = 'info', duration = 3000) => {
-    const id = `notif_${++notificationCounter}`
-    const notification: Notification = {
-      id,
-      message,
-      type,
-      duration,
-      createdAt: Date.now(),
+// 継続時間の経過を更新する副作用（ループ側から呼ぶ）
+export function updateStopTimer(): void {
+  useUIStore.setState((state) => {
+    if (state.isStopped) {
+      const elapsed = performance.now() - state.stopStartTime
+      return { stopDuration: elapsed }
     }
-    set((state) => ({
-      notifications: [...state.notifications, notification],
-    }))
+    // 通知が表示中なら残り時間を減らす（setNotificationで自動クリアされるためここは軽減）
+    return {}
+  })
+}
 
-    // 自動削除
-    if (duration > 0) {
-      setTimeout(() => {
-        set((state) => ({
-          notifications: state.notifications.filter((n) => n.id !== id),
-        }))
-      }, duration)
-    }
-  },
-
-  removeNotification: (id) =>
-    set((state) => ({
-      notifications: state.notifications.filter((n) => n.id !== id),
-    })),
-
-  setDebugFlag: (key, value) => {
-    set((state) => {
-      const newFlags = { ...state.debugFlags, [key]: value }
-      saveDebugFlags(newFlags)
-      return { debugFlags: newFlags }
-    })
-  },
-
-  toggleDebugFlag: (key) => {
-    set((state) => {
-      const current = state.debugFlags[key]
-      if (typeof current !== 'boolean') return state
-      const newFlags = { ...state.debugFlags, [key]: !current }
-      saveDebugFlags(newFlags)
-      return { debugFlags: newFlags }
-    })
-  },
-
-  setSidebarOpen: (open) => set({ sidebarOpen: open }),
-}))
+// 通知を自動でクリア（duration経過で）
+export function clearNotificationIfExpired(): void {
+  const { notificationDuration, notificationMessage } = useUIStore.getState()
+  if (notificationDuration <= 0 && notificationMessage) {
+    useUIStore.getState().setNotification('', 0)
+  }
+}
