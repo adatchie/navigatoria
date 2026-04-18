@@ -54,7 +54,7 @@ export const uiText = {
     rigging: '帆装',
     cargoRig: '船倉補強',
     gunnery: '砲装',
-    crewLoad: '乗員充足',
+    crewLoad: '運航乗員',
     food: '食料',
     water: '水',
     position: '座標',

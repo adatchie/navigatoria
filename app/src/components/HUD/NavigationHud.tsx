@@ -34,6 +34,8 @@ export function NavigationHud() {
   const shipType = activeShip ? getShip(activeShip.typeId) : undefined
   const dockedPort = ports.find((port) => port.id === navigation.dockedPortId)
   const crewRatio = activeShip && shipType ? activeShip.currentCrew / Math.max(1, shipType.crew.min) : null
+  const requiredCrew = shipType?.crew.min ?? null
+  const missingCrew = requiredCrew != null && activeShip ? Math.max(0, requiredCrew - activeShip.currentCrew) : null
   const riggingLevel = activeShip?.upgrades?.rigging ?? 0
   const cargoUpgradeLevel = activeShip?.upgrades?.cargo ?? 0
   const gunneryLevel = activeShip?.upgrades?.gunnery ?? 0
@@ -61,7 +63,19 @@ export function NavigationHud() {
       <div style={styles.row}><span style={styles.label}>{uiText.nav.rigging}</span><span>Lv {riggingLevel} / speed +{speedBonus}% / turn +{turnBonus}%</span></div>
       <div style={styles.row}><span style={styles.label}>{uiText.nav.cargoRig}</span><span>Lv {cargoUpgradeLevel} / load {(loadRatio * 100).toFixed(0)}%</span></div>
       <div style={styles.row}><span style={styles.label}>{uiText.nav.gunnery}</span><span>Lv {gunneryLevel} / cannon +{cannonBonus}%</span></div>
-      <div style={styles.row}><span style={styles.label}>{uiText.nav.crewLoad}</span><span>{crewRatio ? `${crewRatio.toFixed(2)}x` : '-'}</span></div>
+      <div style={styles.row}>
+        <span style={styles.label}>{uiText.nav.crewLoad}</span>
+        <span>
+          {activeShip && requiredCrew != null
+            ? `${activeShip.currentCrew}/${requiredCrew} (${crewRatio?.toFixed(2) ?? '-'}x)`
+            : '-'}
+        </span>
+      </div>
+      {missingCrew != null && missingCrew > 0 && (
+        <div style={styles.alert}>
+          航行不能: 必要船員まであと {missingCrew} 人足りません。
+        </div>
+      )}
       <div style={styles.row}><span style={styles.label}>{uiText.nav.food}</span><span>{activeShip ? activeShip.supplies.food.toFixed(1) : '-'} / {activeShip?.supplies.maxFood ?? '-'}</span></div>
       <div style={styles.row}><span style={styles.label}>{uiText.nav.water}</span><span>{activeShip ? activeShip.supplies.water.toFixed(1) : '-'} / {activeShip?.supplies.maxWater ?? '-'}</span></div>
       <div style={styles.row}><span style={styles.label}>{uiText.nav.position}</span><span>{navigation.position.x.toFixed(1)}, {navigation.position.y.toFixed(1)}</span></div>

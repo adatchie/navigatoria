@@ -20,6 +20,7 @@ declare global {
   interface Window {
     __NAV_LOG_COUNT__?: number
     __LAND_NOTICE__?: number
+    __CREW_NOTICE__?: number
   }
 }
 
@@ -169,6 +170,17 @@ export class NavigationSystem implements GameSystem {
     // 最低限の乗組員がいないと動けない
     if (crewPerformance < NAVIGATION_CONFIG.MINIMUM_MOVABLE_CREW_FACTOR) {
       nav.setSpeed(0)
+      if (nav.mode !== 'anchored') nav.setMode('anchored')
+      const now = performance.now()
+      if (now - (w.__CREW_NOTICE__ ?? 0) > 3000) {
+        const shortage = Math.max(0, minimumCrew - (activeShip?.currentCrew ?? 0))
+        useUIStore.getState().addNotification(
+          `船員不足で航行不能です。必要人数まであと ${shortage} 人必要です。`,
+          'warning',
+          2600,
+        )
+        w.__CREW_NOTICE__ = now
+      }
       return
     }
 
