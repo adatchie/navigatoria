@@ -18,6 +18,7 @@ const FOOD_UNIT_COST = 6
 const WATER_UNIT_COST = 4
 const CREW_HIRE_COST = 18
 const DEFAULT_MORALE = 72
+const MAX_FLEET_SHIPS = 5
 const START_PORT_POSITION = getPortWorldPosition(INITIAL_PLAYER.START_PORT)
 
 interface PortActionResult {
@@ -80,6 +81,74 @@ function getShipSupplies(ship: ShipInstance): ShipSupplies {
 
 function getShipMorale(ship: ShipInstance): number {
   return clamp(ship.morale ?? DEFAULT_MORALE, 0, 100)
+}
+
+function getFleetSupplyTotals(ships: ShipInstance[]): ShipSupplies {
+  return ships.reduce(
+    (total, ship) => {
+      const supplies = getShipSupplies(ship)
+      return {
+        food: total.food + supplies.food,
+        water: total.water + supplies.water,
+        maxFood: total.maxFood + supplies.maxFood,
+        maxWater: total.maxWater + supplies.maxWater,
+        attritionProgress: total.attritionProgress + supplies.attritionProgress,
+        damageProgress: total.damageProgress + supplies.damageProgress,
+      }
+    },
+    { food: 0, water: 0, maxFood: 0, maxWater: 0, attritionProgress: 0, damageProgress: 0 },
+  )
+}
+
+function consumeFleetSupply(
+  ships: ShipInstance[],
+  resource: 'food' | 'water',
+  amount: number,
+): { ships: ShipInstance[]; shortage: number } {
+  let remaining = Math.max(0, amount)
+  const nextShips = ships.map((ship) => {
+    if (remaining <= 0) return ship
+    const supplies = getShipSupplies(ship)
+    const available = supplies[resource]
+    const consumed = Math.min(available, remaining)
+    remaining -= consumed
+    return {
+      ...ship,
+      supplies: {
+        ...supplies,
+        [resource]: Math.round((available - consumed) * 100) / 100,
+      },
+    }
+  })
+
+  return { ships: nextShips, shortage: remaining }
+}
+
+function addFleetSupply(
+  ships: ShipInstance[],
+  resource: 'food' | 'water',
+  amount: number,
+): { ships: ShipInstance[]; added: number } {
+  let remaining = Math.max(0, amount)
+  let added = 0
+  const maxKey = resource === 'food' ? 'maxFood' : 'maxWater'
+  const nextShips = ships.map((ship) => {
+    if (remaining <= 0) return ship
+    const supplies = getShipSupplies(ship)
+    const missing = Math.max(0, supplies[maxKey] - supplies[resource])
+    const take = Math.min(missing, remaining)
+    remaining -= take
+    added += take
+    return {
+      ...ship,
+      supplies: {
+        ...supplies,
+        [resource]: Math.round((supplies[resource] + take) * 100) / 100,
+      },
+    }
+  })
+
+  return { ships: nextShips, added }
 }
 
 function applyShortageEffects(ship: ShipInstance, shortage: number): ShipInstance {
@@ -152,29 +221,39 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
   lastVoyageEventDay: -1,
 
   initPlayer: (name) => {
-    const starterType = useDataStore.getState().getShip(createShipId('balsa'))
-    const maxCrew = starterType?.crew.max ?? 12
-    const starterShip = starterType
-      ? createShipInstanceFromType(starterType, 'ship_001', starterType.name + '一号')
-      : {
-          instanceId: 'ship_001',
-          typeId: createShipId('balsa'),
-          name: 'サンタ・リスボア',
-          material: 'oak' as const,
-          currentDurability: 120,
-          maxDurability: 120,
-          currentCrew: 12,
-          maxCrew,
-          morale: DEFAULT_MORALE,
-          parts: [],
-          cargo: [],
-          usedCapacity: 0,
-          maxCapacity: 30,
-          supplies: createInitialSupplies(maxCrew),
-          reinforceCount: 0,
-          maxReinforce: 5,
-          upgrades: { rigging: 0, cargo: 0, gunnery: 0 },
-        }
+    const dataStore = useDataStore.getState()
+    const starterType = dataStore.getShip(createShipId('balsa'))
+    const starterTypes = ['balsa', 'caravel', 'pinnace', 'dhow', 'galley']
+      .map((id) => dataStore.getShip(createShipId(id)))
+      .filter((shipType): shipType is ShipType => Boolean(shipType))
+      .slice(0, MAX_FLEET_SHIPS)
+    const fallbackMaxCrew = starterType?.crew.max ?? 12
+    const fallbackShip: ShipInstance = {
+      instanceId: 'ship_001',
+      typeId: createShipId('balsa'),
+      name: 'サンタ・リスボア',
+      material: 'oak' as const,
+      currentDurability: 120,
+      maxDurability: 120,
+      currentCrew: 12,
+      maxCrew: fallbackMaxCrew,
+      morale: DEFAULT_MORALE,
+      parts: [],
+      cargo: [],
+      usedCapacity: 0,
+      maxCapacity: 30,
+      supplies: createInitialSupplies(fallbackMaxCrew),
+      reinforceCount: 0,
+      maxReinforce: 5,
+      upgrades: { rigging: 0, cargo: 0, gunnery: 0 },
+    }
+    const starterShips = starterTypes.length > 0
+      ? starterTypes.map((shipType, index) => createShipInstanceFromType(
+          shipType,
+          'ship_' + String(index + 1).padStart(3, '0'),
+          index === 0 ? shipType.name + '一号' : shipType.name + String(index + 1) + '号',
+        ))
+      : [fallbackShip]
 
     const player: Player = {
       id: 'player_001' as CharacterId,
@@ -202,7 +281,7 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
       position: START_PORT_POSITION,
       heading: 0,
     }
-    set({ player, ships: [starterShip], activeShipId: starterShip.instanceId, lastVoyageNotice: null, lastVoyageEventDay: -1 })
+    set({ player, ships: starterShips, activeShipId: starterShips[0].instanceId, lastVoyageNotice: null, lastVoyageEventDay: -1 })
   },
 
   setPosition: (position) => {
@@ -236,7 +315,10 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
   },
 
   addShip: (ship) => {
-    set((state) => ({ ships: [...state.ships, ship] }))
+    set((state) => {
+      if (state.ships.length >= MAX_FLEET_SHIPS) return state
+      return { ships: [...state.ships, ship] }
+    })
   },
 
   setActiveShip: (instanceId) => {
@@ -258,6 +340,7 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
     if (facilityLevel < requiredFacilityLevel) return { ok: false, message: shipType.name + ' は造船所 Lv.' + requiredFacilityLevel + ' 以上でないと建造できません。' }
 
     if (state.ships.some((ship) => ship.typeId === shipType.id)) return { ok: false, message: shipType.name + ' はすでに保有しています。' }
+    if (state.ships.length >= MAX_FLEET_SHIPS) return { ok: false, message: `艦隊に加えられる船は最大 ${MAX_FLEET_SHIPS} 隻までです。` }
     if (player.money < shipType.price) return { ok: false, message: '所持金が足りません。' }
 
     const instanceId = 'ship_' + String(state.ships.length + 1).padStart(3, '0')
@@ -329,45 +412,39 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
   consumeVoyageResources: (gameDayDelta) => {
     if (gameDayDelta <= 0) return
 
-    set((state) => ({
-      ships: state.ships.map((ship) => {
-        if (ship.instanceId !== state.activeShipId) return ship
+    set((state) => {
+      const totalCrew = state.ships.reduce((sum, ship) => sum + ship.currentCrew, 0)
+      const foodUse = totalCrew * VOYAGE_CONFIG.FOOD_CONSUMPTION_PER_CREW_PER_DAY * gameDayDelta
+      const waterUse = totalCrew * VOYAGE_CONFIG.WATER_CONSUMPTION_PER_CREW_PER_DAY * gameDayDelta
+      const foodResult = consumeFleetSupply(state.ships, 'food', foodUse)
+      const waterResult = consumeFleetSupply(foodResult.ships, 'water', waterUse)
+      const shortage =
+        waterResult.shortage * VOYAGE_CONFIG.DEHYDRATION_ATTRITION_FACTOR +
+        foodResult.shortage * VOYAGE_CONFIG.STARVATION_ATTRITION_FACTOR
 
-        const supplies = getShipSupplies(ship)
-        const foodUse = ship.currentCrew * VOYAGE_CONFIG.FOOD_CONSUMPTION_PER_CREW_PER_DAY * gameDayDelta
-        const waterUse = ship.currentCrew * VOYAGE_CONFIG.WATER_CONSUMPTION_PER_CREW_PER_DAY * gameDayDelta
-        const nextFood = Math.max(0, supplies.food - foodUse)
-        const nextWater = Math.max(0, supplies.water - waterUse)
-        const foodShortage = Math.max(0, foodUse - supplies.food) * VOYAGE_CONFIG.STARVATION_ATTRITION_FACTOR
-        const waterShortage = Math.max(0, waterUse - supplies.water) * VOYAGE_CONFIG.DEHYDRATION_ATTRITION_FACTOR
-        const shortage = foodShortage + waterShortage
-        const moraleLoss = VOYAGE_CONFIG.PASSIVE_MORALE_LOSS_PER_DAY * gameDayDelta + shortage * VOYAGE_CONFIG.SHORTAGE_MORALE_DAMAGE_FACTOR
-
+      const ships = waterResult.ships.map((ship) => {
+        const crewShare = totalCrew > 0 ? ship.currentCrew / totalCrew : 1 / Math.max(1, waterResult.ships.length)
+        const moraleLoss = VOYAGE_CONFIG.PASSIVE_MORALE_LOSS_PER_DAY * gameDayDelta + shortage * VOYAGE_CONFIG.SHORTAGE_MORALE_DAMAGE_FACTOR * crewShare
         const depleted = applyShortageEffects({
           ...ship,
           morale: clamp(getShipMorale(ship) - moraleLoss, 0, 100),
-          supplies: {
-            ...supplies,
-            food: Math.round(nextFood * 100) / 100,
-            water: Math.round(nextWater * 100) / 100,
-          },
-        }, shortage)
-
+        }, shortage * crewShare)
         return {
           ...depleted,
           morale: clamp(depleted.morale ?? getShipMorale(ship), 0, 100),
         }
-      }),
-    }))
+      })
+
+      return { ships }
+    })
   },
 
   resupplyShip: (target, amount = 0) => {
     const state = get()
     const player = state.player
-    const ship = state.ships.find((entry) => entry.instanceId === state.activeShipId)
-    if (!player || !ship) return { ok: false, message: '補給対象の船が見つかりません。' }
+    if (!player || state.ships.length === 0) return { ok: false, message: '補給対象の船が見つかりません。' }
 
-    const supplies = getShipSupplies(ship)
+    const supplies = getFleetSupplyTotals(state.ships)
     const desiredFood = target === 'water'
       ? 0
       : amount > 0
@@ -384,18 +461,11 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
 
     set((current) => ({
       player: current.player ? { ...current.player, money: current.player.money - totalCost } : current.player,
-      ships: current.ships.map((entry) => {
-        if (entry.instanceId !== current.activeShipId) return entry
-        const currentSupplies = getShipSupplies(entry)
-        return {
-          ...entry,
-          supplies: {
-            ...currentSupplies,
-            food: Math.min(currentSupplies.maxFood, Math.round((currentSupplies.food + desiredFood) * 100) / 100),
-            water: Math.min(currentSupplies.maxWater, Math.round((currentSupplies.water + desiredWater) * 100) / 100),
-          },
-        }
-      }),
+      ships: addFleetSupply(
+        addFleetSupply(current.ships, 'food', desiredFood).ships,
+        'water',
+        desiredWater,
+      ).ships,
     }))
 
     return { ok: true, message: `食料 ${Math.ceil(desiredFood)}・水 ${Math.ceil(desiredWater)} を補給しました。` }

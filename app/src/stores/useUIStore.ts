@@ -6,7 +6,11 @@ import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import type { StopReason } from '@/game/systems/NavigationSystem.ts'
 
+type DebugFlag = 'showDebugPanel' | 'wireframe' | 'showFPS' | 'showPortMarkers' | 'showWindArrows'
+type NotificationLevel = 'info' | 'warning' | 'error'
+
 interface UIStoreState {
+  debugFlags: Record<DebugFlag, boolean>
   /** 航行不能状態かどうか */
   isStopped: boolean
   /** 停止理由 */
@@ -21,6 +25,8 @@ interface UIStoreState {
   notificationDuration: number
   /** 通知を設定（duration経過で自動クリア） */
   setNotification: (message: string, duration: number) => void
+  addNotification: (message: string, level?: NotificationLevel, duration?: number) => void
+  setDebugFlag: (flag: DebugFlag, value: boolean) => void
   /** 停止状態を設定 */
   setStopped: (reason: StopReason, duration?: number) => void
   /** 停止解除 */
@@ -30,7 +36,14 @@ interface UIStoreState {
 let notificationTimeoutId: number | null = null
 
 export const useUIStore = create<UIStoreState>()(
-  subscribeWithSelector((set, get) => ({
+  subscribeWithSelector((set) => ({
+    debugFlags: {
+      showDebugPanel: true,
+      wireframe: false,
+      showFPS: false,
+      showPortMarkers: true,
+      showWindArrows: false,
+    },
     isStopped: false,
     stopReason: null,
     stopStartTime: 0,
@@ -57,6 +70,19 @@ export const useUIStore = create<UIStoreState>()(
         }, duration) as unknown as number
       }
     },
+
+    addNotification: (message, level = 'info', duration = 3000) => {
+      void level
+      useUIStore.getState().setNotification(message, duration)
+    },
+
+    setDebugFlag: (flag, value) =>
+      set((state) => ({
+        debugFlags: {
+          ...state.debugFlags,
+          [flag]: value,
+        },
+      })),
 
     setStopped: (reason, duration = 5000) =>
       set({

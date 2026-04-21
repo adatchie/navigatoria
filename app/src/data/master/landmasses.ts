@@ -1,11 +1,11 @@
 // ============================================================
-// Natural Earth 50m land polygons projected into the game's
+// Natural Earth land polygons projected into the game's
 // Mercator-based world coordinate system.
 // Source: https://www.naturalearthdata.com/
 // Mirror used for download: https://github.com/nvkelso/natural-earth-vector
 // ============================================================
 
-import landRaw from '@/data/master/ne_50m_land.json'
+import landRaw from '@/data/master/ne_110m_land.json'
 import { projectGeoPairToWorld } from '@/data/master/worldMapProjection.ts'
 
 export interface LandPolygon {
@@ -13,6 +13,14 @@ export interface LandPolygon {
   name: string
   points: [number, number][]
   color: string
+  bounds: Bounds2D
+}
+
+interface Bounds2D {
+  minX: number
+  minY: number
+  maxX: number
+  maxY: number
 }
 
 interface GeoJsonGeometry {
@@ -51,6 +59,31 @@ function projectRing(ring: number[][]): [number, number][] {
   return projected.filter((_, index, arr) => index === 0 || arr[index - 1]![0] !== arr[index]![0] || arr[index - 1]![1] !== arr[index]![1])
 }
 
+function computeBounds(points: [number, number][]): Bounds2D {
+  let minX = Number.POSITIVE_INFINITY
+  let minY = Number.POSITIVE_INFINITY
+  let maxX = Number.NEGATIVE_INFINITY
+  let maxY = Number.NEGATIVE_INFINITY
+
+  points.forEach(([x, y]) => {
+    minX = Math.min(minX, x)
+    minY = Math.min(minY, y)
+    maxX = Math.max(maxX, x)
+    maxY = Math.max(maxY, y)
+  })
+
+  return { minX, minY, maxX, maxY }
+}
+
+function isPointInBounds(point: [number, number], bounds: Bounds2D, padding = 0): boolean {
+  return (
+    point[0] >= bounds.minX - padding &&
+    point[0] <= bounds.maxX + padding &&
+    point[1] >= bounds.minY - padding &&
+    point[1] <= bounds.maxY + padding
+  )
+}
+
 function polygonToLandPolygons(featureIndex: number, polygonIndex: number, polygon: number[][][]): LandPolygon[] {
   const outerRing = polygon[0]
   if (!outerRing) return []
@@ -63,6 +96,7 @@ function polygonToLandPolygons(featureIndex: number, polygonIndex: number, polyg
     name: `land_${featureIndex}_${polygonIndex}`,
     points: projected,
     color: LAND_COLOR,
+    bounds: computeBounds(projected),
   }]
 }
 
@@ -109,6 +143,7 @@ function isPointInPolygon(point: [number, number], polygon: LandPolygon): boolea
 
 export function isPointOnLand(point: [number, number]): boolean {
   for (const polygon of LANDMASSES) {
+    if (!isPointInBounds(point, polygon.bounds)) continue
     if (isPointInPolygon(point, polygon)) return true
   }
   return false
@@ -141,6 +176,7 @@ function findNearestCoastPoint(point: [number, number]): [number, number] {
   let bestDistance = Number.POSITIVE_INFINITY
 
   for (const polygon of LANDMASSES) {
+    if (!isPointInBounds(point, polygon.bounds, 8)) continue
     const points = polygon.points
     for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
       const candidate = clampPointToSegment(point, points[j]!, points[i]!)

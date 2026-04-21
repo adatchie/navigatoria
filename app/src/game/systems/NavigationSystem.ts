@@ -29,18 +29,20 @@ declare global {
 }
 
 // --- 停止理由列挙と通知メッセージ --- //
-enum StopReason {
-  CREW_SHORTAGE = '船員不足',
-  FOOD_SHORTAGE = '食料不足',
-  WATER_SHORTAGE = '水不足',
-  STRUCTURE_DAMAGE = '構造損傷',
-  MORALE_CRISIS = '士気崩壊',
-  STRUCK_GROUND = '座礁',
-  BATTLE_MODE = '戦闘モード',
-  FORCED_RETURN = '強制送還',
-  ANCHORED = '投錨中',
-  DOCKED = '停泊中',
-}
+export const StopReason = {
+  CREW_SHORTAGE: '船員不足',
+  FOOD_SHORTAGE: '食料不足',
+  WATER_SHORTAGE: '水不足',
+  STRUCTURE_DAMAGE: '構造損傷',
+  MORALE_CRISIS: '士気崩壊',
+  STRUCK_GROUND: '座礁',
+  BATTLE_MODE: '戦闘モード',
+  FORCED_RETURN: '強制送還',
+  ANCHORED: '投錨中',
+  DOCKED: '停泊中',
+} as const
+
+export type StopReason = typeof StopReason[keyof typeof StopReason]
 
 function getStopReasonMessage(reason: StopReason, detail?: string): string {
   const map: Record<StopReason, string> = {
@@ -49,7 +51,7 @@ function getStopReasonMessage(reason: StopReason, detail?: string): string {
     [StopReason.WATER_SHORTAGE]: '水が不足しています。',
     [StopReason.STRUCTURE_DAMAGE]: '船に構造損傷があります。修理が必要です。',
     [StopReason.MORALE_CRISIS]: '士気が極度に低下しています。酒場での回復が必要です。',
-    [StopReason.STUCK_GROUND]: '陸地に接触しています。安全な海域まで移動してください。',
+    [StopReason.STRUCK_GROUND]: '陸地に接触しています。安全な海域まで移動してください。',
     [StopReason.BATTLE_MODE]: '戦闘モードです。離脱または防御してください。',
     [StopReason.FORCED_RETURN]: '%s へ強制送還されました。',
     [StopReason.ANCHORED]: '現在投錨中です。錨を上げて移動してください。',
@@ -160,7 +162,7 @@ function trySlideAlongCoast(origin: Position2D, dx: number, dy: number, steering
   return null
 }
 
-function rescueToDeparturePort(reason: string): void {
+function rescueToDeparturePort(): void {
   const nav = useNavigationStore.getState()
   const departurePortId = nav.lastDeparturePortId
   if (!departurePortId) return
@@ -195,7 +197,7 @@ export class NavigationSystem implements GameSystem {
 
     const nav = useNavigationStore.getState()
     const playerStore = usePlayerStore.getState()
-    const { paused, speed } = useGameStore.getState()
+    const { speed } = useGameStore.getState()
     const w = window as Window & { __LAND_NOTICE__?: number }
 
     // 航行不能フラグで移動をブロック
@@ -217,7 +219,7 @@ export class NavigationSystem implements GameSystem {
     const crewPerformance = getCrewPerformance(activeShip?.currentCrew ?? minimumCrew, minimumCrew)
 
     if ((activeShip?.currentCrew ?? 0) <= 0) {
-      rescueToDeparturePort('船員が全滅しました。救助船により出航元の港へ曳航されました。')
+      rescueToDeparturePort()
       nav.setSpeed(0)
       return
     }
@@ -229,11 +231,7 @@ export class NavigationSystem implements GameSystem {
       const now = performance.now()
       if (now - (w.__CREW_NOTICE__ ?? 0) > 3000) {
         const shortage = Math.max(0, minimumCrew - (activeShip?.currentCrew ?? 0))
-        useUIStore.getState().addNotification(
-          getStopReasonMessage(StopReason.CREW_SHORTAGE, `${shortage}`),
-          'warning',
-          2600,
-        )
+        useUIStore.getState().addNotification(getStopReasonMessage(StopReason.CREW_SHORTAGE, `${shortage}`), 'warning', 2600)
         w.__CREW_NOTICE__ = now
       }
       // 停止フラグを立てる
@@ -336,11 +334,11 @@ export class NavigationSystem implements GameSystem {
       playerStore.setHeading(newHeading)
       const now = performance.now()
       if (now - (w.__LAND_NOTICE__ ?? 0) > 3000) {
-        useUIStore.getState().addNotification(getStopReasonMessage(StopReason.STUCK_GROUND), 'warning', 2200)
+        useUIStore.getState().addNotification(getStopReasonMessage(StopReason.STRUCK_GROUND), 'warning', 2200)
         w.__LAND_NOTICE__ = now
       }
       // 停止フラグを立てる
-      useUIStore.getState().setStopped(StopReason.STUCK_GROUND)
+      useUIStore.getState().setStopped(StopReason.STRUCK_GROUND)
       return
     }
 

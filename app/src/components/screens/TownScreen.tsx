@@ -159,6 +159,15 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const port = ports.find((item) => item.id === portId)
   const activeShip = ships.find((ship) => ship.instanceId === activeShipId)
   const shipType = activeShip ? getShip(activeShip.typeId) : undefined
+  const fleetSupply = ships.reduce(
+    (total, ship) => ({
+      food: total.food + ship.supplies.food,
+      water: total.water + ship.supplies.water,
+      maxFood: total.maxFood + ship.supplies.maxFood,
+      maxWater: total.maxWater + ship.supplies.maxWater,
+    }),
+    { food: 0, water: 0, maxFood: 0, maxWater: 0 },
+  )
   const facilities = useMemo(() => port?.facilities.filter((facility) => facility.available) ?? [], [port])
   const marketFacility = facilities.find((facility) => facility.type === 'market')
   const tavernFacility = facilities.find((facility) => facility.type === 'tavern')
@@ -262,6 +271,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const captainLevel = Math.max(player?.stats.tradeLevel ?? 0, player?.stats.combatLevel ?? 0, player?.stats.adventureLevel ?? 0)
   const ownedShipTypeIds = new Set(ships.map((ship) => ship.typeId))
   const shipyardOffers = shipCatalog.filter((ship) => !ownedShipTypeIds.has(ship.id)).sort((a, b) => a.requiredLevel - b.requiredLevel || a.price - b.price)
+  const fleetSlots = Array.from({ length: 5 }, (_, index) => ships[index] ?? null)
   const riggingLevel = activeShip?.upgrades?.rigging ?? 0
   const cargoLevel = activeShip?.upgrades?.cargo ?? 0
   const gunneryLevel = activeShip?.upgrades?.gunnery ?? 0
@@ -290,7 +300,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
           <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.cargo}</span><strong>{cargoUsage}</strong></div>
           <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.crew}</span><strong>{activeShip?.currentCrew ?? 0}/{activeShip?.maxCrew ?? 0}</strong></div>
           <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.morale}</span><strong>{formatMorale(activeShip?.morale)}</strong></div>
-          <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.supplies}</span><strong>食 {activeShip?.supplies.food.toFixed(0) ?? 0} / 水 {activeShip?.supplies.water.toFixed(0) ?? 0}</strong></div>
+          <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.supplies}</span><strong>食 {fleetSupply.food.toFixed(0)}/{fleetSupply.maxFood.toFixed(0)} / 水 {fleetSupply.water.toFixed(0)}/{fleetSupply.maxWater.toFixed(0)}</strong></div>
         </div>
 
         <section style={styles.questBanner}>
@@ -392,8 +402,27 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                       </div>
                     </div>
                     <div style={styles.infoGridCompact}>
-                      <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.supplies}</span><strong>{activeShip?.supplies.food.toFixed(0) ?? 0} / {activeShip?.supplies.water.toFixed(0) ?? 0}</strong><small>{SUPPLY_STEP} 単位補給または満タン補給</small></div>
-                      <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.nav.durability}</span><strong>{activeShip?.currentDurability ?? 0} / {activeShip?.maxDurability ?? 0}</strong><small>{shipyardFacility ? `${uiText.town.labels.shipyard} Lv.${shipyardLevel}` : '簡易工房のみ'}</small></div>
+                      <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.supplies}</span><strong>食 {fleetSupply.food.toFixed(0)}/{fleetSupply.maxFood.toFixed(0)} / 水 {fleetSupply.water.toFixed(0)}/{fleetSupply.maxWater.toFixed(0)}</strong><small>艦隊全体に補給します</small></div>
+                      <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.nav.durability}</span><strong>{activeShip?.currentDurability ?? 0} / {activeShip?.maxDurability ?? 0}</strong><small>修理対象: {activeShip?.name ?? '未選択'} / {shipyardFacility ? `${uiText.town.labels.shipyard} Lv.${shipyardLevel}` : '簡易工房のみ'}</small></div>
+                    </div>
+                    <div>
+                      <p style={styles.serviceLabel}>艦隊状態</p>
+                      <div style={styles.fleetDockGrid}>
+                        {fleetSlots.map((ship, index) => {
+                          if (!ship) return <div key={`empty-${index}`} style={styles.fleetDockEmpty}>第{index + 1}船 空き</div>
+                          const type = getShip(ship.typeId)
+                          const durabilityRatio = Math.max(0, Math.min(1, ship.currentDurability / Math.max(1, ship.maxDurability)))
+                          const crewRatio = Math.max(0, Math.min(1, ship.currentCrew / Math.max(1, ship.maxCrew)))
+                          const isActive = ship.instanceId === activeShipId
+                          return (
+                            <button key={ship.instanceId} style={isActive ? { ...styles.fleetDockCard, ...styles.fleetDockCardActive } : styles.fleetDockCard} onClick={() => setActiveShip(ship.instanceId)}>
+                              <div style={styles.fleetDockHeader}><strong>第{index + 1}船 {isActive ? '旗艦' : '僚船'}</strong><span>{type?.name ?? ship.name}</span></div>
+                              <div style={styles.fleetDockStat}><span>耐久 {ship.currentDurability}/{ship.maxDurability}</span><div style={styles.fleetDockMeter}><div style={{ ...styles.fleetDockMeterFill, width: `${durabilityRatio * 100}%` }} /></div></div>
+                              <div style={styles.fleetDockStat}><span>船員 {ship.currentCrew}/{ship.maxCrew}</span><div style={styles.fleetDockMeter}><div style={{ ...styles.fleetDockMeterFill, width: `${crewRatio * 100}%`, background: '#34d399' }} /></div></div>
+                            </button>
+                          )
+                        })}
+                      </div>
                     </div>
                     <div>
                       <p style={styles.serviceLabel}>{uiText.town.labels.suppliesAction}</p>
@@ -714,6 +743,14 @@ const styles: Record<string, React.CSSProperties> = {
   emptyState: { color: '#7b8fab', fontSize: 13, padding: '14px 4px' },
   serviceGrid: { display: 'flex', flexWrap: 'wrap', gap: 10 },
   serviceColumns: { display: 'grid', gridTemplateColumns: '1fr', gap: 16 },
+  fleetDockGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 },
+  fleetDockCard: { padding: 10, borderRadius: 12, border: '1px solid rgba(148, 163, 184, 0.22)', background: 'rgba(255,255,255,0.035)', color: '#e8f1ff', cursor: 'pointer', textAlign: 'left' },
+  fleetDockCardActive: { border: '1px solid rgba(96, 165, 250, 0.72)', background: 'rgba(37, 99, 235, 0.18)' },
+  fleetDockEmpty: { padding: 10, borderRadius: 12, border: '1px dashed rgba(148, 163, 184, 0.18)', color: '#71839d' },
+  fleetDockHeader: { display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 8, fontSize: 12 },
+  fleetDockStat: { display: 'grid', gridTemplateColumns: '78px 1fr', alignItems: 'center', gap: 8, color: '#a9bad2', fontSize: 11, marginTop: 5 },
+  fleetDockMeter: { height: 6, borderRadius: 999, background: 'rgba(148, 163, 184, 0.18)', overflow: 'hidden' },
+  fleetDockMeterFill: { height: '100%', borderRadius: 999, background: '#60a5fa' },
   departRow: { display: 'flex', justifyContent: 'flex-end', paddingTop: 4 },
   featurePanel: { border: '1px solid rgba(112, 170, 228, 0.16)', background: 'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.035))' },
   featureBanner: { display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 14, background: 'linear-gradient(135deg, rgba(29,78,216,0.18), rgba(14,165,233,0.10))', border: '1px solid rgba(112, 170, 228, 0.16)' },

@@ -4,7 +4,6 @@
 
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
-import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { uiText } from '@/i18n/uiText.ts'
 
 const MONTH_NAMES = uiText.statusBar.months
@@ -15,11 +14,16 @@ export function StatusBar() {
   const paused = useGameStore((s) => s.paused)
   const player = usePlayerStore((s) => s.player)
   const ships = usePlayerStore((s) => s.ships)
-  const activeShipId = usePlayerStore((s) => s.activeShipId)
-  const navMode = useNavigationStore((s) => s.mode)
-  const currentSpeed = useNavigationStore((s) => s.currentSpeed)
 
-  const activeShip = ships.find((s) => s.instanceId === activeShipId)
+  const fleetSupply = ships.reduce(
+    (total, ship) => ({
+      food: total.food + ship.supplies.food,
+      maxFood: total.maxFood + ship.supplies.maxFood,
+      water: total.water + ship.supplies.water,
+      maxWater: total.maxWater + ship.supplies.maxWater,
+    }),
+    { food: 0, maxFood: 0, water: 0, maxWater: 0 },
+  )
 
   // 日付フォーマット
   const monthName = MONTH_NAMES[timeState.month - 1] ?? '???'
@@ -30,14 +34,10 @@ export function StatusBar() {
   const speedLabel = paused ? uiText.statusBar.paused : speed === 0 ? uiText.statusBar.stop : `x${speed}`
 
   // 補給状況の警告色
-  const foodRatio = activeShip ? activeShip.supplies.food / Math.max(1, activeShip.supplies.maxFood) : 1
-  const waterRatio = activeShip ? activeShip.supplies.water / Math.max(1, activeShip.supplies.maxWater) : 1
+  const foodRatio = fleetSupply.food / Math.max(1, fleetSupply.maxFood)
+  const waterRatio = fleetSupply.water / Math.max(1, fleetSupply.maxWater)
   const foodColor = foodRatio < 0.2 ? '#ef4444' : foodRatio < 0.4 ? '#f59e0b' : '#94a3b8'
   const waterColor = waterRatio < 0.2 ? '#ef4444' : waterRatio < 0.4 ? '#f59e0b' : '#94a3b8'
-
-  // 耐久度の警告色
-  const durRatio = activeShip ? activeShip.currentDurability / Math.max(1, activeShip.maxDurability) : 1
-  const durColor = durRatio < 0.25 ? '#ef4444' : durRatio < 0.5 ? '#f59e0b' : '#94a3b8'
 
   return (
     <div style={styles.bar}>
@@ -58,34 +58,18 @@ export function StatusBar() {
         </div>
       )}
 
-      {/* 航海情報 */}
-      {navMode === 'sailing' && (
-        <div style={styles.segment}>
-          <span style={styles.label}>{uiText.statusBar.speed}</span>
-          <span style={styles.value}>{currentSpeed.toFixed(1)} kt</span>
-        </div>
-      )}
-
-      {/* 船体状況 */}
-      {activeShip && (
+      {/* 艦隊補給 */}
+      {ships.length > 0 && (
         <>
-          <div style={styles.segment}>
-            <span style={styles.label}>{uiText.statusBar.hull}</span>
-            <span style={{ ...styles.value, color: durColor }}>
-              {activeShip.currentDurability}/{activeShip.maxDurability}
-            </span>
-          </div>
-          <div style={styles.segment}>
-            <span style={styles.label}>{uiText.statusBar.crew}</span>
-            <span style={styles.value}>{activeShip.currentCrew}/{activeShip.maxCrew}</span>
-          </div>
-          <div style={styles.segment}>
+          <div style={styles.supplySegment}>
             <span style={{ ...styles.label, color: foodColor }}>{uiText.statusBar.food}</span>
-            <span style={{ ...styles.value, color: foodColor }}>{activeShip.supplies.food.toFixed(0)}</span>
+            <span style={{ ...styles.value, color: foodColor }}>{fleetSupply.food.toFixed(0)}/{fleetSupply.maxFood.toFixed(0)}</span>
+            <div style={styles.supplyBar}><div style={{ ...styles.supplyFill, width: `${Math.round(foodRatio * 100)}%`, background: foodColor }} /></div>
           </div>
-          <div style={styles.segment}>
+          <div style={styles.supplySegment}>
             <span style={{ ...styles.label, color: waterColor }}>{uiText.statusBar.water}</span>
-            <span style={{ ...styles.value, color: waterColor }}>{activeShip.supplies.water.toFixed(0)}</span>
+            <span style={{ ...styles.value, color: waterColor }}>{fleetSupply.water.toFixed(0)}/{fleetSupply.maxWater.toFixed(0)}</span>
+            <div style={styles.supplyBar}><div style={{ ...styles.supplyFill, width: `${Math.round(waterRatio * 100)}%`, background: waterColor }} /></div>
           </div>
         </>
       )}
@@ -117,6 +101,12 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: 6,
   },
+  supplySegment: {
+    display: 'grid',
+    gridTemplateColumns: 'auto auto 120px',
+    alignItems: 'center',
+    gap: 6,
+  },
   label: {
     color: '#8fb1d8',
     fontSize: 10,
@@ -138,5 +128,16 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     letterSpacing: 0.5,
     color: '#e8edf7',
+  },
+  supplyBar: {
+    width: 120,
+    height: 6,
+    borderRadius: 999,
+    background: 'rgba(148, 163, 184, 0.18)',
+    overflow: 'hidden',
+  },
+  supplyFill: {
+    height: '100%',
+    borderRadius: 999,
   },
 }

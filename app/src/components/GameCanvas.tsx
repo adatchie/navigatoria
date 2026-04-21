@@ -9,14 +9,13 @@ import { CircleGeometry, CylinderGeometry, MeshBasicMaterial, Raycaster, SphereG
 import type { Port } from '@/types/port.ts'
 import { OceanScene } from '@/rendering/OceanScene.tsx'
 import { SkyBox } from '@/rendering/SkyBox.tsx'
-import { ShipRenderer } from '@/rendering/ShipRenderer.tsx'
+import { FleetShipRenderer } from '@/rendering/ShipRenderer.tsx'
 import { LandRenderer } from '@/rendering/LandRenderer.tsx'
 import { useUIStore } from '@/stores/useUIStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { useGameStore } from '@/stores/useGameStore.ts'
-import { useDataStore } from '@/stores/useDataStore.ts'
 import { worldToScene, sceneToWorld } from '@/rendering/worldTransform.ts'
 
 const CameraControls = lazy(async () => import('./CameraControls.tsx').then((mod) => ({ default: mod.CameraControls })))
@@ -76,19 +75,6 @@ const PORT_MARKER_PIN_MATERIAL = new MeshBasicMaterial({
 export function GameCanvas() {
   const showFPS = useUIStore((s) => s.debugFlags.showFPS)
   const wireframe = useUIStore((s) => s.debugFlags.wireframe)
-  const position = useNavigationStore((s) => s.position)
-  const heading = useNavigationStore((s) => s.heading)
-  const ships = usePlayerStore((s) => s.ships)
-  const activeShipId = usePlayerStore((s) => s.activeShipId)
-  const getShip = useDataStore((s) => s.getShip)
-
-  const activeShip = ships.find((ship) => ship.instanceId === activeShipId)
-  const shipType = activeShip ? getShip(activeShip.typeId) : undefined
-  const shipScale =
-    shipType?.category === 'small_sail' ? 0.9 :
-    shipType?.category === 'medium_sail' ? 1.15 :
-    shipType?.category === 'large_sail' ? 1.45 :
-    shipType?.category === 'galley' ? 1.1 : 1.2
 
   const glOptions = useMemo(
     () => ({
@@ -101,14 +87,14 @@ export function GameCanvas() {
     [],
   )
 
-  const shipScenePos = worldToScene(position)
+  const initialShipScenePos = useMemo(() => worldToScene(useNavigationStore.getState().position), [])
 
   return (
     <Canvas
       dpr={[1, 1.5]}
       performance={{ min: 0.75 }}
       camera={{
-        position: [shipScenePos[0], 60, shipScenePos[2] - 80],
+        position: [initialShipScenePos[0], 60, initialShipScenePos[2] - 80],
         fov: 55,
         near: 0.1,
         far: 3000,
@@ -126,7 +112,7 @@ export function GameCanvas() {
       {/* 大陸・海岸線 */}
       <LandRenderer />
 
-      <ShipRenderer position={shipScenePos} heading={heading} scale={shipScale} />
+      <FleetShipRenderer />
 
       {wireframe && (
         <Suspense fallback={null}>
