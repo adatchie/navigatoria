@@ -13,14 +13,14 @@ interface SkyColorStage {
 }
 
 const SKY_NIGHT: SkyColorStage = {
-  top: new Color(0x0a0a1a),
-  bottom: new Color(0x15152a),
-  ambient: new Color(0x111122),
+  top: new Color(0x14233c),
+  bottom: new Color(0x243653),
+  ambient: new Color(0x5c6f91),
 }
 const SKY_DAWN_START: SkyColorStage = {
-  top: new Color(0x0a0a1a),
-  bottom: new Color(0x15152a),
-  ambient: new Color(0x111122),
+  top: new Color(0x14233c),
+  bottom: new Color(0x243653),
+  ambient: new Color(0x5c6f91),
 }
 const SKY_DAWN_END: SkyColorStage = {
   top: new Color(0x4488cc),
@@ -33,9 +33,9 @@ const SKY_DAY: SkyColorStage = {
   ambient: new Color(0x667788),
 }
 const SKY_DUSK_END: SkyColorStage = {
-  top: new Color(0x0a0a1a),
-  bottom: new Color(0x15152a),
-  ambient: new Color(0x111122),
+  top: new Color(0x14233c),
+  bottom: new Color(0x243653),
+  ambient: new Color(0x5c6f91),
 }
 const SKY_DUSK_MID_BOTTOM = new Color(0xff4422)
 const SKY_UPDATE_STEP = 12
@@ -97,11 +97,12 @@ export function SkyBox() {
   }, [hour])
 
   const sunVisible = hour >= 5.5 && hour <= 20.5
+  const nightVisible = !sunVisible
 
   return (
     <>
       <color attach="background" args={[colors.top.getHex()]} />
-      <ambientLight color={colors.ambient} intensity={0.4} />
+      <ambientLight color={colors.ambient} intensity={nightVisible ? 0.72 : 0.48} />
 
       {sunVisible && (
         <directionalLight
@@ -112,10 +113,10 @@ export function SkyBox() {
         />
       )}
 
-      {!sunVisible && <directionalLight position={[100, 150, 50]} color={0x6666aa} intensity={0.15} />}
+      {nightVisible && <directionalLight position={[100, 150, 50]} color={0xb8c7ff} intensity={0.46} />}
 
-      <hemisphereLight color={colors.top} groundColor={colors.bottom} intensity={0.3} />
-      <fog attach="fog" args={[colors.bottom, 100, 400]} />
+      <hemisphereLight color={colors.top} groundColor={colors.bottom} intensity={nightVisible ? 0.48 : 0.34} />
+      <fog attach="fog" args={[colors.bottom, nightVisible ? 150 : 100, nightVisible ? 520 : 400]} />
     </>
   )
 }

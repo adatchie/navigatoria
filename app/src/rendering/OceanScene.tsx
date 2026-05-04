@@ -34,9 +34,9 @@ const OCEAN_DUSK_END_SHALLOW = new Color(0x8b3a62)
 const OCEAN_DUSK_START_SUN = new Color(0xff8844)
 const OCEAN_DUSK_END_SUN = new Color(0x441122)
 const OCEAN_NIGHT: OceanColorStage = {
-  deep: new Color(0x0a0a20),
-  shallow: new Color(0x1a1a3a),
-  sun: new Color(0x222244),
+  deep: new Color(0x16304a),
+  shallow: new Color(0x2d4f70),
+  sun: new Color(0x9fb4e8),
 }
 const COLOR_STEP = 12
 const SUN_STEP = 24

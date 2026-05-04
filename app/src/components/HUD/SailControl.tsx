@@ -83,8 +83,8 @@ export function SailControl() {
 const styles: Record<string, React.CSSProperties> = {
   container: {
     position: 'fixed',
-    bottom: 160,
-    left: 16,
+    bottom: 18,
+    left: 376,
     width: 160,
     padding: '10px 12px',
     borderRadius: 12,

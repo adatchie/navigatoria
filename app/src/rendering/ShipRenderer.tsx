@@ -2,10 +2,12 @@
 // ShipRenderer [STUB] — プレースホルダー船 + GLBロード準備
 // ============================================================
 
-import { useRef } from 'react'
+import { createRef, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { Clone, useGLTF } from '@react-three/drei'
 import {
   BoxGeometry,
+  Box3,
   CylinderGeometry,
   DoubleSide,
   InstancedMesh,
@@ -13,6 +15,7 @@ import {
   MeshStandardMaterial,
   Object3D,
   PlaneGeometry,
+  Vector3,
   type BufferGeometry,
   type Group,
   type Material,
@@ -104,11 +107,19 @@ const MAX_RENDERED_FLEET_SHIPS = 5
 const FOLLOW_POSITION_LERP = 1.8
 const FOLLOW_HEADING_LERP = 2.4
 const FOLLOW_LAND_CLEARANCE = 0.35
+const SHIP_MODEL_URL = `${import.meta.env.BASE_URL}models/player-ship-lite.glb`
+const TARGET_MODEL_LENGTH = 5.2
 
 interface FleetRenderState {
   x: number
   y: number
   heading: number
+}
+
+interface NormalizedModelLayout {
+  scale: number
+  offset: [number, number, number]
+  rotationY: number
 }
 
 function getShipScale(category?: string): number {
@@ -171,6 +182,134 @@ function resolveFollowerSeaPosition(
 }
 
 export function FleetShipRenderer() {
+  const { scene } = useGLTF(SHIP_MODEL_URL, false, true)
+  const shipRefs = useMemo(
+    () => Array.from({ length: MAX_RENDERED_FLEET_SHIPS }, () => createRef<Group>()),
+    [],
+  )
+  const motionRefs = useMemo(
+    () => Array.from({ length: MAX_RENDERED_FLEET_SHIPS }, () => createRef<Group>()),
+    [],
+  )
+  const hiddenObject = useRef(new Object3D())
+  const renderStatesRef = useRef(new Map<string, FleetRenderState>())
+  const modelLayout = useMemo<NormalizedModelLayout>(() => {
+    const boundsBox = new Box3().setFromObject(scene)
+    const boundsSize = boundsBox.getSize(new Vector3())
+    const boundsCenter = boundsBox.getCenter(new Vector3())
+    const dominantLength = Math.max(boundsSize.x, boundsSize.z, 0.0001)
+    const modelScale = TARGET_MODEL_LENGTH / dominantLength
+    const rotationY = (boundsSize.x > boundsSize.z ? Math.PI / 2 : 0) + Math.PI
+
+    return {
+      scale: modelScale,
+      offset: [
+        -boundsCenter.x * modelScale,
+        -boundsBox.min.y * modelScale,
+        -boundsCenter.z * modelScale,
+      ],
+      rotationY,
+    }
+  }, [scene])
+
+  useFrame((state, delta) => {
+    const nav = useNavigationStore.getState()
+    const player = usePlayerStore.getState()
+    const getShip = useDataStore.getState().getShip
+    const active = player.ships.find((ship) => ship.instanceId === player.activeShipId)
+    const followers = player.ships.filter((ship) => ship.instanceId !== player.activeShipId)
+    const fleetShips = (active ? [active, ...followers] : followers).slice(0, MAX_RENDERED_FLEET_SHIPS)
+    const positionLerp = 1 - Math.exp(-FOLLOW_POSITION_LERP * delta)
+    const headingLerp = 1 - Math.exp(-FOLLOW_HEADING_LERP * delta)
+    const time = state.clock.elapsedTime
+    const activeIds = new Set(fleetShips.map((ship) => ship.instanceId))
+
+    renderStatesRef.current.forEach((_, shipId) => {
+      if (!activeIds.has(shipId)) renderStatesRef.current.delete(shipId)
+    })
+
+    hiddenObject.current.position.set(0, -10000, 0)
+    hiddenObject.current.scale.setScalar(0.0001)
+    hiddenObject.current.updateMatrix()
+
+    fleetShips.forEach((ship, index) => {
+      const isFlagship = ship.instanceId === player.activeShipId
+      const type = getShip(ship.typeId)
+      const scale = getShipScale(type?.category) * (isFlagship ? 1 : 0.82)
+      const target = getFormationTarget(nav.position, nav.heading, index)
+      const stateForShip = renderStatesRef.current.get(ship.instanceId) ?? {
+        x: target.x,
+        y: target.y,
+        heading: nav.heading,
+      }
+
+      if (isFlagship) {
+        stateForShip.x = nav.position.x
+        stateForShip.y = nav.position.y
+        stateForShip.heading = nav.heading
+      } else {
+        const next = {
+          x: stateForShip.x + (target.x - stateForShip.x) * positionLerp,
+          y: stateForShip.y + (target.y - stateForShip.y) * positionLerp,
+        }
+        const resolved = resolveFollowerSeaPosition(stateForShip, next, target)
+        stateForShip.x = resolved.x
+        stateForShip.y = resolved.y
+        stateForShip.heading = (stateForShip.heading + getAngleDelta(stateForShip.heading, nav.heading) * headingLerp + 360) % 360
+      }
+
+      renderStatesRef.current.set(ship.instanceId, stateForShip)
+
+      const [shipX, shipY, shipZ] = worldToScene({ x: stateForShip.x, y: stateForShip.y })
+      const headingRad = (-stateForShip.heading * Math.PI) / 180
+      const shipGroup = shipRefs[index]?.current
+      const motionGroup = motionRefs[index]?.current
+
+      if (shipGroup) {
+        shipGroup.position.set(shipX, shipY + 0.5, shipZ)
+        shipGroup.rotation.set(0, headingRad, 0)
+        shipGroup.scale.setScalar(scale)
+      }
+
+      if (motionGroup) {
+        motionGroup.position.set(0, Math.sin(time * 0.7 + index * 0.35) * 0.15, 0)
+        motionGroup.rotation.set(
+          Math.sin(time * 0.8 + index * 0.3) * 0.03,
+          0,
+          Math.sin(time * 0.6 + 1 + index * 0.2) * 0.05,
+        )
+      }
+    })
+
+    for (let index = fleetShips.length; index < MAX_RENDERED_FLEET_SHIPS; index += 1) {
+      shipRefs[index]?.current?.position.set(0, -10000, 0)
+      shipRefs[index]?.current?.scale.setScalar(0.0001)
+    }
+  })
+
+  return (
+    <group>
+      {Array.from({ length: MAX_RENDERED_FLEET_SHIPS }).map((_, index) => (
+        <group
+          key={index}
+          ref={shipRefs[index]}
+        >
+          <group ref={motionRefs[index]}>
+            <group
+              position={modelLayout.offset}
+              rotation={[0, modelLayout.rotationY, 0]}
+              scale={modelLayout.scale}
+            >
+              <Clone object={scene} />
+            </group>
+          </group>
+        </group>
+      ))}
+    </group>
+  )
+}
+
+export function FleetPlaceholderRenderer() {
   const meshRefs = useRef<(InstancedMesh | null)[]>([])
   const shipObject = useRef(new Object3D())
   const motionObject = useRef(new Object3D())
@@ -231,11 +370,7 @@ export function FleetShipRenderer() {
       const [shipX, shipY, shipZ] = worldToScene({ x: stateForShip.x, y: stateForShip.y })
       const headingRad = (-stateForShip.heading * Math.PI) / 180
 
-      shipObject.current.position.set(
-        shipX,
-        shipY + 0.5,
-        shipZ,
-      )
+      shipObject.current.position.set(shipX, shipY + 0.5, shipZ)
       shipObject.current.rotation.set(0, headingRad, 0)
       shipObject.current.scale.setScalar(scale)
       shipObject.current.updateMatrix()
@@ -320,3 +455,56 @@ export function ShipRenderer({
     </group>
   )
 }
+
+export function ShipModelRenderer({
+  position = [0, 0.5, 0],
+  heading = 0,
+  scale = 1,
+}: ShipRendererProps) {
+  const { scene } = useGLTF(SHIP_MODEL_URL, false, true)
+  const motionGroupRef = useRef<Group>(null)
+  const modelLayout = useMemo<NormalizedModelLayout>(() => {
+    const boundsBox = new Box3().setFromObject(scene)
+    const boundsSize = boundsBox.getSize(new Vector3())
+    const boundsCenter = boundsBox.getCenter(new Vector3())
+    const dominantLength = Math.max(boundsSize.x, boundsSize.z, 0.0001)
+    const modelScale = TARGET_MODEL_LENGTH / dominantLength
+    const rotationY = (boundsSize.x > boundsSize.z ? Math.PI / 2 : 0) + Math.PI
+
+    return {
+      scale: modelScale,
+      offset: [
+        -boundsCenter.x * modelScale,
+        -boundsBox.min.y * modelScale,
+        -boundsCenter.z * modelScale,
+      ],
+      rotationY,
+    }
+  }, [scene])
+
+  useFrame((state) => {
+    if (!motionGroupRef.current) return
+    const time = state.clock.elapsedTime
+    motionGroupRef.current.rotation.x = Math.sin(time * 0.8) * 0.025
+    motionGroupRef.current.rotation.z = Math.sin(time * 0.6 + 1) * 0.04
+    motionGroupRef.current.position.y = Math.sin(time * 0.7) * 0.1
+  })
+
+  const headingRad = (-heading * Math.PI) / 180
+
+  return (
+    <group position={position} rotation={[0, headingRad, 0]} scale={scale}>
+      <group ref={motionGroupRef}>
+        <group
+          position={modelLayout.offset}
+          rotation={[0, modelLayout.rotationY, 0]}
+          scale={modelLayout.scale}
+        >
+          <Clone object={scene} />
+        </group>
+      </group>
+    </group>
+  )
+}
+
+useGLTF.preload(SHIP_MODEL_URL, false, true)

@@ -15,6 +15,7 @@ import { useGameStore } from '@/stores/useGameStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { useUIStore } from '@/stores/useUIStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
+import { useEncounterStore } from '@/stores/useEncounterStore.ts'
 import { useEconomyStore } from '@/stores/useEconomyStore.ts'
 import { useQuestStore } from '@/stores/useQuestStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
@@ -42,6 +43,7 @@ const DebugPanel = lazy(async () => import('./debug/DebugPanel.tsx').then((mod) 
 const GameTimeControl = lazy(async () => import('./debug/GameTimeControl.tsx').then((mod) => ({ default: mod.GameTimeControl })))
 const DataInspector = lazy(async () => import('./debug/DataInspector.tsx').then((mod) => ({ default: mod.DataInspector })))
 const TownScreen = lazy(async () => import('./screens/TownScreen.tsx').then((mod) => ({ default: mod.TownScreen })))
+const BattleScreen = lazy(async () => import('./screens/BattleScreen.tsx').then((mod) => ({ default: mod.BattleScreen })))
 
 const ASSET_PREVIEW_URL = '/asset-preview.html'
 const ASSET_PREVIEW_WINDOW = 'dol-asset-preview'
@@ -56,9 +58,12 @@ export function App() {
   const ensurePortQuests = useQuestStore((s) => s.ensurePortQuests)
   const debugFlags = useUIStore((s) => s.debugFlags)
   const dockedPortId = useNavigationStore((s) => s.dockedPortId)
+  const activeEncounter = useEncounterStore((s) => s.activeEncounter)
+  const combatState = useEncounterStore((s) => s.combatState)
   const totalDays = useGameStore((s) => s.timeState.totalDays)
   const dataVersion = useDataStore((s) => s.version)
   const masterPorts = useDataStore((s) => s.masterData.ports)
+  const showBattleScreen = Boolean(activeEncounter && combatState)
 
   const [showDataInspector, setShowDataInspector] = useState(false)
   const [loadProgress, setLoadProgress] = useState(0)
@@ -254,14 +259,20 @@ export function App() {
       {phase === 'title' && <TitleScreen onStart={handleStart} onContinue={() => void handleContinue()} canContinue={latestSaveExists} />}
       {(phase === 'playing' || phase === 'paused') && (
         <Suspense fallback={<LoadingScreen message="シーンを準備中..." />}>
-          <GameCanvas />
-          <StatusBar />
-          <GameTimeControl />
-          <NavigationHud />
-          <SailControl />
-          <Compass />
-          <MiniMap />
-          <EncounterOverlay />
+          {showBattleScreen ? (
+            <BattleScreen />
+          ) : (
+            <>
+              <GameCanvas />
+              <StatusBar />
+              <GameTimeControl />
+              <NavigationHud />
+              <SailControl />
+              <Compass />
+              <MiniMap />
+              <EncounterOverlay />
+            </>
+          )}
           <DebugPanel />
           {debugFlags.showDebugPanel && showDataInspector && <DataInspector />}
           {debugFlags.showDebugPanel && (

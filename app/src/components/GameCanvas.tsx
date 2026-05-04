@@ -9,8 +9,9 @@ import { CircleGeometry, CylinderGeometry, MeshBasicMaterial, Raycaster, SphereG
 import type { Port } from '@/types/port.ts'
 import { OceanScene } from '@/rendering/OceanScene.tsx'
 import { SkyBox } from '@/rendering/SkyBox.tsx'
-import { FleetShipRenderer } from '@/rendering/ShipRenderer.tsx'
+import { FleetPlaceholderRenderer, FleetShipRenderer } from '@/rendering/ShipRenderer.tsx'
 import { LandRenderer } from '@/rendering/LandRenderer.tsx'
+import { TerrainReliefRenderer } from '@/rendering/TerrainReliefRenderer.tsx'
 import { useUIStore } from '@/stores/useUIStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
@@ -111,8 +112,11 @@ export function GameCanvas() {
 
       {/* 大陸・海岸線 */}
       <LandRenderer />
+      <TerrainReliefRenderer />
 
-      <FleetShipRenderer />
+      <Suspense fallback={<FleetPlaceholderRenderer />}>
+        <FleetShipRenderer />
+      </Suspense>
 
       {wireframe && (
         <Suspense fallback={null}>
