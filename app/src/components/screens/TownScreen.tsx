@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
@@ -16,6 +16,15 @@ interface TownScreenProps {
 }
 
 type TownSection = 'overview' | 'departure' | 'market' | 'guild' | 'tavern' | 'shipyard' | 'bank' | 'inventory'
+type CityHotspot = {
+  section: TownSection
+  label: string
+  caption: string
+  x: number
+  y: number
+  tone: string
+  emblem: string
+}
 
 const INVEST_AMOUNTS = [1000, 5000]
 const BANK_AMOUNTS = [1000, 5000]
@@ -42,6 +51,15 @@ const OUTFIT_OPTIONS = [
 const OUTFIT_BASE_COST = { rigging: 320, cargo: 280, gunnery: 360 }
 const OUTFIT_STEP = { rigging: 90, cargo: 70, gunnery: 120 }
 const OUTFIT_MAX_LEVEL = 3
+const LISBON_CITY_HOTSPOTS: CityHotspot[] = [
+  { section: 'departure', label: '出航所', caption: '河岸の桟橋', x: 78, y: 72, tone: '#38bdf8', emblem: '⚓' },
+  { section: 'market', label: '市場', caption: '港前広場', x: 38, y: 60, tone: '#f59e0b', emblem: '◇' },
+  { section: 'guild', label: 'ギルド', caption: '商館街', x: 53, y: 49, tone: '#a78bfa', emblem: '✦' },
+  { section: 'tavern', label: '酒場', caption: '坂道の路地', x: 63, y: 64, tone: '#fb7185', emblem: '♬' },
+  { section: 'shipyard', label: '造船所', caption: '河口の船渠', x: 23, y: 72, tone: '#22c55e', emblem: '▱' },
+  { section: 'bank', label: '銀行', caption: '城壁内の両替商', x: 55, y: 34, tone: '#facc15', emblem: '¤' },
+  { section: 'inventory', label: '保管庫', caption: '倉庫街', x: 27, y: 48, tone: '#60a5fa', emblem: '□' },
+]
 
 function formatQuestRank(rank?: QuestRank): string {
   if (rank === 'premium') return uiText.town.labels.premium
@@ -97,15 +115,6 @@ function formatMorale(morale?: number): string {
   return `${morale.toFixed(0)} 低い`
 }
 
-function getMoraleTone(morale?: number): string {
-  if (morale == null) return '不明'
-  if (morale >= 80) return '上々'
-  if (morale >= 45) return '安定'
-  return '低い'
-}
-
-
-
 function getShipyardRequirement(category: string): number {
   if (category === 'small_sail') return 1
   if (category === 'medium_sail' || category === 'galley') return 2
@@ -140,7 +149,6 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const visitTavern = usePlayerStore((s) => s.visitTavern)
   const repairShip = usePlayerStore((s) => s.repairShip)
   const purchaseShip = usePlayerStore((s) => s.purchaseShip)
-  const setActiveShip = usePlayerStore((s) => s.setActiveShip)
   const sellInventoryItem = usePlayerStore((s) => s.sellInventoryItem)
   const outfitShip = usePlayerStore((s) => s.outfitShip)
   const ensurePortQuests = useQuestStore((s) => s.ensurePortQuests)
@@ -155,10 +163,20 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [tradeMessageState, setTradeMessageState] = useState<{ portId: string | null; message: string | null }>({ portId: null, message: null })
   const [activeSection, setActiveSection] = useState<TownSection>('overview')
+  const questBoardPortRef = useRef<string | null>(null)
+  const [repairTargetShipId, setRepairTargetShipId] = useState<string | null>(null)
+  const [tavernTargetShipId, setTavernTargetShipId] = useState<string | null>(null)
+  const [shipyardTargetShipId, setShipyardTargetShipId] = useState<string | null>(null)
+  const [marketTargetShipId, setMarketTargetShipId] = useState<string | null>(null)
 
   const port = ports.find((item) => item.id === portId)
   const activeShip = ships.find((ship) => ship.instanceId === activeShipId)
   const shipType = activeShip ? getShip(activeShip.typeId) : undefined
+  const fallbackShipId = activeShipId ?? ships[0]?.instanceId ?? null
+  const repairTargetShip = ships.find((ship) => ship.instanceId === (repairTargetShipId ?? fallbackShipId)) ?? activeShip
+  const tavernTargetShip = ships.find((ship) => ship.instanceId === (tavernTargetShipId ?? fallbackShipId)) ?? activeShip
+  const shipyardTargetShip = ships.find((ship) => ship.instanceId === (shipyardTargetShipId ?? fallbackShipId)) ?? activeShip
+  const marketTargetShip = ships.find((ship) => ship.instanceId === (marketTargetShipId ?? fallbackShipId)) ?? activeShip
   const fleetSupply = ships.reduce(
     (total, ship) => ({
       food: total.food + ship.supplies.food,
@@ -181,7 +199,14 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const shipyardLevel = shipyardFacility?.level ?? 1
 
   useEffect(() => {
-    if (port?.id) ensurePortQuests(port.id, day)
+    if (!port?.id) {
+      questBoardPortRef.current = null
+      return
+    }
+
+    if (questBoardPortRef.current === port.id) return
+    questBoardPortRef.current = port.id
+    ensurePortQuests(port.id, day)
   }, [day, ensurePortQuests, port?.id])
 
   const marketRows = useMemo(
@@ -197,14 +222,14 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   )
 
   const cargoRows = useMemo(
-    () => (activeShip?.cargo ?? []).map((slot) => {
+    () => (marketTargetShip?.cargo ?? []).map((slot) => {
       const good = getTradeGood(slot.goodId)
       if (!good) return null
       const quantity = quantities[slot.goodId] ?? 1
-      const quote = portId ? getSellQuote(portId, slot.goodId, quantity) : null
+      const quote = portId ? getSellQuote(portId, slot.goodId, quantity, marketTargetShip?.instanceId) : null
       return { slot, good, quantity, quote }
     }).filter((row): row is NonNullable<typeof row> => Boolean(row)).sort((a, b) => b.quote!.unitPrice - a.quote!.unitPrice),
-    [activeShip?.cargo, getSellQuote, getTradeGood, portId, quantities],
+    [getSellQuote, getTradeGood, marketTargetShip?.cargo, marketTargetShip?.instanceId, portId, quantities],
   )
 
   const inventoryRows = useMemo(() => {
@@ -235,7 +260,19 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
     setTradeMessageState({ portId: port.id, message: message.message })
   }
 
-  const cargoUsage = `${activeShip?.usedCapacity ?? 0}/${activeShip?.maxCapacity ?? 0}`
+  const fleetStats = ships.reduce(
+    (total, ship) => ({
+      durability: total.durability + ship.currentDurability,
+      maxDurability: total.maxDurability + ship.maxDurability,
+      crew: total.crew + ship.currentCrew,
+      maxCrew: total.maxCrew + ship.maxCrew,
+      cargo: total.cargo + ship.usedCapacity,
+      maxCargo: total.maxCargo + ship.maxCapacity,
+      morale: total.morale + ship.morale,
+    }),
+    { durability: 0, maxDurability: 0, crew: 0, maxCrew: 0, cargo: 0, maxCargo: 0, morale: 0 },
+  )
+  const fleetMorale = ships.length > 0 ? fleetStats.morale / ships.length : undefined
   const questCategory = activeQuest?.metadata?.category
   const questGood = activeQuest?.metadata?.goodId ? getTradeGood(activeQuest.metadata.goodId) : null
   const questDestination = activeQuest?.metadata?.destinationPortId ? ports.find((item) => item.id === activeQuest.metadata?.destinationPortId) : null
@@ -258,26 +295,41 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   ] as const).filter((section): section is TownSection => section !== null)
   const visibleSection = availableSections.includes(activeSection) ? activeSection : 'overview'
   const notice = (tradeMessageState.portId === port.id ? tradeMessageState.message : null) ?? lastQuestNotice
-  const missingDurability = Math.max(0, (activeShip?.maxDurability ?? 0) - (activeShip?.currentDurability ?? 0))
+  const missingDurability = Math.max(0, (repairTargetShip?.maxDurability ?? 0) - (repairTargetShip?.currentDurability ?? 0))
   const emergencyPreview = Math.min(missingDurability, 12)
   const emergencyRepairGain = missingDurability > 0 ? Math.min(missingDurability, Math.max(4, Math.floor(emergencyPreview * (VOYAGE_CONFIG.EMERGENCY_REPAIR_EFFICIENCY + shipyardLevel * 0.03)))) : 0
   const emergencyRepairCost = emergencyRepairGain * Math.max(2, VOYAGE_CONFIG.EMERGENCY_REPAIR_COST_PER_POINT - Math.floor(shipyardLevel / 2))
   const standardRepairUnitCost = Math.max(2, VOYAGE_CONFIG.STANDARD_REPAIR_COST_PER_POINT - Math.floor(shipyardLevel / 2))
   const standardRepairPreview = REPAIR_AMOUNTS.map((amount) => ({ amount, cost: Math.min(amount, missingDurability) * standardRepairUnitCost }))
   const overhaulCost = missingDurability * Math.max(VOYAGE_CONFIG.STANDARD_REPAIR_COST_PER_POINT, VOYAGE_CONFIG.OVERHAUL_COST_PER_POINT - Math.floor(shipyardLevel / 2))
-  const tavernMealCost = Math.max(20, Math.ceil(Math.max(1, activeShip?.currentCrew ?? 1) * VOYAGE_CONFIG.TAVERN_MEAL_COST_PER_CREW * (1 - tavernLevel * 0.04)))
-  const tavernRoundsCost = Math.max(60, Math.ceil(VOYAGE_CONFIG.TAVERN_ROUND_BASE_COST * (1 + (activeShip?.maxCrew ?? 1) * 0.04) * (1 - tavernLevel * 0.03)))
+  const tavernMealCost = Math.max(20, Math.ceil(Math.max(1, tavernTargetShip?.currentCrew ?? 1) * VOYAGE_CONFIG.TAVERN_MEAL_COST_PER_CREW * (1 - tavernLevel * 0.04)))
+  const tavernRoundsCost = Math.max(60, Math.ceil(VOYAGE_CONFIG.TAVERN_ROUND_BASE_COST * (1 + (tavernTargetShip?.maxCrew ?? 1) * 0.04) * (1 - tavernLevel * 0.03)))
   const tavernRecruitUnitCost = Math.max(10, 18 - tavernLevel * VOYAGE_CONFIG.TAVERN_RECRUIT_DISCOUNT_PER_LEVEL)
   const captainLevel = Math.max(player?.stats.tradeLevel ?? 0, player?.stats.combatLevel ?? 0, player?.stats.adventureLevel ?? 0)
   const ownedShipTypeIds = new Set(ships.map((ship) => ship.typeId))
-  const shipyardOffers = shipCatalog.filter((ship) => !ownedShipTypeIds.has(ship.id)).sort((a, b) => a.requiredLevel - b.requiredLevel || a.price - b.price)
-  const fleetSlots = Array.from({ length: 5 }, (_, index) => ships[index] ?? null)
-  const riggingLevel = activeShip?.upgrades?.rigging ?? 0
-  const cargoLevel = activeShip?.upgrades?.cargo ?? 0
-  const gunneryLevel = activeShip?.upgrades?.gunnery ?? 0
+  const shipyardOffers = shipCatalog
+    .filter((ship) => !ownedShipTypeIds.has(ship.id))
+    .filter((ship) => !ship.cultures?.length || ship.cultures.includes(port.culture))
+    .sort((a, b) => a.requiredLevel - b.requiredLevel || a.price - b.price)
+  const selectedShipyardTargetType = shipyardTargetShip ? getShip(shipyardTargetShip.typeId) : undefined
+  const riggingLevel = shipyardTargetShip?.upgrades?.rigging ?? 0
+  const cargoLevel = shipyardTargetShip?.upgrades?.cargo ?? 0
+  const gunneryLevel = shipyardTargetShip?.upgrades?.gunnery ?? 0
   const outfitCost = (option: 'rigging' | 'cargo' | 'gunnery', level: number) => OUTFIT_BASE_COST[option] + level * OUTFIT_STEP[option]
   const outfitLocked = (optionLevel: number) => optionLevel >= OUTFIT_MAX_LEVEL
-  const loadRatio = activeShip ? activeShip.usedCapacity / Math.max(1, activeShip.maxCapacity) : 0
+  const loadRatio = shipyardTargetShip ? shipyardTargetShip.usedCapacity / Math.max(1, shipyardTargetShip.maxCapacity) : 0
+  const renderFacilityShipSelect = (selectedShipId: string | null, onSelect: (shipId: string) => void) => (
+    <label style={styles.commandTargetLabel}>
+      対象船
+      <select style={styles.commandTargetSelect} value={selectedShipId ?? ''} onChange={(event) => onSelect(event.target.value)}>
+        {ships.map((ship, index) => {
+          const type = getShip(ship.typeId)
+          const role = ship.instanceId === activeShipId ? '旗艦' : '僚船'
+          return <option key={ship.instanceId} value={ship.instanceId}>第{index + 1}船 {role}: {type?.name ?? ship.name}</option>
+        })}
+      </select>
+    </label>
+  )
 
   return (
     <div style={styles.container}>
@@ -296,10 +348,12 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
 
         <div style={styles.statStrip}>
           <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.money}</span><strong>{player?.money ?? 0} d</strong></div>
-          <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.ship}</span><strong>{shipType?.name ?? activeShip?.name ?? uiText.town.labels.none}</strong></div>
-          <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.cargo}</span><strong>{cargoUsage}</strong></div>
-          <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.crew}</span><strong>{activeShip?.currentCrew ?? 0}/{activeShip?.maxCrew ?? 0}</strong></div>
-          <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.morale}</span><strong>{formatMorale(activeShip?.morale)}</strong></div>
+          <div style={styles.statCard}><span style={styles.statLabel}>艦隊</span><strong>{ships.length}/5 隻</strong></div>
+          <div style={styles.statCard}><span style={styles.statLabel}>旗艦</span><strong>{shipType?.name ?? activeShip?.name ?? uiText.town.labels.none}</strong></div>
+          <div style={styles.statCard}><span style={styles.statLabel}>{uiText.nav.durability}</span><strong>{fleetStats.durability}/{fleetStats.maxDurability}</strong></div>
+          <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.crew}</span><strong>{fleetStats.crew}/{fleetStats.maxCrew}</strong></div>
+          <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.cargo}</span><strong>{fleetStats.cargo.toFixed(1)}/{fleetStats.maxCargo.toFixed(1)}</strong></div>
+          <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.morale}</span><strong>{formatMorale(fleetMorale)}</strong></div>
           <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.supplies}</span><strong>食 {fleetSupply.food.toFixed(0)}/{fleetSupply.maxFood.toFixed(0)} / 水 {fleetSupply.water.toFixed(0)}/{fleetSupply.maxWater.toFixed(0)}</strong></div>
         </div>
 
@@ -350,16 +404,63 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
           <main style={styles.content}>
             {visibleSection === 'overview' && (
               <div style={styles.contentStack}>
-                <section style={{ ...styles.panel, ...styles.overviewHero }}>
-                  <div style={styles.overviewCopy}>
-                    <p style={styles.overviewEyebrow}>{uiText.town.labels.harborView}</p>
-                    <h3 style={styles.overviewTitle}>{port.name} に停泊中</h3>
-                    <p style={styles.overviewText}>ここは将来、街の2Dビジュアルや3D移動を載せるための導入画面です。今は必要最小限の港情報だけを表示しています。</p>
-                  </div>
-                  <div style={styles.overviewFacts}>
+                <section style={styles.cityPanel}>
+                  {port.id === 'lisbon' ? (
+                    <>
+                      <div style={styles.cityIntro}>
+                        <div>
+                          <p style={styles.overviewEyebrow}>Lisboa city vista prototype</p>
+                          <h3 style={styles.overviewTitle}>リスボン</h3>
+                          <p style={styles.overviewText}>テージョ川に面したポルトガル王国の都。丘陵に広がる街並みと賑わう港には、遠洋航海を支える施設が集まっています。</p>
+                        </div>
+                        <div style={styles.cityBadge}>試作: 都市別アート差し替え前提</div>
+                      </div>
+                      <div
+                        style={{
+                          ...styles.cityVista,
+                          backgroundImage: `linear-gradient(180deg, rgba(17, 24, 39, 0.08), rgba(17, 24, 39, 0.22)), url(${import.meta.env.BASE_URL}generated/town/lisbon-etching.png)`,
+                        }}
+                        aria-label="リスボン街全景"
+                      >
+                        <div style={styles.cityEtchingVignette} />
+                        {LISBON_CITY_HOTSPOTS.map((spot) => {
+                          const isAvailable = availableSections.includes(spot.section)
+                          return (
+                            <button
+                              key={spot.section}
+                              type="button"
+                              style={{
+                                ...styles.cityHotspot,
+                                left: `${spot.x}%`,
+                                top: `${spot.y}%`,
+                                borderColor: `${spot.tone}cc`,
+                                boxShadow: `0 0 0 1px ${spot.tone}44, 0 12px 30px rgba(0,0,0,0.28)`,
+                                opacity: isAvailable ? 1 : 0.35,
+                                cursor: isAvailable ? 'pointer' : 'not-allowed',
+                              }}
+                              disabled={!isAvailable}
+                              onClick={() => setActiveSection(spot.section)}
+                            >
+                              <span style={{ ...styles.cityHotspotIcon, background: spot.tone }}>{spot.emblem}</span>
+                              <span style={styles.cityHotspotText}><strong>{spot.label}</strong><small>{spot.caption}</small></span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <div style={styles.overviewCopy}>
+                      <p style={styles.overviewEyebrow}>{uiText.town.labels.harborView}</p>
+                      <h3 style={styles.overviewTitle}>{port.name} に停泊中</h3>
+                      <p style={styles.overviewText}>都市別の全景図はリスボンで試作中です。この港は従来の概要表示を使います。</p>
+                    </div>
+                  )}
+                </section>
+                <section style={styles.panel}>
+                  <div style={styles.infoGridCompact}>
                     <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.port}</span><strong>{port.nationality} / 発展度 {port.prosperity}</strong><small>{summarizeFacilities(facilities)}</small></div>
                     <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.captain}</span><strong>{player?.name ?? uiText.town.labels.unknown}</strong><small>交易経験 {player?.stats.tradeExp ?? 0} / 名声 {player?.stats.fame ?? 0}</small></div>
-                    <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.ship}</span><strong>{shipType?.name ?? activeShip?.name ?? uiText.town.labels.none}</strong><small>耐久 {activeShip?.currentDurability ?? 0}/{activeShip?.maxDurability ?? 0} / 士気 {formatMorale(activeShip?.morale)}</small></div>
+                    <div style={styles.infoBlock}><span style={styles.infoLabel}>艦隊</span><strong>{ships.length}/5 隻 / 旗艦 {shipType?.name ?? activeShip?.name ?? uiText.town.labels.none}</strong><small>船体 {fleetStats.durability}/{fleetStats.maxDurability} / 士気 {formatMorale(fleetMorale)}</small></div>
                   </div>
                 </section>
               </div>
@@ -403,23 +504,23 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                     </div>
                     <div style={styles.infoGridCompact}>
                       <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.supplies}</span><strong>食 {fleetSupply.food.toFixed(0)}/{fleetSupply.maxFood.toFixed(0)} / 水 {fleetSupply.water.toFixed(0)}/{fleetSupply.maxWater.toFixed(0)}</strong><small>艦隊全体に補給します</small></div>
-                      <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.nav.durability}</span><strong>{activeShip?.currentDurability ?? 0} / {activeShip?.maxDurability ?? 0}</strong><small>修理対象: {activeShip?.name ?? '未選択'} / {shipyardFacility ? `${uiText.town.labels.shipyard} Lv.${shipyardLevel}` : '簡易工房のみ'}</small></div>
+                      <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.nav.durability}</span><strong>{repairTargetShip?.currentDurability ?? 0} / {repairTargetShip?.maxDurability ?? 0}</strong><small>修理対象: {repairTargetShip?.name ?? '未選択'} / {shipyardFacility ? `${uiText.town.labels.shipyard} Lv.${shipyardLevel}` : '簡易工房のみ'}</small></div>
                     </div>
                     <div>
-                      <p style={styles.serviceLabel}>艦隊状態</p>
-                      <div style={styles.fleetDockGrid}>
-                        {fleetSlots.map((ship, index) => {
-                          if (!ship) return <div key={`empty-${index}`} style={styles.fleetDockEmpty}>第{index + 1}船 空き</div>
+                      <p style={styles.serviceLabel}>保有船</p>
+                      <div style={styles.list}>
+                        {ships.map((ship) => {
                           const type = getShip(ship.typeId)
-                          const durabilityRatio = Math.max(0, Math.min(1, ship.currentDurability / Math.max(1, ship.maxDurability)))
-                          const crewRatio = Math.max(0, Math.min(1, ship.currentCrew / Math.max(1, ship.maxCrew)))
-                          const isActive = ship.instanceId === activeShipId
+                          const isRepairTarget = ship.instanceId === repairTargetShip?.instanceId
                           return (
-                            <button key={ship.instanceId} style={isActive ? { ...styles.fleetDockCard, ...styles.fleetDockCardActive } : styles.fleetDockCard} onClick={() => setActiveShip(ship.instanceId)}>
-                              <div style={styles.fleetDockHeader}><strong>第{index + 1}船 {isActive ? '旗艦' : '僚船'}</strong><span>{type?.name ?? ship.name}</span></div>
-                              <div style={styles.fleetDockStat}><span>耐久 {ship.currentDurability}/{ship.maxDurability}</span><div style={styles.fleetDockMeter}><div style={{ ...styles.fleetDockMeterFill, width: `${durabilityRatio * 100}%` }} /></div></div>
-                              <div style={styles.fleetDockStat}><span>船員 {ship.currentCrew}/{ship.maxCrew}</span><div style={styles.fleetDockMeter}><div style={{ ...styles.fleetDockMeterFill, width: `${crewRatio * 100}%`, background: '#34d399' }} /></div></div>
-                            </button>
+                            <div key={ship.instanceId} style={styles.compactActionRow}>
+                              <div style={styles.tradeMeta}>
+                                <strong>{type?.name ?? ship.name}{ship.instanceId === activeShipId ? ` / ${uiText.town.labels.active}` : ''}{isRepairTarget ? ' / 操作対象' : ''}</strong>
+                                <span style={styles.tradeSub}>船員 {ship.currentCrew}/{ship.maxCrew} / 船体 {ship.currentDurability}/{ship.maxDurability} / 積荷 {ship.usedCapacity}/{ship.maxCapacity}</span>
+                                <span style={styles.tradeSub}>速力 {type?.speed ?? '-'} / 旋回 {type?.turnRate ?? '-'} / 砲門 {type?.cannonSlots ?? '-'}</span>
+                              </div>
+                              <button style={isRepairTarget ? styles.secondaryButton : styles.primaryButton} disabled={isRepairTarget} onClick={() => setRepairTargetShipId(ship.instanceId)}>操作対象にする</button>
+                            </div>
                           )
                         })}
                       </div>
@@ -433,11 +534,15 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                       </div>
                     </div>
                     <div>
+                      <div style={styles.facilityTargetRow}>
+                        <span style={styles.serviceNote}>修理対象の船</span>
+                        {renderFacilityShipSelect(repairTargetShip?.instanceId ?? fallbackShipId, setRepairTargetShipId)}
+                      </div>
                       <p style={styles.serviceLabel}>{uiText.town.labels.repair}</p>
                       <div style={styles.serviceGrid}>
-                        <button style={styles.secondaryButton} disabled={missingDurability <= 0} onClick={() => handleAction(repairShip('emergency', emergencyPreview || undefined, shipyardLevel))}>応急修理 {emergencyRepairCost} d</button>
-                        {shipyardFacility && standardRepairPreview.map(({ amount, cost }) => <button key={`repair-${amount}`} style={styles.secondaryButton} disabled={missingDurability <= 0} onClick={() => handleAction(repairShip('standard', amount, shipyardLevel))}>{uiText.town.labels.repair} {amount} {cost} d</button>)}
-                        {shipyardFacility && <button style={styles.primaryButton} disabled={missingDurability <= 0} onClick={() => handleAction(repairShip('overhaul', undefined, shipyardLevel))}>{uiText.town.labels.overhaul} {overhaulCost} d</button>}
+                        <button style={styles.secondaryButton} disabled={missingDurability <= 0} onClick={() => handleAction(repairShip('emergency', emergencyPreview || undefined, shipyardLevel, repairTargetShip?.instanceId))}>応急修理 {emergencyRepairCost} d</button>
+                        {shipyardFacility && standardRepairPreview.map(({ amount, cost }) => <button key={`repair-${amount}`} style={styles.secondaryButton} disabled={missingDurability <= 0} onClick={() => handleAction(repairShip('standard', amount, shipyardLevel, repairTargetShip?.instanceId))}>{uiText.town.labels.repair} {amount} {cost} d</button>)}
+                        {shipyardFacility && <button style={styles.primaryButton} disabled={missingDurability <= 0} onClick={() => handleAction(repairShip('overhaul', undefined, shipyardLevel, repairTargetShip?.instanceId))}>{uiText.town.labels.overhaul} {overhaulCost} d</button>}
                       </div>
                       <div style={styles.serviceNote}>{shipyardFacility ? 'オーバーホールは耐久を全快し、消耗の蓄積も整えます。' : '造船所がない港では応急修理のみ可能です。'}</div>
                     </div>
@@ -460,6 +565,22 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
 
             {visibleSection === 'market' && hasMarket && (
               <div style={styles.contentStack}>
+                <div style={styles.facilityTargetRow}>
+                  <span style={styles.serviceNote}>市場で積荷を扱う船</span>
+                  {renderFacilityShipSelect(marketTargetShip?.instanceId ?? fallbackShipId, setMarketTargetShipId)}
+                </div>
+                <div style={styles.infoGridCompact}>
+                  <div style={styles.infoBlock}>
+                    <span style={styles.infoLabel}>選択中の船</span>
+                    <strong>{marketTargetShip?.name ?? '未選択'}</strong>
+                    <small>買付した交易品はこの船の船倉に入ります</small>
+                  </div>
+                  <div style={styles.infoBlock}>
+                    <span style={styles.infoLabel}>船倉</span>
+                    <strong>{(marketTargetShip?.usedCapacity ?? 0).toFixed(1)} / {(marketTargetShip?.maxCapacity ?? 0).toFixed(1)}</strong>
+                    <small>売却リストもこの船の積荷を表示します</small>
+                  </div>
+                </div>
                 <div style={styles.twoCol}>
                   <section style={styles.panel}>
                     <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>{uiText.town.labels.buy}</h3><span style={styles.panelHint}>1行で判断できる形</span></div>
@@ -468,6 +589,8 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                         const totalWeight = good.weight * quantity
                         const purchaseCap = Math.max(0, Math.min(item.stock, limit))
                         const exceedsCap = quantity > purchaseCap && purchaseCap > 0
+                        const remainingCapacity = (marketTargetShip?.maxCapacity ?? 0) - (marketTargetShip?.usedCapacity ?? 0)
+                        const exceedsCapacity = totalWeight > remainingCapacity
                         return (
                           <div key={good.id} style={styles.marketRowDense}>
                             <div style={styles.tradeMeta}>
@@ -475,12 +598,13 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                               <span style={styles.tradeSub}>{quote?.unitPrice ?? item.currentPrice} d / 在庫 {item.stock} / 上限 {limit} / {item.trend}</span>
                               {purchaseCap <= 0 && <span style={styles.tradeBlocked}>この港では今日はこれ以上買えません。</span>}
                               {exceedsCap && <span style={styles.tradeBlocked}>数量が購入上限を超えています。</span>}
+                              {exceedsCapacity && <span style={styles.tradeBlocked}>選択中の船の船倉容量が足りません。</span>}
                             </div>
                             <div style={styles.tradeControlsDense}>
                               <input type="number" min={1} max={Math.max(1, purchaseCap)} value={quantity} onChange={(e) => setQuantity(good.id, Number(e.target.value))} style={styles.quantityInput} disabled={purchaseCap <= 0} />
                               <span style={styles.compactFigure}>{quote?.totalPrice ?? item.currentPrice} d</span>
                               <span style={styles.compactFigure}>積載 {totalWeight.toFixed(1)}</span>
-                              <button style={styles.primaryButton} disabled={purchaseCap <= 0 || exceedsCap} onClick={() => handleAction(buyGood(port.id, good.id, quantity))}>{uiText.town.labels.buyAction}</button>
+                              <button style={styles.primaryButton} disabled={!marketTargetShip || purchaseCap <= 0 || exceedsCap || exceedsCapacity} onClick={() => handleAction(buyGood(port.id, good.id, quantity, marketTargetShip?.instanceId))}>{uiText.town.labels.buyAction}</button>
                             </div>
                           </div>
                         )
@@ -504,7 +628,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                               <input type="number" min={1} max={slot.quantity} value={quantity} onChange={(e) => setQuantity(good.id, Number(e.target.value))} style={styles.quantityInput} />
                               <span style={styles.compactFigure}>{quote?.totalPrice ?? 0} d</span>
                               <span style={styles.compactFigure}>積載 {(good.weight * quantity).toFixed(1)}</span>
-                              <button style={styles.secondaryButton} onClick={() => handleAction(sellGood(port.id, good.id, quantity))}>売却</button>
+                              <button style={styles.secondaryButton} onClick={() => handleAction(sellGood(port.id, good.id, quantity, marketTargetShip?.instanceId))}>売却</button>
                             </div>
                           </div>
                         )
@@ -524,24 +648,28 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                       <span style={styles.featureBadge}>{uiText.town.labels.tavern}</span>
                       <div>
                         <strong>{uiText.town.labels.tavern} Lv.{tavernLevel}</strong>
-                        <div style={styles.featureText}>士気 {getMoraleTone(activeShip?.morale)} / 新規雇用 {tavernRecruitUnitCost} d</div>
+                        <div style={styles.featureText}>操作対象: {tavernTargetShip?.name ?? '未選択'} / 新規雇用 {tavernRecruitUnitCost} d</div>
                       </div>
                     </div>
+                    <div style={styles.facilityTargetRow}>
+                      <span style={styles.serviceNote}>酒場で操作する船</span>
+                      {renderFacilityShipSelect(tavernTargetShip?.instanceId ?? fallbackShipId, setTavernTargetShipId)}
+                    </div>
                     <div style={styles.infoGridCompact}>
-                      <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.mood}</span><strong>{formatMorale(activeShip?.morale)}</strong><small>食事で小回復 / 景気づけで大回復</small></div>
-                      <div style={styles.infoBlock}><span style={styles.infoLabel}>雇用単価</span><strong>{tavernRecruitUnitCost} d / 人</strong><small>酒場 Lv.{tavernLevel} の割引を反映</small></div>
+                      <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.mood}</span><strong>{formatMorale(tavernTargetShip?.morale)}</strong><small>食事で小回復 / 景気づけで大回復</small></div>
+                      <div style={styles.infoBlock}><span style={styles.infoLabel}>雇用単価</span><strong>{tavernRecruitUnitCost} d / 人</strong><small>対象船の空き船員枠に雇用します。</small></div>
                     </div>
                     <div>
                       <p style={styles.serviceLabel}>士気回復</p>
                       <div style={styles.serviceGrid}>
-                        <button style={styles.secondaryButton} onClick={() => handleAction(visitTavern('meal', undefined, tavernLevel))}>船員に食事 {tavernMealCost} d</button>
-                        <button style={styles.primaryButton} onClick={() => handleAction(visitTavern('rounds', undefined, tavernLevel))}>景気づけ {tavernRoundsCost} d</button>
+                        <button style={styles.secondaryButton} onClick={() => handleAction(visitTavern('meal', undefined, tavernLevel, tavernTargetShip?.instanceId))}>船員に食事 {tavernMealCost} d</button>
+                        <button style={styles.primaryButton} onClick={() => handleAction(visitTavern('rounds', undefined, tavernLevel, tavernTargetShip?.instanceId))}>景気づけ {tavernRoundsCost} d</button>
                       </div>
                     </div>
                     <div>
                       <p style={styles.serviceLabel}>船員雇用</p>
                       <div style={styles.serviceGrid}>
-                        {CREW_HIRE_AMOUNTS.map((amount) => <button key={`crew-${amount}`} style={styles.secondaryButton} onClick={() => handleAction(visitTavern('recruit', amount, tavernLevel))}>{amount} 人雇う</button>)}
+                        {CREW_HIRE_AMOUNTS.map((amount) => <button key={`crew-${amount}`} style={styles.secondaryButton} onClick={() => handleAction(visitTavern('recruit', amount, tavernLevel, tavernTargetShip?.instanceId))}>{amount} 人雇う</button>)}
                       </div>
                     </div>
                   </div>
@@ -552,26 +680,15 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
             {visibleSection === 'shipyard' && shipyardFacility && (
               <div style={styles.contentStack}>
                 <section style={styles.panel}>
-                  <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>{uiText.town.labels.shipyard}</h3><span style={styles.panelHint}>購入と旗艦切替</span></div>
+                  <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>{uiText.town.labels.shipyard}</h3><span style={styles.panelHint}>船の購入と艤装</span></div>
                   <div style={styles.contentStack}>
-                      <div>
-                        <p style={styles.serviceLabel}>{uiText.town.labels.ownedShips}</p>
-                        <div style={styles.list}>
-                          {ships.map((ship) => {
-                            const type = getShip(ship.typeId)
-                            const isActive = ship.instanceId === activeShipId
-                            return (
-                              <div key={ship.instanceId} style={styles.compactActionRow}>
-                                <div style={styles.tradeMeta}>
-                                  <strong>{type?.name ?? ship.name}{isActive ? ` / ${uiText.town.labels.active}` : ''}</strong>
-                                  <span style={styles.tradeSub}>船員 {ship.currentCrew}/{ship.maxCrew} / 船体 {ship.currentDurability}/{ship.maxDurability} / 積荷 {ship.usedCapacity}/{ship.maxCapacity}</span>
-                                  <span style={styles.tradeSub}>速力 {type?.speed ?? '-'} / 旋回 {type?.turnRate ?? '-'} / 砲門 {type?.cannonSlots ?? '-'}</span>
-                                </div>
-                                <button style={isActive ? styles.secondaryButton : styles.primaryButton} disabled={isActive} onClick={() => { setActiveShip(ship.instanceId); handleAction({ message: `${type?.name ?? ship.name} を旗艦に設定しました。` }) }}>{uiText.town.labels.setActive}</button>
-                              </div>
-                            )
-                          })}
-                        </div>
+                      <div style={styles.facilityTargetRow}>
+                        <span style={styles.serviceNote}>艤装対象の船</span>
+                        {renderFacilityShipSelect(shipyardTargetShip?.instanceId ?? fallbackShipId, setShipyardTargetShipId)}
+                      </div>
+                      <div style={styles.infoGridCompact}>
+                        <div style={styles.infoBlock}><span style={styles.infoLabel}>選択中の船</span><strong>{selectedShipyardTargetType?.name ?? shipyardTargetShip?.name ?? '未選択'}</strong><small>艤装はこの船に適用されます。</small></div>
+                        <div style={styles.infoBlock}><span style={styles.infoLabel}>船体状態</span><strong>{shipyardTargetShip?.currentDurability ?? 0}/{shipyardTargetShip?.maxDurability ?? 0}</strong><small>船員 {shipyardTargetShip?.currentCrew ?? 0}/{shipyardTargetShip?.maxCrew ?? 0} / 積荷 {shipyardTargetShip?.usedCapacity ?? 0}/{shipyardTargetShip?.maxCapacity ?? 0}</small></div>
                       </div>
                       <div>
                         <p style={styles.serviceLabel}>{uiText.town.labels.shipyardOffers}</p>
@@ -609,13 +726,13 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                                 const level = option.option === 'rigging' ? riggingLevel : option.option === 'cargo' ? cargoLevel : gunneryLevel
                                 const cost = outfitCost(option.option, level)
                                 const isMaxed = outfitLocked(level)
-                                const disabled = !activeShip || isMaxed || (player?.money ?? 0) < cost
+                                const disabled = !shipyardTargetShip || isMaxed || (player?.money ?? 0) < cost
                                 return (
                                   <div key={option.option} style={styles.outfitCard}>
                                     <strong>{option.label}</strong>
                                     <span style={styles.outfitNote}>{option.description}</span>
                                     <span style={styles.outfitMeta}>{isMaxed ? uiText.town.labels.maxed : `費用 ${cost} d / Lv ${level + 1}`}</span>
-                                    <button style={styles.primaryButton} disabled={disabled} onClick={() => handleAction(outfitShip(option.option))}>
+                                    <button style={styles.primaryButton} disabled={disabled} onClick={() => handleAction(outfitShip(option.option, shipyardTargetShip?.instanceId))}>
                                       {isMaxed ? uiText.town.labels.maxed : uiText.town.labels.apply}
                                     </button>
                                   </div>
@@ -720,6 +837,29 @@ const styles: Record<string, React.CSSProperties> = {
   content: { minWidth: 0 },
   contentStack: { display: 'flex', flexDirection: 'column', gap: 16 },
   panel: { padding: 16, borderRadius: 18, background: 'rgba(255,255,255,0.04)' },
+  cityPanel: { padding: 16, borderRadius: 22, background: 'linear-gradient(180deg, rgba(22, 35, 55, 0.92), rgba(9, 20, 36, 0.96))', border: '1px solid rgba(244, 184, 96, 0.18)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)' },
+  cityIntro: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 12 },
+  cityBadge: { padding: '8px 10px', borderRadius: 999, background: 'rgba(180, 83, 9, 0.22)', border: '1px solid rgba(251, 191, 36, 0.24)', color: '#f8ddb3', fontSize: 11, whiteSpace: 'nowrap' },
+  cityVista: { position: 'relative', minHeight: 430, overflow: 'hidden', borderRadius: 20, border: '1px solid rgba(255,255,255,0.1)', backgroundColor: '#d1b98b', backgroundSize: 'cover', backgroundPosition: 'center', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)' },
+  cityEtchingVignette: { position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(circle at 50% 42%, transparent 54%, rgba(20, 12, 5, 0.32) 100%), linear-gradient(90deg, rgba(67, 40, 17, 0.18), transparent 18%, transparent 82%, rgba(67, 40, 17, 0.18))', mixBlendMode: 'multiply' },
+  citySky: { position: 'absolute', inset: 0, background: 'radial-gradient(circle at 18% 16%, rgba(255,244,207,0.58), transparent 15%), linear-gradient(180deg, rgba(125, 180, 202, 0.85), rgba(214, 174, 118, 0.46) 48%, transparent 49%)' },
+  citySun: { position: 'absolute', left: '10%', top: '11%', width: 58, height: 58, borderRadius: '50%', background: '#ffe3a3', boxShadow: '0 0 44px rgba(255, 207, 120, 0.55)' },
+  cityHillsBack: { position: 'absolute', left: '-4%', right: '-4%', top: '30%', height: '24%', background: 'linear-gradient(180deg, #8a9a72, #617856)', clipPath: 'polygon(0 58%, 14% 39%, 27% 50%, 40% 24%, 52% 42%, 66% 19%, 79% 38%, 100% 25%, 100% 100%, 0 100%)', opacity: 0.9 },
+  cityHillsFront: { position: 'absolute', left: '8%', right: '8%', top: '39%', height: '29%', background: 'linear-gradient(180deg, #c7b079, #8f734b)', clipPath: 'polygon(0 64%, 10% 43%, 24% 54%, 37% 25%, 51% 48%, 63% 30%, 76% 55%, 92% 36%, 100% 58%, 100% 100%, 0 100%)' },
+  cityRiver: { position: 'absolute', left: '-5%', right: '-5%', bottom: '-3%', height: '36%', background: 'linear-gradient(135deg, rgba(38, 112, 145, 0.95), rgba(15, 58, 91, 0.98))', clipPath: 'polygon(0 23%, 18% 8%, 34% 28%, 50% 16%, 70% 32%, 100% 12%, 100% 100%, 0 100%)' },
+  cityQuay: { position: 'absolute', left: '8%', right: '10%', top: '66%', height: '7%', background: 'linear-gradient(90deg, #5b4630, #b28b57 40%, #6f5131)', transform: 'skewY(-3deg)', borderTop: '2px solid rgba(255,255,255,0.16)' },
+  cityWall: { position: 'absolute', left: '16%', top: '48%', width: '60%', height: '13%', background: 'linear-gradient(180deg, #ead8b1, #b99365)', clipPath: 'polygon(0 42%, 14% 28%, 31% 43%, 49% 20%, 70% 42%, 88% 26%, 100% 44%, 100% 100%, 0 100%)', boxShadow: '0 12px 20px rgba(44, 25, 12, 0.24)' },
+  cityBlock: { position: 'absolute', background: 'linear-gradient(180deg, #f7ead3, #c7aa7a)', border: '1px solid rgba(91, 55, 25, 0.28)', clipPath: 'polygon(0 32%, 20% 18%, 34% 30%, 52% 12%, 74% 28%, 100% 18%, 100% 100%, 0 100%)', boxShadow: 'inset 0 18px 0 rgba(159, 64, 37, 0.36)' },
+  cityTower: { position: 'absolute', width: '6%', height: '21%', background: 'linear-gradient(180deg, #f3e5c5, #9d7b50)', clipPath: 'polygon(18% 0, 82% 0, 82% 100%, 18% 100%)', boxShadow: 'inset 0 14px 0 rgba(127, 47, 31, 0.42)' },
+  cityCrane: { position: 'absolute', width: '10%', height: '18%', borderLeft: '5px solid #5d3b21', borderTop: '4px solid #5d3b21', transform: 'skewX(-12deg)' },
+  cityShip: { position: 'absolute', width: '11%', height: '7%', background: '#40230f', clipPath: 'polygon(0 46%, 72% 46%, 100% 22%, 86% 80%, 12% 80%)', boxShadow: '22px -36px 0 -25px #ead9bd' },
+  cityHotspot: { position: 'absolute', transform: 'translate(-50%, -50%)', display: 'flex', alignItems: 'center', gap: 8, minWidth: 126, padding: '8px 10px', borderRadius: 999, border: '1px solid rgba(255,255,255,0.24)', background: 'rgba(10, 23, 38, 0.82)', color: '#fff', backdropFilter: 'blur(8px)' },
+  cityHotspotIcon: { width: 26, height: 26, borderRadius: '50%', display: 'grid', placeItems: 'center', color: '#08111f', fontWeight: 800, flex: '0 0 auto' },
+  cityHotspotText: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1, lineHeight: 1.1 },
+  overviewCopy: { maxWidth: 620 },
+  overviewEyebrow: { margin: 0, color: '#e6b979', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.16em' },
+  overviewTitle: { margin: '5px 0 0', fontSize: 24 },
+  overviewText: { margin: '8px 0 0', color: '#d1dceb', lineHeight: 1.7 },
   twoCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 },
   sectionTitle: { margin: 0, fontSize: 15 },
   panelHeader: { display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline', marginBottom: 10 },
@@ -743,6 +883,9 @@ const styles: Record<string, React.CSSProperties> = {
   emptyState: { color: '#7b8fab', fontSize: 13, padding: '14px 4px' },
   serviceGrid: { display: 'flex', flexWrap: 'wrap', gap: 10 },
   serviceColumns: { display: 'grid', gridTemplateColumns: '1fr', gap: 16 },
+  facilityTargetRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: 12, borderRadius: 14, border: '1px solid rgba(96, 165, 250, 0.24)', background: 'rgba(37, 99, 235, 0.08)' },
+  commandTargetLabel: { display: 'flex', alignItems: 'center', gap: 8, color: '#b7c9e3', fontSize: 12 },
+  commandTargetSelect: { minWidth: 220, padding: '9px 10px', borderRadius: 10, border: '1px solid rgba(147, 197, 253, 0.45)', background: '#10233d', color: '#edf3fb' },
   fleetDockGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 },
   fleetDockCard: { padding: 10, borderRadius: 12, border: '1px solid rgba(148, 163, 184, 0.22)', background: 'rgba(255,255,255,0.035)', color: '#e8f1ff', cursor: 'pointer', textAlign: 'left' },
   fleetDockCardActive: { border: '1px solid rgba(96, 165, 250, 0.72)', background: 'rgba(37, 99, 235, 0.18)' },

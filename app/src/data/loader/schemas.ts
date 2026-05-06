@@ -27,6 +27,7 @@ export const ShipTypeSchema = z.object({
   horizontalSails: z.number().int().min(0),
   requiredLevel: z.number().int().min(1),
   price: z.number().positive(),
+  cultures: z.array(z.string()).optional(),
   modelId: z.string().optional(),
   modelPrompt: z.string().optional(),
 })

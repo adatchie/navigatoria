@@ -22,6 +22,7 @@ export interface ShipType {
   horizontalSails: number
   requiredLevel: number
   price: number
+  cultures?: string[]
   modelId?: string
   modelPrompt?: string
 }

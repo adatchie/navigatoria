@@ -10,7 +10,7 @@ const outputPath = path.join(outputDir, 'land-base.svg')
 
 const WIDTH = 4096
 const HEIGHT = 2048
-const LAND_COLOR = '#3f5f34'
+const LAND_COLOR = '#7a6549'
 const MAX_MERCATOR_LAT = 85.05112878
 
 function clampLat(lat) {

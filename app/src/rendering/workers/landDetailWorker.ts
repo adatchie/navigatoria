@@ -41,7 +41,7 @@ interface WorkerScope {
   postMessage: (message: unknown) => void
 }
 
-const LAND_COLOR = '#3f5f34'
+const LAND_COLOR = '#7a6549'
 
 function computeBounds(points: [number, number][]): Bounds2D {
   let minX = Number.POSITIVE_INFINITY

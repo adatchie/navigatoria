@@ -69,6 +69,7 @@ export function App() {
   const [loadProgress, setLoadProgress] = useState(0)
   const [latestSaveExists, setLatestSaveExists] = useState(false)
   const autoSaveRef = useRef<AutoSave | null>(null)
+  const questBoardDockedPortRef = useRef<string | null>(null)
 
   const refreshSaveAvailability = useCallback(async () => {
     const snapshot = await loadLatestSave()
@@ -134,9 +135,14 @@ export function App() {
   }, [])
 
   useEffect(() => {
-    if (dockedPortId) {
-      ensurePortQuests(dockedPortId, totalDays)
+    if (!dockedPortId) {
+      questBoardDockedPortRef.current = null
+      return
     }
+
+    if (questBoardDockedPortRef.current === dockedPortId) return
+    questBoardDockedPortRef.current = dockedPortId
+    ensurePortQuests(dockedPortId, totalDays)
   }, [dockedPortId, ensurePortQuests, totalDays])
 
   useEffect(() => {

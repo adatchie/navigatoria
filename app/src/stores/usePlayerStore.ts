@@ -48,10 +48,10 @@ interface PlayerStoreState {
   replaceCargo: (cargo: CargoSlot[], usedCapacity: number) => void
   consumeVoyageResources: (gameDayDelta: number) => void
   resupplyShip: (target: 'food' | 'water' | 'all', amount?: number) => PortActionResult
-  hireCrew: (amount: number) => PortActionResult
-  visitTavern: (service: TavernService, amount?: number, tavernLevel?: number) => PortActionResult
-  repairShip: (mode?: RepairMode, amount?: number, facilityLevel?: number) => PortActionResult
-  outfitShip: (option: 'rigging' | 'cargo' | 'gunnery') => PortActionResult
+  hireCrew: (amount: number, targetShipId?: string) => PortActionResult
+  visitTavern: (service: TavernService, amount?: number, tavernLevel?: number, targetShipId?: string) => PortActionResult
+  repairShip: (mode?: RepairMode, amount?: number, facilityLevel?: number, targetShipId?: string) => PortActionResult
+  outfitShip: (option: 'rigging' | 'cargo' | 'gunnery', targetShipId?: string) => PortActionResult
   resolveVoyageEvent: (currentDay: number, weatherType: WeatherType) => void
   logEncounterEvent: (message: string) => void
   clearVoyageNotice: () => void
@@ -222,15 +222,15 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
 
   initPlayer: (name) => {
     const dataStore = useDataStore.getState()
-    const starterType = dataStore.getShip(createShipId('balsa'))
-    const starterTypes = ['balsa', 'caravel', 'pinnace', 'dhow', 'galley']
+    const starterType = dataStore.getShip(createShipId('barca'))
+    const starterTypes = ['barca', 'caravela_latina', 'pinnace', 'dhow', 'galley']
       .map((id) => dataStore.getShip(createShipId(id)))
       .filter((shipType): shipType is ShipType => Boolean(shipType))
       .slice(0, MAX_FLEET_SHIPS)
     const fallbackMaxCrew = starterType?.crew.max ?? 12
     const fallbackShip: ShipInstance = {
       instanceId: 'ship_001',
-      typeId: createShipId('balsa'),
+      typeId: createShipId('barca'),
       name: 'サンタ・リスボア',
       material: 'oak' as const,
       currentDurability: 120,
@@ -471,10 +471,11 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
     return { ok: true, message: `食料 ${Math.ceil(desiredFood)}・水 ${Math.ceil(desiredWater)} を補給しました。` }
   },
 
-  hireCrew: (amount) => {
+  hireCrew: (amount, targetShipId) => {
     const state = get()
     const player = state.player
-    const ship = state.ships.find((entry) => entry.instanceId === state.activeShipId)
+    const targetId = targetShipId ?? state.activeShipId
+    const ship = state.ships.find((entry) => entry.instanceId === targetId)
     if (!player || !ship) return { ok: false, message: '雇用対象の船が見つかりません。' }
     if (amount <= 0) return { ok: false, message: '雇用人数を指定してください。' }
 
@@ -485,7 +486,7 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
 
     set((current) => ({
       player: current.player ? { ...current.player, money: current.player.money - totalCost } : current.player,
-      ships: current.ships.map((entry) => entry.instanceId !== current.activeShipId ? entry : {
+      ships: current.ships.map((entry) => entry.instanceId !== targetId ? entry : {
         ...entry,
         currentCrew: entry.currentCrew + hireable,
       }),
@@ -494,10 +495,11 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
     return { ok: true, message: `船員を ${hireable} 人雇用しました。` }
   },
 
-  visitTavern: (service, amount = 0, tavernLevel = 1) => {
+  visitTavern: (service, amount = 0, tavernLevel = 1, targetShipId) => {
     const state = get()
     const player = state.player
-    const ship = state.ships.find((entry) => entry.instanceId === state.activeShipId)
+    const targetId = targetShipId ?? state.activeShipId
+    const ship = state.ships.find((entry) => entry.instanceId === targetId)
     if (!player || !ship) return { ok: false, message: '酒場で対応する船が見つかりません。' }
 
     const level = clamp(tavernLevel, 1, 5)
@@ -510,7 +512,7 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
 
       set((current) => ({
         player: current.player ? { ...current.player, money: current.player.money - cost } : current.player,
-        ships: current.ships.map((entry) => entry.instanceId !== current.activeShipId ? entry : {
+        ships: current.ships.map((entry) => entry.instanceId !== targetId ? entry : {
           ...entry,
           morale: clamp(getShipMorale(entry) + VOYAGE_CONFIG.TAVERN_MEAL_MORALE_RECOVERY + level * 2, 0, 100),
         }),
@@ -525,7 +527,7 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
 
       set((current) => ({
         player: current.player ? { ...current.player, money: current.player.money - cost } : current.player,
-        ships: current.ships.map((entry) => entry.instanceId !== current.activeShipId ? entry : {
+        ships: current.ships.map((entry) => entry.instanceId !== targetId ? entry : {
           ...entry,
           morale: clamp(getShipMorale(entry) + VOYAGE_CONFIG.TAVERN_ROUND_MORALE_RECOVERY + level * 3, 0, 100),
           supplies: {
@@ -546,7 +548,7 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
 
     set((current) => ({
       player: current.player ? { ...current.player, money: current.player.money - totalCost } : current.player,
-      ships: current.ships.map((entry) => entry.instanceId !== current.activeShipId ? entry : {
+      ships: current.ships.map((entry) => entry.instanceId !== targetId ? entry : {
         ...entry,
         currentCrew: entry.currentCrew + hireable,
         morale: clamp(getShipMorale(entry) + 2 + level, 0, 100),
@@ -555,10 +557,11 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
     return { ok: true, message: `酒場で ${hireable} 人の船員を集めました。` }
   },
 
-    repairShip: (mode = 'standard', amount, facilityLevel = 1) => {
+    repairShip: (mode = 'standard', amount, facilityLevel = 1, targetShipId) => {
       const state = get()
       const player = state.player
-      const ship = state.ships.find((entry) => entry.instanceId === state.activeShipId)
+      const targetId = targetShipId ?? state.activeShipId
+      const ship = state.ships.find((entry) => entry.instanceId === targetId)
     if (!player || !ship) return { ok: false, message: '修理対象の船が見つかりません。' }
 
     const level = clamp(facilityLevel, 1, 5)
@@ -599,7 +602,7 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
     set((current) => ({
       player: current.player ? { ...current.player, money: current.player.money - totalCost } : current.player,
       ships: current.ships.map((entry) => {
-        if (entry.instanceId !== current.activeShipId) return entry
+        if (entry.instanceId !== targetId) return entry
         const entrySupplies = getShipSupplies(entry)
         return {
           ...entry,
@@ -617,11 +620,12 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
       return { ok: true, message: `${label}で耐久を ${repaired} 回復しました。` }
     },
 
-    outfitShip: (option = 'rigging') => {
+    outfitShip: (option = 'rigging', targetShipId) => {
       const state = get()
       const player = state.player
-      const ship = state.ships.find((entry) => entry.instanceId === state.activeShipId)
-      if (!player || !ship) return { ok: false, message: '旗艦が見つかりません。' }
+      const targetId = targetShipId ?? state.activeShipId
+      const ship = state.ships.find((entry) => entry.instanceId === targetId)
+      if (!player || !ship) return { ok: false, message: '艤装対象の船が見つかりません。' }
 
       const currentLevel = ship.upgrades?.[option] ?? 0
       const maxLevel = 3
@@ -633,7 +637,7 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
       if (player.money < cost) return { ok: false, message: '資金が足りません。' }
 
       const nextShips = state.ships.map((entry) => {
-        if (entry.instanceId !== state.activeShipId) return entry
+        if (entry.instanceId !== targetId) return entry
         const nextUpgrades = {
           rigging: entry.upgrades?.rigging ?? 0,
           cargo: entry.upgrades?.cargo ?? 0,

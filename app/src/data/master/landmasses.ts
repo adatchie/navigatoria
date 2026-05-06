@@ -36,7 +36,7 @@ interface GeoJsonFeatureCollection {
   features: GeoJsonFeature[]
 }
 
-const LAND_COLOR = '#3f5f34'
+const LAND_COLOR = '#7a6549'
 const MIN_RING_POINTS = 3
 const PORT_SEA_OFFSET = 0.12
 const DEPARTURE_SEA_OFFSET = 1.6

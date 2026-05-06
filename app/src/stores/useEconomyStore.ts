@@ -47,10 +47,10 @@ interface EconomyStoreState {
 
   initializeMarkets: () => void
   simulateToDay: (currentDay: number) => void
-  buyGood: (portId: string, goodId: string, quantity: number) => TradeActionResult
-  sellGood: (portId: string, goodId: string, quantity: number) => TradeActionResult
+  buyGood: (portId: string, goodId: string, quantity: number, targetShipId?: string) => TradeActionResult
+  sellGood: (portId: string, goodId: string, quantity: number, targetShipId?: string) => TradeActionResult
   getBuyQuote: (portId: string, goodId: string, quantity?: number) => TradeQuote | null
-  getSellQuote: (portId: string, goodId: string, quantity?: number) => TradeQuote | null
+  getSellQuote: (portId: string, goodId: string, quantity?: number, targetShipId?: string) => TradeQuote | null
   getPurchaseLimit: (portId: string, goodId: string) => number
   investInPort: (portId: string, amount: number) => TradeActionResult
   depositMoney: (amount: number) => TradeActionResult
@@ -104,6 +104,16 @@ function buildMarketItem(port: Port, good: TradeGood): MarketItemState {
 function getTradeCatalog(port: Port, goods: TradeGood[]): TradeGood[] {
   const seen = new Set<string>()
   const catalog: TradeGood[] = []
+  const commonByCulture: Record<string, string[]> = {
+    west_europe: ['wheat', 'fish', 'salt', 'wine'],
+    north_europe: ['fish', 'herring', 'wool', 'timber'],
+    islamic: ['dates', 'cotton', 'coffee', 'salt'],
+    indian: ['cotton', 'pepper', 'indigo'],
+    southeast_asia: ['fish', 'tin_ingot'],
+    east_asia: ['fish', 'paper', 'tea'],
+    africa: ['fish', 'hide', 'timber'],
+    new_world: ['fish', 'sugar', 'hide'],
+  }
 
   const addGoods = (items: TradeGood[]) => {
     for (const item of items) {
@@ -114,8 +124,7 @@ function getTradeCatalog(port: Port, goods: TradeGood[]): TradeGood[] {
   }
 
   addGoods(goods.filter((good) => good.origins.includes(port.id) || port.specialProducts.includes(good.id)))
-  addGoods(goods.filter((good) => good.rarity <= 2))
-  addGoods(goods.filter((good) => good.category === 'food' || good.category === 'fiber' || good.category === 'metal'))
+  addGoods((commonByCulture[port.culture] ?? []).map((goodId) => goods.find((good) => good.id === goodId)).filter((good): good is TradeGood => Boolean(good)))
 
   return catalog
 }
@@ -262,10 +271,11 @@ export const useEconomyStore = create<EconomyStoreState>()((set, get) => ({
     return { ...quote, totalPrice: quote.unitPrice * quantity, taxAmount: quote.taxAmount * quantity }
   },
 
-  getSellQuote: (portId, goodId, quantity = 1) => {
+  getSellQuote: (portId, goodId, quantity = 1, targetShipId) => {
     const port = useWorldStore.getState().ports.find((entry) => entry.id === portId)
     const good = useDataStore.getState().getTradeGood(goodId as never)
-    const ship = usePlayerStore.getState().ships.find((entry) => entry.instanceId === usePlayerStore.getState().activeShipId)
+    const playerState = usePlayerStore.getState()
+    const ship = playerState.ships.find((entry) => entry.instanceId === (targetShipId ?? playerState.activeShipId))
     const cargoSlot = ship?.cargo.find((slot) => slot.goodId === goodId)
     const trend = get().markets[portId]?.items.find((entry) => entry.goodId === goodId)?.trend ?? 'stable'
     if (!port || !good || !cargoSlot) return null
@@ -274,7 +284,7 @@ export const useEconomyStore = create<EconomyStoreState>()((set, get) => ({
     return { ...quote, totalPrice: quote.unitPrice * quantity, taxAmount: quote.taxAmount * quantity }
   },
 
-  buyGood: (portId, goodId, quantity) => {
+  buyGood: (portId, goodId, quantity, targetShipId) => {
     if (quantity <= 0) return { ok: false, message: '数量が不足しています。' }
 
     const market = get().markets[portId]
@@ -282,9 +292,10 @@ export const useEconomyStore = create<EconomyStoreState>()((set, get) => ({
     const good = useDataStore.getState().getTradeGood(goodId as never)
     const playerState = usePlayerStore.getState()
     const player = playerState.player
-    const activeShip = playerState.ships.find((ship) => ship.instanceId === playerState.activeShipId)
+    const resolvedShipId = targetShipId ?? playerState.activeShipId
+    const targetShip = playerState.ships.find((ship) => ship.instanceId === resolvedShipId)
     const item = market?.items.find((entry) => entry.goodId === goodId)
-    if (!market || !port || !good || !player || !activeShip || !item) return { ok: false, message: '市場データが見つかりません。' }
+    if (!market || !port || !good || !player || !targetShip || !item) return { ok: false, message: '市場データが見つかりません。' }
 
     const limit = get().getPurchaseLimit(portId, goodId)
     if (quantity > limit) return { ok: false, message: `この港での購入上限は ${limit} です。` }
@@ -294,7 +305,7 @@ export const useEconomyStore = create<EconomyStoreState>()((set, get) => ({
     if (!quote) return { ok: false, message: '買値を計算できません。' }
 
     const requiredCapacity = good.weight * quantity
-    const remainingCapacity = activeShip.maxCapacity - activeShip.usedCapacity
+    const remainingCapacity = targetShip.maxCapacity - targetShip.usedCapacity
     if (requiredCapacity > remainingCapacity) return { ok: false, message: '船倉容量が足りません。' }
     if (player.money < quote.totalPrice) return { ok: false, message: '所持金が足りません。' }
 
@@ -307,7 +318,7 @@ export const useEconomyStore = create<EconomyStoreState>()((set, get) => ({
         money: state.player.money - quote.totalPrice,
         stats: { ...state.player.stats, tradeExp: state.player.stats.tradeExp + rewards.tradeExp },
       } : state.player,
-      ships: state.ships.map((ship) => ship.instanceId !== state.activeShipId ? ship : {
+      ships: state.ships.map((ship) => ship.instanceId !== resolvedShipId ? ship : {
         ...ship,
         cargo: mutateCargo(ship.cargo, goodId, quantity, quote.unitPrice),
         usedCapacity: Math.round((ship.usedCapacity + requiredCapacity) * 100) / 100,
@@ -338,16 +349,17 @@ export const useEconomyStore = create<EconomyStoreState>()((set, get) => ({
     return { ok: true, message: `${good.name} を ${quantity} 個購入しました。`, totalPrice: quote.totalPrice }
   },
 
-  sellGood: (portId, goodId, quantity) => {
+  sellGood: (portId, goodId, quantity, targetShipId) => {
     if (quantity <= 0) return { ok: false, message: '数量が不足しています。' }
 
     const port = useWorldStore.getState().ports.find((entry) => entry.id === portId)
     const good = useDataStore.getState().getTradeGood(goodId as never)
     const playerState = usePlayerStore.getState()
     const player = playerState.player
-    const activeShip = playerState.ships.find((ship) => ship.instanceId === playerState.activeShipId)
-    const cargoSlot = activeShip?.cargo.find((slot) => slot.goodId === goodId)
-    if (!port || !good || !player || !activeShip || !cargoSlot) return { ok: false, message: '売却対象が見つかりません。' }
+    const resolvedShipId = targetShipId ?? playerState.activeShipId
+    const targetShip = playerState.ships.find((ship) => ship.instanceId === resolvedShipId)
+    const cargoSlot = targetShip?.cargo.find((slot) => slot.goodId === goodId)
+    if (!port || !good || !player || !targetShip || !cargoSlot) return { ok: false, message: '売却対象が見つかりません。' }
     if (cargoSlot.quantity < quantity) return { ok: false, message: '売却数量が積荷を超えています。' }
 
     const trend = get().markets[portId]?.items.find((entry) => entry.goodId === goodId)?.trend ?? 'stable'
@@ -368,7 +380,7 @@ export const useEconomyStore = create<EconomyStoreState>()((set, get) => ({
         },
       } : state.player,
       ships: state.ships.map((ship) => {
-        if (ship.instanceId !== state.activeShipId) return ship
+        if (ship.instanceId !== resolvedShipId) return ship
         const nextCargo = ship.cargo.map((slot) => slot.goodId !== goodId ? slot : { ...slot, quantity: slot.quantity - quantity }).filter((slot) => slot.quantity > 0)
         return { ...ship, cargo: nextCargo, usedCapacity: Math.max(0, Math.round((ship.usedCapacity - freedCapacity) * 100) / 100) }
       }),

@@ -29,10 +29,10 @@ function getRecommendedAction(type: EncounterType): EncounterAction {
 
 function getEncounterShipPool(type: EncounterType, ships: ShipType[]): ShipType[] {
   const preferredIds: Record<EncounterType, string[]> = {
-    pirate: ['xebec', 'pinnace', 'brig', 'caravel_redonda', 'sambuk', 'frigate'],
-    navy: ['brig', 'galley', 'galleass', 'galleon', 'frigate', 'turtle_ship', 'atakebune'],
-    merchant: ['dhow', 'sambuk', 'fluyt', 'nao', 'merchant_galleon', 'junk', 'carrack'],
-    derelict: ['balsa', 'caravel', 'dhow', 'junk', 'nao', 'fluyt'],
+    pirate: ['xebec', 'pinnace', 'caravel_redonda', 'sambuk', 'armed_merchantman'],
+    navy: ['galley', 'galleass', 'galleon', 'treasure_galleon', 'atakebune'],
+    merchant: ['dhow', 'sambuk', 'baghlah', 'fluyt', 'nao', 'junk', 'carrack'],
+    derelict: ['barca', 'caravela_latina', 'dhow', 'junk', 'nao', 'flyboat'],
   }
 
   const ids = new Set(preferredIds[type])
