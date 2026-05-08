@@ -84,6 +84,18 @@ function applyQuestRewards(rewards: QuestReward[], playerNationality: string): s
   return notes
 }
 
+function getQuestShipSpeedKnots(): number | undefined {
+  const playerState = usePlayerStore.getState()
+  const activeShip = playerState.ships.find((ship) => ship.instanceId === playerState.activeShipId)
+  if (!activeShip) return undefined
+
+  const shipType = useDataStore.getState().getShip(activeShip.typeId)
+  if (!shipType) return undefined
+
+  const riggingLevel = activeShip.upgrades?.rigging ?? 0
+  return shipType.speed * (1 + riggingLevel * 0.04)
+}
+
 export const useQuestStore = create<QuestStoreState>()((set, get) => ({
   availableByPort: {},
   activeQuest: null,
@@ -107,6 +119,7 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
       goods: masterData.tradeGoods,
       day: currentDay,
       tradeLevel: player.stats.tradeLevel,
+      shipSpeedKnots: getQuestShipSpeedKnots(),
     }).filter((quest) => !get().completedQuestIds.includes(quest.id) && !get().failedQuestIds.includes(quest.id))
 
     set((state) => ({
@@ -124,7 +137,7 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
     const activeShip = playerState.ships.find((ship) => ship.instanceId === playerState.activeShipId)
     const currentDay = getCurrentDay()
     if (!quest || !player || !activeShip) return { ok: false, message: 'クエストが見つかりません。' }
-    if ((quest.requiredLevel ?? 1) > player.stats.tradeLevel) return { ok: false, message: '交易レベルが足りません。' }
+    if ((quest.requiredLevel ?? 0) > player.stats.tradeLevel) return { ok: false, message: '交易レベルが足りません。' }
     if ((quest.requiredFame ?? 0) > player.stats.fame) return { ok: false, message: `名声が ${quest.requiredFame} 必要です。` }
 
     const quantity = quest.metadata?.quantity ?? 0

@@ -429,14 +429,22 @@ function battleDirectionOffset(heading: number, distance: number): [number, numb
   return [Math.sin(rad) * distance * FIELD_SCALE_X, 0.03, Math.cos(rad) * distance * FIELD_SCALE_Z]
 }
 
+function battleHeadingToSceneRotation(heading: number): number {
+  return (heading * Math.PI) / 180
+}
+
+function battleHeadingToShipRendererHeading(heading: number): number {
+  return -heading
+}
+
 function HeadingIndicator3D(props: { heading: number; color: string }) {
   return (
-    <group position={[0, 0.18, 0]} rotation={[0, (-props.heading * Math.PI) / 180, 0]}>
-      <mesh position={[0, 0, -4.2]}>
+    <group position={[0, 0.18, 0]} rotation={[0, battleHeadingToSceneRotation(props.heading), 0]}>
+      <mesh position={[0, 0, 4.2]}>
         <boxGeometry args={[0.16, 0.08, 5.2]} />
         <meshBasicMaterial color={props.color} transparent opacity={0.75} depthWrite={false} />
       </mesh>
-      <mesh position={[0, 0, -7]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[0, 0, 7]} rotation={[Math.PI / 2, 0, 0]}>
         <coneGeometry args={[0.95, 1.9, 3]} />
         <meshBasicMaterial color={props.color} transparent opacity={0.95} depthWrite={false} />
       </mesh>
@@ -605,6 +613,7 @@ function BattleShip3D(props: { ship: TacticalShipState; selected: boolean; targe
   const ringColor = props.ship.side === 'player' ? '#67e8f9' : '#fb7185'
   const scale = props.ship.side === 'player' ? 1.55 : 1.45
   const opacity = props.ship.status === 'active' ? 1 : 0.46
+  const renderHeading = battleHeadingToShipRendererHeading(props.ship.heading)
   return (
     <group position={[x, y, z]}>
       <mesh
@@ -619,16 +628,16 @@ function BattleShip3D(props: { ship: TacticalShipState; selected: boolean; targe
         <meshBasicMaterial color={props.selected ? '#fef08a' : ringColor} transparent opacity={props.selected ? 0.28 : 0.12} depthWrite={false} />
       </mesh>
       <group scale={opacity}>
-        <Suspense fallback={<ShipRenderer heading={props.ship.heading} scale={scale} />}>
-          <ShipModelRenderer heading={props.ship.heading} scale={scale} />
+        <Suspense fallback={<ShipRenderer heading={renderHeading} scale={scale} />}>
+          <ShipModelRenderer heading={renderHeading} scale={scale} />
         </Suspense>
       </group>
       <HeadingIndicator3D heading={props.ship.heading} color={ringColor} />
       {props.selected && props.ship.status === 'active' && (
-        <>
+        <group rotation={[0, battleHeadingToSceneRotation(props.ship.heading), 0]}>
           <BroadsideArc3D side="left" color={ringColor} />
           <BroadsideArc3D side="right" color={ringColor} />
-        </>
+        </group>
       )}
       <Html position={[0, 6.2, 0]} center distanceFactor={36} style={styles.shipLabel}>
         <div style={props.selected ? styles.shipLabelSelected : styles.shipLabelInner}>

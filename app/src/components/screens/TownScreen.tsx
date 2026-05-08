@@ -73,6 +73,10 @@ function formatQuestCategory(category?: TradeQuestCategory): string {
   return '輸送'
 }
 
+function formatQuestRequirement(value?: number): string {
+  return value && value > 0 ? `${value}` : 'なし'
+}
+
 function getDaysRemaining(quest: Quest | null, currentDay: number): number | null {
   if (!quest?.deadlineDay) return null
   return quest.deadlineDay - currentDay
@@ -477,7 +481,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                         <div key={quest.id} style={styles.compactActionRow}>
                           <div style={styles.tradeMeta}>
                             <strong>{quest.title}</strong>
-                            <span style={styles.tradeSub}>{formatQuestCategory(quest.metadata?.category)} / {formatQuestRank(quest.rank)} / 名声 {quest.requiredFame ?? 0} / 必要Lv {quest.requiredLevel ?? 1} / 残り {daysRemaining ?? '-'} 日</span>
+                            <span style={styles.tradeSub}>{formatQuestCategory(quest.metadata?.category)} / {formatQuestRank(quest.rank)} / 名声 {formatQuestRequirement(quest.requiredFame)} / 必要Lv {formatQuestRequirement(quest.requiredLevel)} / 残り {daysRemaining ?? '-'} 日</span>
                             <span style={styles.tradeSub}>{quest.rewards.map(formatReward).join(' / ')}</span>
                           </div>
                           <button style={styles.primaryButton} disabled={Boolean(activeQuest)} onClick={() => handleAction(acceptQuest(quest.id, port.id))}>受注する</button>

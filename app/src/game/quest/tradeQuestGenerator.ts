@@ -1,8 +1,27 @@
 import type { Port } from '@/types/port.ts'
 import type { Quest, QuestRank, QuestReward, TradeQuestCategory } from '@/types/quest.ts'
 import type { TradeGood } from '@/types/trade.ts'
+import { WORLD_DISTANCE_SCALE } from '@/config/gameConfig.ts'
 
 const DELIVERY_REWARD_BASE = 220
+const DEFAULT_QUEST_SHIP_SPEED_KNOTS = 8
+const QUEST_SUSTAINED_SPEED_FACTOR = 0.72
+const QUEST_ROUTE_DISTANCE_FACTOR = 1.35
+const QUEST_RANK_BUFFER_DAYS: Record<QuestRank, number> = {
+  standard: 5,
+  urgent: 3,
+  premium: 2,
+}
+const QUEST_MIN_DEADLINE_DAYS: Record<QuestRank, number> = {
+  standard: 8,
+  urgent: 6,
+  premium: 7,
+}
+const QUEST_CATEGORY_BUFFER_DAYS: Record<TradeQuestCategory, number> = {
+  trade_delivery: 1,
+  trade_procurement: 2,
+  trade_sales: 1,
+}
 
 function hashSeed(input: string): number {
   let hash = 0
@@ -43,11 +62,17 @@ function getQuestCategory(seed: number): TradeQuestCategory {
   return 'trade_sales'
 }
 
-function getDeadlineOffset(rank: QuestRank, sameCulture: boolean, category: TradeQuestCategory): number {
-  const categoryPenalty = category === 'trade_procurement' ? 1 : 0
-  if (rank === 'premium') return (sameCulture ? 4 : 6) + categoryPenalty
-  if (rank === 'urgent') return (sameCulture ? 3 : 5) + categoryPenalty
-  return (sameCulture ? 6 : 8) + categoryPenalty
+function getRouteDistanceKm(sourcePort: Port, destination: Port): number {
+  return Math.hypot(
+    destination.position.x - sourcePort.position.x,
+    destination.position.y - sourcePort.position.y,
+  ) * WORLD_DISTANCE_SCALE
+}
+
+function getTravelDays(distanceKm: number, shipSpeedKnots = DEFAULT_QUEST_SHIP_SPEED_KNOTS): number {
+  const sustainedSpeedKnots = Math.max(3, shipSpeedKnots * QUEST_SUSTAINED_SPEED_FACTOR)
+  const kmPerDay = sustainedSpeedKnots * 1.852 * 24
+  return Math.ceil((distanceKm * QUEST_ROUTE_DISTANCE_FACTOR) / kmPerDay)
 }
 
 function getRewardMultiplier(rank: QuestRank, category: TradeQuestCategory): number {
@@ -56,9 +81,31 @@ function getRewardMultiplier(rank: QuestRank, category: TradeQuestCategory): num
   return rankBonus * categoryBonus
 }
 
-function getRequiredFame(rank: QuestRank, category: TradeQuestCategory): number {
-  const rankBase = rank === 'premium' ? 20 : rank === 'urgent' ? 8 : 0
-  return category === 'trade_sales' ? rankBase + 4 : rankBase
+function getDeadlineOffset(rank: QuestRank, category: TradeQuestCategory, distanceKm: number, shipSpeedKnots?: number): number {
+  const travelDays = getTravelDays(distanceKm, shipSpeedKnots)
+  const deadline = travelDays + QUEST_RANK_BUFFER_DAYS[rank] + QUEST_CATEGORY_BUFFER_DAYS[category]
+  return Math.max(QUEST_MIN_DEADLINE_DAYS[rank], deadline)
+}
+
+function isHighDifficultyQuest(rank: QuestRank, quantity: number, distanceKm: number): boolean {
+  return rank === 'premium' && (quantity >= 14 || distanceKm >= 4500)
+}
+
+function getRequiredLevel(rank: QuestRank, quantity: number, distanceKm: number): number | undefined {
+  if (!isHighDifficultyQuest(rank, quantity, distanceKm)) return undefined
+
+  const distanceGate = distanceKm >= 12000 ? 8 : distanceKm >= 8000 ? 6 : distanceKm >= 4500 ? 4 : 0
+  const cargoGate = quantity >= 16 ? 5 : quantity >= 14 ? 3 : 0
+  return Math.max(3, distanceGate, cargoGate)
+}
+
+function getRequiredFame(rank: QuestRank, category: TradeQuestCategory, quantity: number, distanceKm: number): number {
+  if (!isHighDifficultyQuest(rank, quantity, distanceKm)) return 0
+
+  const distanceFame = distanceKm >= 12000 ? 18 : distanceKm >= 8000 ? 14 : 10
+  const categoryExtra = category === 'trade_sales' ? 3 : category === 'trade_procurement' ? 2 : 0
+  const cargoExtra = quantity >= 16 ? 2 : 0
+  return distanceFame + categoryExtra + cargoExtra
 }
 
 function buildRewards(params: {
@@ -177,8 +224,9 @@ export function generateTradeQuestsForPort(params: {
   goods: TradeGood[]
   day: number
   tradeLevel: number
+  shipSpeedKnots?: number
 }): Quest[] {
-  const { port, ports, goods, day, tradeLevel } = params
+  const { port, ports, goods, day, tradeLevel, shipSpeedKnots } = params
   const questCount = Math.max(2, Math.min(4, 2 + Math.floor(tradeLevel / 3)))
 
   return Array.from({ length: questCount }, (_, index) => {
@@ -190,13 +238,15 @@ export function generateTradeQuestsForPort(params: {
     const rank = getQuestRank(seed, quantity)
     const category = getQuestCategory(seed)
     const resolvedCategory = destination.id === port.id ? 'trade_delivery' : category
-    const deadlineDay = day + getDeadlineOffset(rank, sameCulture, resolvedCategory)
+    const distanceKm = getRouteDistanceKm(port, destination)
+    const deadlineDay = day + getDeadlineOffset(rank, resolvedCategory, distanceKm, shipSpeedKnots)
     const rewardMultiplier = getRewardMultiplier(rank, resolvedCategory)
     const moneyReward = Math.round((DELIVERY_REWARD_BASE + good.basePrice * quantity * 0.22) * (sameCulture ? 1 : 1.25) * rewardMultiplier)
     const expReward = Math.max(15, Math.round(moneyReward / 5))
     const fameReward = Math.max(1, Math.round(moneyReward / 140))
     const details = buildQuestDetails({ category: resolvedCategory, sourcePort: port, destination, good, quantity })
-    const requiredFame = getRequiredFame(rank, resolvedCategory)
+    const requiredLevel = getRequiredLevel(rank, quantity, distanceKm)
+    const requiredFame = getRequiredFame(rank, resolvedCategory, quantity, distanceKm)
 
     return {
       id: `trade_${resolvedCategory}_${port.id}_${day}_${index}`,
@@ -208,7 +258,7 @@ export function generateTradeQuestsForPort(params: {
       status: 'available',
       rank,
       deadlineDay,
-      requiredLevel: Math.max(1, tradeLevel > 0 ? tradeLevel - 1 : 1),
+      requiredLevel,
       requiredFame,
       rewards: buildRewards({ moneyReward, expReward, fameReward, reportPortId: details.reportPortId, rank, seed }),
       objectives: details.objectives,
