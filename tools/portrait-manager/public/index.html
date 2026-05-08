@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta http-equiv="cache-control" content="no-store" />
     <title>顔グラ生成</title>
-    <link rel="stylesheet" href="/styles.css?v=portrait-candidates-20260509" />
+    <link rel="stylesheet" href="/styles.css?v=portrait-sidebar-20260509" />
   </head>
   <body>
     <div class="workbench">
@@ -132,10 +132,21 @@
           </div>
           <div id="records" class="records"></div>
         </section>
+
+        <section class="db-section">
+          <div class="output-head">
+            <div>
+              <h2>生成画像フォルダ</h2>
+              <p id="imageSummary" class="section-count">0件</p>
+            </div>
+            <button id="refreshImagesButton" type="button">画像更新</button>
+          </div>
+          <div id="generatedImages" class="image-grid"></div>
+        </section>
       </main>
     </div>
 
     <div id="toast" class="toast" role="status"></div>
-    <script type="module" src="/app.js?v=portrait-candidates-20260509"></script>
+    <script type="module" src="/app.js?v=portrait-folder-preview-20260509"></script>
   </body>
 </html>

@@ -73,6 +73,14 @@ GET /api/generated-images
 Image previews are served only from Codex's generated-images directory
 when an image path is attached to a DB record.
 
+After each App Server generation turn, the manager checks the dedicated
+thread's generated-images directory and attaches the new file path to the
+matching DB record. The same reconciliation also runs when loading
+`顔グラDB`, so older generated files can be picked up after a restart.
+The `生成画像フォルダ` section also lists all images found for the
+dedicated thread, independent of whether they are already linked to a DB
+record.
+
 ## Batch Input
 
 One record per line:

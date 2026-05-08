@@ -163,6 +163,7 @@ function createPortraitRecord(request, threadId, existing = null) {
     styleProfile: request.styleProfile && typeof request.styleProfile === 'object' ? request.styleProfile : {},
     imageThreadId: threadId || cleanText(existing?.imageThreadId),
     imagePath: cleanText(existing?.imagePath),
+    imageFileName: cleanText(existing?.imageFileName),
     notes: cleanText(existing?.notes),
     createdAt: existing?.createdAt || now,
     queuedAt: now,
@@ -225,6 +226,58 @@ async function updatePortraitRecordStatus(id, status, patch = {}) {
   await writePortraitRecordStore(store.records)
 }
 
+function dateMs(value) {
+  const parsed = Date.parse(value || '')
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function bestImageForRecord(record, availableImages) {
+  const startedAt = dateMs(record.generationStartedAt || record.queuedAt || record.createdAt)
+  const endedAt = dateMs(record.generatedAt || record.updatedAt)
+  const marginMs = 5 * 60 * 1000
+
+  return availableImages.find((image) => {
+    const imageAt = dateMs(image.updatedAt || image.createdAt)
+    if (startedAt && imageAt < startedAt - marginMs) return false
+    if (endedAt && imageAt > endedAt + marginMs) return false
+    return true
+  }) || null
+}
+
+async function reconcilePortraitImages(records) {
+  const usedPaths = new Set(records.map((record) => cleanText(record.imagePath)).filter(Boolean))
+  const threadIds = [...new Set(records
+    .filter((record) => !record.imagePath && record.imageThreadId)
+    .map((record) => record.imageThreadId))]
+  let changed = false
+
+  for (const threadId of threadIds) {
+    const availableImages = (await listGeneratedImages(threadId))
+      .filter((image) => !usedPaths.has(image.path))
+      .sort((a, b) => dateMs(a.updatedAt) - dateMs(b.updatedAt))
+    const unlinkedRecords = records
+      .filter((record) => !record.imagePath && record.imageThreadId === threadId)
+      .sort((a, b) => dateMs(a.generationStartedAt || a.queuedAt || a.createdAt) - dateMs(b.generationStartedAt || b.queuedAt || b.createdAt))
+
+    for (const record of unlinkedRecords) {
+      if (!availableImages.length) break
+      const matchedImage = bestImageForRecord(record, availableImages)
+        || (availableImages.length === unlinkedRecords.length ? availableImages[0] : null)
+      if (!matchedImage) continue
+
+      record.imagePath = matchedImage.path
+      record.imageFileName = matchedImage.name
+      record.status = record.implementationId ? 'linked' : 'generated'
+      record.updatedAt = nowIso()
+      usedPaths.add(matchedImage.path)
+      availableImages.splice(availableImages.indexOf(matchedImage), 1)
+      changed = true
+    }
+  }
+
+  return changed
+}
+
 function isPathInside(childPath, parentPath) {
   const relativePath = path.relative(parentPath, childPath)
   return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath))
@@ -251,7 +304,7 @@ async function listGeneratedImages(threadId) {
         updatedAt: fileStat.mtime.toISOString(),
       })
     }
-    return images.sort((a, b) => a.name.localeCompare(b.name))
+    return images.sort((a, b) => dateMs(a.updatedAt) - dateMs(b.updatedAt))
   } catch {
     return []
   }
@@ -498,9 +551,12 @@ async function runGenerationJob(requests) {
       job.currentRecordId = currentRecordId
       job.currentTitle = request.title || `portrait-${index + 1}`
       if (currentRecordId) {
+        const imagesBefore = await listGeneratedImages(job.threadId)
         await updatePortraitRecordStatus(currentRecordId, 'generating', {
           generationStartedAt: nowIso(),
+          imageCountBefore: imagesBefore.length,
         })
+        request._imagePathsBefore = new Set(imagesBefore.map((image) => image.path))
       }
       await writeJsonFile(JOB_FILE, { ...job, updatedAt: nowIso() })
 
@@ -523,8 +579,13 @@ async function runGenerationJob(requests) {
 
       job.completed = index + 1
       if (currentRecordId) {
-        await updatePortraitRecordStatus(currentRecordId, 'generated', {
+        const imagesAfter = await listGeneratedImages(job.threadId)
+        const newImage = imagesAfter.find((image) => !request._imagePathsBefore?.has(image.path))
+        await updatePortraitRecordStatus(currentRecordId, newImage ? 'generated' : 'image_missing', {
           generatedAt: nowIso(),
+          imagePath: newImage?.path || '',
+          imageFileName: newImage?.name || '',
+          imageCountAfter: imagesAfter.length,
         })
       }
       await writeJsonFile(JOB_FILE, { ...job, updatedAt: nowIso() })
@@ -636,7 +697,11 @@ async function handleApi(request, response, url) {
   }
 
   if (request.method === 'GET' && url.pathname === '/api/portrait-records') {
-    sendJson(response, 200, await readPortraitRecordStore())
+    const store = await readPortraitRecordStore()
+    if (await reconcilePortraitImages(store.records)) {
+      await writePortraitRecordStore(store.records)
+    }
+    sendJson(response, 200, store)
     return
   }
 

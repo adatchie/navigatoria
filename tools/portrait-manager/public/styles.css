@@ -13,7 +13,7 @@
 
 body {
   margin: 0;
-  min-width: 1180px;
+  min-width: 1320px;
   min-height: 100vh;
   background: #101216;
 }
@@ -60,7 +60,7 @@ button.ghost {
   display: grid;
   grid-template:
     "topbar topbar" 72px
-    "inputs output" calc(100vh - 72px) / 360px minmax(760px, 1fr);
+    "inputs output" calc(100vh - 72px) / 480px minmax(760px, 1fr);
 }
 
 .topbar {
@@ -109,6 +109,15 @@ button.ghost {
   gap: 8px;
 }
 
+.card-actions {
+  flex: 0 0 auto;
+}
+
+.card-actions button,
+.button-row button {
+  white-space: nowrap;
+}
+
 .top-actions,
 .db-actions {
   align-items: center;
@@ -140,6 +149,10 @@ button.ghost {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 10px;
+}
+
+.brief-head h3 {
+  min-width: 0;
 }
 
 .panel h2,
@@ -238,6 +251,7 @@ textarea:focus {
 
 .candidate-card h3 {
   overflow: hidden;
+  flex: 1 1 auto;
   margin: 0;
   font-size: 12px;
   text-overflow: ellipsis;
@@ -307,6 +321,12 @@ textarea:focus {
 
 .records {
   display: grid;
+  gap: 12px;
+}
+
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   gap: 12px;
 }
 
@@ -388,6 +408,38 @@ textarea:focus {
   font-weight: 700;
 }
 
+.image-tile {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #2e3847;
+  border-radius: 8px;
+  background: #171d25;
+}
+
+.image-tile img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: #0f1318;
+}
+
+.image-name,
+.image-meta {
+  overflow: hidden;
+  padding: 7px 8px 0;
+  color: #c8d3e1;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.image-meta {
+  padding: 3px 8px 8px;
+  color: #748297;
+  font-size: 10px;
+}
+
 .brief-meta {
   display: flex;
   flex-wrap: wrap;
@@ -419,6 +471,11 @@ textarea:focus {
   color: #f0ddb8;
 }
 
+.status-image_missing {
+  background: #3b3f4b;
+  color: #d5dcea;
+}
+
 .status-failed {
   background: #4f2730;
   color: #f3c2cb;
@@ -443,6 +500,10 @@ textarea:focus {
   border: 1px dashed #354153;
   border-radius: 8px;
   color: #748297;
+}
+
+.compact-empty {
+  min-height: 120px;
 }
 
 .toast {

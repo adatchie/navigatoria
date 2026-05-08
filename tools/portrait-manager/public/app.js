@@ -120,6 +120,7 @@ const state = {
   search: '',
   recordSearch: '',
   records: [],
+  generatedImages: [],
   thread: null,
   job: null,
 }
@@ -160,6 +161,9 @@ const elements = {
   recordSearchInput: $('recordSearchInput'),
   refreshRecordsButton: $('refreshRecordsButton'),
   records: $('records'),
+  imageSummary: $('imageSummary'),
+  refreshImagesButton: $('refreshImagesButton'),
+  generatedImages: $('generatedImages'),
   toast: $('toast'),
 }
 
@@ -884,6 +888,8 @@ function recordStatusLabel(status) {
       return '生成中'
     case 'generated':
       return '生成済み'
+    case 'image_missing':
+      return '画像未検出'
     case 'linked':
       return '実装紐づけ済み'
     case 'failed':
@@ -1064,6 +1070,43 @@ async function updateRecord(id, patch) {
   renderRecords()
 }
 
+function renderGeneratedImages() {
+  elements.imageSummary.textContent = `${state.generatedImages.length}件`
+  elements.generatedImages.replaceChildren()
+
+  if (!state.generatedImages.length) {
+    const empty = document.createElement('div')
+    empty.className = 'empty-state compact-empty'
+    empty.textContent = '画像なし'
+    elements.generatedImages.append(empty)
+    return
+  }
+
+  for (const image of state.generatedImages) {
+    elements.generatedImages.append(createImageTile(image))
+  }
+}
+
+function createImageTile(image) {
+  const tile = document.createElement('article')
+  tile.className = 'image-tile'
+
+  const preview = document.createElement('img')
+  preview.src = `/api/portrait-image?path=${encodeURIComponent(image.path)}`
+  preview.alt = image.name
+
+  const name = document.createElement('div')
+  name.className = 'image-name'
+  name.textContent = image.name
+
+  const meta = document.createElement('div')
+  meta.className = 'image-meta'
+  meta.textContent = image.updatedAt ? new Date(image.updatedAt).toLocaleString() : ''
+
+  tile.append(preview, name, meta)
+  return tile
+}
+
 async function requestGeneration(briefs) {
   if (!briefs.length) {
     showToast('生成対象がありません')
@@ -1090,6 +1133,7 @@ async function requestGeneration(briefs) {
   showToast(`${data.count}件を画像専用スレッドへ送信しました`)
   refreshJobStatus().catch(() => {})
   loadRecords().catch(() => {})
+  loadGeneratedImages().catch(() => {})
 }
 
 function addBriefs(briefs) {
@@ -1128,6 +1172,7 @@ function bindEvents() {
   elements.refreshJobButton.addEventListener('click', () => {
     refreshJobStatus().catch((error) => showToast(error.message))
     loadRecords().catch((error) => showToast(error.message))
+    loadGeneratedImages().catch((error) => showToast(error.message))
   })
   elements.generateCandidatesButton.addEventListener('click', generateCandidates)
   elements.addCandidateButton.addEventListener('click', addOneCandidate)
@@ -1158,6 +1203,9 @@ function bindEvents() {
   })
   elements.refreshRecordsButton.addEventListener('click', () => {
     loadRecords().catch((error) => showToast(error.message))
+  })
+  elements.refreshImagesButton.addEventListener('click', () => {
+    loadGeneratedImages().catch((error) => showToast(error.message))
   })
 }
 
@@ -1206,6 +1254,13 @@ async function loadRecords() {
   renderRecords()
 }
 
+async function loadGeneratedImages() {
+  const response = await fetch('/api/generated-images')
+  const data = await response.json()
+  state.generatedImages = Array.isArray(data.images) ? data.images : []
+  renderGeneratedImages()
+}
+
 function renderJobStatus() {
   const job = state.job
   if (!job || job.status === 'idle') {
@@ -1239,6 +1294,8 @@ renderRowPreview()
 renderCandidates()
 renderCards()
 renderRecords()
+renderGeneratedImages()
 loadImageThread().catch(() => {})
 refreshJobStatus().catch(() => {})
 loadRecords().catch(() => {})
+loadGeneratedImages().catch(() => {})
