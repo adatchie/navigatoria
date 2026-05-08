@@ -95,6 +95,22 @@ const candidateSeeds = [
   { role: 'scholar', nationality: 'portugal', port: 'コインブラ', age: '40s', period: 'early_16c', faceAngle: 'three_quarter_right', gender: 'female', setting: '航海術を教える修道院育ちの学者', mood: '静謐で芯がある' },
   { role: 'barmaid', nationality: 'france', port: 'ディエップ', age: 'late teens', period: 'mid_16c', faceAngle: 'three_quarter_right', gender: 'female', setting: '港の噂を聞き集める若い給仕', mood: '素直だが勘が鋭い' },
   { role: 'officer', nationality: 'ottoman', port: 'アルジェ', age: '30s', period: 'mid_16c', faceAngle: 'three_quarter_left', gender: 'male', setting: '西地中海の護衛任務に就く士官', mood: '端正で厳しい' },
+  { role: 'merchant', nationality: 'local', port: 'マラッカ', age: '30s', period: 'late_16c', faceAngle: 'three_quarter_left', gender: 'female', setting: '海峡交易の荷を取りまとめる現地仲買人', mood: '涼しい目、言葉少な' },
+  { role: 'navigator', nationality: 'local', port: 'モンバサ', age: '40s', period: 'mid_16c', faceAngle: 'profile_right', gender: 'male', setting: '季節風と沿岸水路を読むスワヒリ海岸の水先人', mood: '落ち着き、遠くを見る目' },
+  { role: 'merchant', nationality: 'local', port: 'カリカット', age: '50s', period: 'early_16c', faceAngle: 'three_quarter_right', gender: 'male', setting: '胡椒交易の交渉を担う港の商人', mood: '穏やかだが底が読めない' },
+  { role: 'scholar', nationality: 'local', port: 'ゴア', age: '20s', period: 'mid_16c', faceAngle: 'front', gender: 'female', setting: '複数言語の書簡を読める港町の書記', mood: '澄んだ目、知的な緊張' },
+  { role: 'officer', nationality: 'portugal', port: 'モザンビーク', age: '40s', period: 'mid_16c', faceAngle: 'three_quarter_left', gender: 'male', setting: 'インド洋航路の補給港を守る駐留士官', mood: '疲労を隠した実務家' },
+  { role: 'merchant', nationality: 'portugal', port: 'マカオ', age: '30s', period: 'late_16c', faceAngle: 'three_quarter_right', gender: 'female', setting: '南シナ海交易に関わる若い仲買商', mood: '柔らかい笑み、抜け目ない' },
+  { role: 'guild_master', nationality: 'spain', port: 'マニラ', age: '40s', period: 'late_16c', faceAngle: 'front', gender: 'male', setting: '新設港の銀と絹の流れを管理する組合幹部', mood: '几帳面で隙がない' },
+  { role: 'navigator', nationality: 'netherlands', port: 'エンクハイゼン', age: '30s', period: 'late_16c', faceAngle: 'profile_left', gender: 'male', setting: '北海とバルト海の浅瀬を知る航海士', mood: '細い目つき、集中している' },
+  { role: 'shipwright', nationality: 'england', port: 'ポーツマス', age: '50s', period: 'late_16c', faceAngle: 'three_quarter_right', gender: 'male', setting: '軍港で船体修理を任される熟練船大工', mood: '寡黙で頼れる' },
+  { role: 'merchant', nationality: 'france', port: 'ナント', age: '40s', period: 'mid_16c', faceAngle: 'three_quarter_left', gender: 'female', setting: '大西洋沿岸の塩と布を扱う商人', mood: '穏やかで計算が速い' },
+  { role: 'officer', nationality: 'venice', port: 'カンディア', age: '30s', period: 'mid_16c', faceAngle: 'front', gender: 'female', setting: '東地中海の拠点で護送船団を補佐する士官', mood: '端正、緊張感がある' },
+  { role: 'scholar', nationality: 'ottoman', port: 'スミルナ', age: '40s', period: 'mid_16c', faceAngle: 'three_quarter_right', gender: 'female', setting: '港の税記録と航路情報を扱う学者', mood: '静かな威厳' },
+  { role: 'mercenary', nationality: 'ottoman', port: 'チュニス', age: '30s', period: 'late_16c', faceAngle: 'three_quarter_left', gender: 'male', setting: '商船護衛に雇われる地中海の護衛兵', mood: '鋭い視線、無駄がない' },
+  { role: 'barmaid', nationality: 'england', port: 'ダートマス', age: '20s', period: 'late_16c', faceAngle: 'three_quarter_right', gender: 'female', setting: '帰港した船乗りから情報を集める港酒場の給仕', mood: '茶目っ気を抑えた明るさ' },
+  { role: 'noble', nationality: 'venice', port: 'ラグーザ', age: '30s', period: 'early_16c', faceAngle: 'three_quarter_left', gender: 'male', setting: 'アドリア海交易に出資する都市貴族', mood: '優雅で観察深い' },
+  { role: 'shipwright', nationality: 'local', port: 'アレクサンドリア', age: '40s', period: 'mid_16c', faceAngle: 'profile_right', gender: 'male', setting: '地中海と紅海の船を見分ける港の修理職人', mood: '穏やかだが職人気質' },
 ]
 
 const state = {
@@ -118,6 +134,7 @@ const elements = {
   refreshJobButton: $('refreshJobButton'),
   candidateCountInput: $('candidateCountInput'),
   generateCandidatesButton: $('generateCandidatesButton'),
+  addCandidateButton: $('addCandidateButton'),
   approveAllCandidatesButton: $('approveAllCandidatesButton'),
   candidates: $('candidates'),
   roleInput: $('roleInput'),
@@ -554,6 +571,7 @@ function parseRows(text = elements.rowsInput.value) {
         mood: columns[5],
         period: columns[6],
         faceAngle: columns[7],
+        gender: columns[8],
       })
     })
 }
@@ -604,7 +622,7 @@ function matchesSearch(brief) {
 
 function generateCandidates({ silent = false } = {}) {
   const requestedCount = Math.max(1, Math.min(80, Number(elements.candidateCountInput.value) || 24))
-  const existingKeys = new Set([...state.items, ...state.candidates].map(briefKey))
+  const existingKeys = new Set(state.items.map(briefKey))
   const nextCandidates = []
 
   for (const seed of candidateSeeds) {
@@ -622,6 +640,19 @@ function generateCandidates({ silent = false } = {}) {
   if (!silent) {
     showToast(`${nextCandidates.length}件の候補を作成しました`)
   }
+}
+
+function addOneCandidate() {
+  const existingKeys = new Set([...state.items, ...state.candidates].map(briefKey))
+  const nextSeed = candidateSeeds.find((seed) => !existingKeys.has(briefKey(normalizeBrief(seed))))
+  if (!nextSeed) {
+    showToast('追加できる未使用候補がありません')
+    return
+  }
+  state.candidates = [...state.candidates, normalizeBrief(nextSeed)]
+  saveWorkspace()
+  renderCandidates()
+  showToast('候補を1件追加しました')
 }
 
 function renderCandidates() {
@@ -1099,6 +1130,7 @@ function bindEvents() {
     loadRecords().catch((error) => showToast(error.message))
   })
   elements.generateCandidatesButton.addEventListener('click', generateCandidates)
+  elements.addCandidateButton.addEventListener('click', addOneCandidate)
   elements.approveAllCandidatesButton.addEventListener('click', approveAllCandidates)
   elements.addSingleButton.addEventListener('click', addSingle)
   elements.previewRowsButton.addEventListener('click', renderRowPreview)
@@ -1196,7 +1228,7 @@ elements.roleInput.value = 'navigator'
 elements.nationalityInput.value = 'portugal'
 elements.periodInput.value = 'strict_16c'
 elements.faceAngleInput.value = 'random'
-elements.rowsInput.placeholder = '役職,国籍,街,年齢,設定,表情・雰囲気,服飾年代（任意）,顔向き（任意）'
+elements.rowsInput.placeholder = '役職,国籍,街,年齢,設定,表情・雰囲気,服飾年代（任意）,顔向き（任意）,性別（任意）'
 elements.rowsInput.value = defaultRows
 loadWorkspace()
 if (!state.candidates.length && !state.items.length) {

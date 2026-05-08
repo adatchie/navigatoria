@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta http-equiv="cache-control" content="no-store" />
     <title>顔グラ生成</title>
-    <link rel="stylesheet" href="/styles.css?v=portrait-db-20260509" />
+    <link rel="stylesheet" href="/styles.css?v=portrait-candidates-20260509" />
   </head>
   <body>
     <div class="workbench">
@@ -36,9 +36,12 @@
           </div>
           <label class="field">
             <span>作成数</span>
-            <input id="candidateCountInput" type="number" min="1" max="80" value="24" />
+            <input id="candidateCountInput" type="number" min="1" max="80" value="48" />
           </label>
-          <button id="generateCandidatesButton" class="primary wide" type="button">被りなし候補を作成</button>
+          <div class="button-row">
+            <button id="generateCandidatesButton" class="primary" type="button">被りなし候補を作成</button>
+            <button id="addCandidateButton" type="button">1件追加</button>
+          </div>
           <div id="candidates" class="candidate-list"></div>
         </section>
 
@@ -133,6 +136,6 @@
     </div>
 
     <div id="toast" class="toast" role="status"></div>
-    <script type="module" src="/app.js?v=portrait-db-20260509"></script>
+    <script type="module" src="/app.js?v=portrait-candidates-20260509"></script>
   </body>
 </html>

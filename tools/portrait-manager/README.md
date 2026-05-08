@@ -84,8 +84,8 @@ role,nationality,port,age,setting,mood,costumePeriod,faceAngle
 Example:
 
 ```text
-navigator,portugal,lisbon,30s,careful pilot,stern expression,late_16c,three_quarter_left
-barmaid,portugal,lisbon,20s,warm tavern hostess,friendly smile,strict_16c,random
+navigator,portugal,lisbon,30s,careful pilot,stern expression,late_16c,three_quarter_left,male
+barmaid,portugal,lisbon,20s,warm tavern hostess,friendly smile,strict_16c,random,female
 ```
 
 `costumePeriod` is optional. Supported values are `strict_16c`,
@@ -96,6 +96,9 @@ pirate, tricorn, frock coat, cravat, and naval-uniform styles.
 `faceAngle` is optional. Supported values are `random`, `front`,
 `three_quarter_left`, `three_quarter_right`, `profile_left`, and
 `profile_right`. `random` resolves to a stable varied angle per entry.
+
+`gender` can be added as the ninth column. Supported values are
+`unspecified`, `male`, and `female`.
 
 ## Style Direction
 
