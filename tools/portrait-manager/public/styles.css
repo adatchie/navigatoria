@@ -1,0 +1,285 @@
+:root {
+  color-scheme: dark;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  background: #101216;
+  color: #edf2f7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 1180px;
+  min-height: 100vh;
+  background: #101216;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  min-height: 34px;
+  border: 1px solid #3a4351;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: #222832;
+  color: #f1f5f9;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #2c3441;
+}
+
+button.primary {
+  border-color: #45745e;
+  background: #28724d;
+}
+
+button.primary:hover {
+  background: #328b5f;
+}
+
+button.ghost {
+  background: transparent;
+}
+
+.wide {
+  width: 100%;
+}
+
+.workbench {
+  display: grid;
+  grid-template:
+    "topbar topbar" 72px
+    "inputs output" calc(100vh - 72px) / 360px minmax(760px, 1fr);
+}
+
+.topbar {
+  grid-area: topbar;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #252c36;
+  padding: 0 18px;
+  background: #171b21;
+}
+
+.topbar h1,
+.topbar p,
+.panel h2,
+.output-head h2,
+.brief-card h3,
+.setting {
+  margin: 0;
+}
+
+.topbar h1 {
+  font-size: 20px;
+  letter-spacing: 0;
+}
+
+.topbar p {
+  margin-top: 4px;
+  color: #95a1b2;
+  font-size: 12px;
+}
+
+.top-actions,
+.button-row,
+.card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.input-column {
+  grid-area: inputs;
+  overflow: auto;
+  border-right: 1px solid #252c36;
+  background: #151a20;
+  padding: 14px;
+}
+
+.output-column {
+  grid-area: output;
+  overflow: auto;
+  padding: 14px;
+}
+
+.panel {
+  margin-bottom: 18px;
+}
+
+.panel-head,
+.output-head,
+.brief-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.panel h2,
+.output-head h2 {
+  color: #dce5f0;
+  font-size: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.field.compact {
+  width: 280px;
+  margin-bottom: 0;
+}
+
+.field span {
+  color: #a9b5c5;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid #344052;
+  border-radius: 6px;
+  background: #0f1318;
+  color: #edf2f7;
+  outline: none;
+  padding: 8px 9px;
+}
+
+textarea {
+  resize: vertical;
+  line-height: 1.45;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #699bb8;
+  box-shadow: 0 0 0 2px rgba(105, 155, 184, 0.18);
+}
+
+#rowsInput {
+  min-height: 190px;
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.row-preview {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.preview-row {
+  display: grid;
+  grid-template-columns: 64px 82px 72px 58px 1fr;
+  gap: 6px;
+  align-items: center;
+  border: 1px solid #293240;
+  border-radius: 6px;
+  padding: 6px;
+  background: #11161d;
+  color: #bfcbda;
+  font-size: 11px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 12px;
+}
+
+.brief-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid #2e3847;
+  border-radius: 8px;
+  padding: 12px;
+  background: #171d25;
+}
+
+.brief-card h3 {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brief-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.chip {
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: #27303d;
+  color: #c8d3e1;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.setting {
+  min-height: 36px;
+  color: #a8b4c3;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.prompt-box {
+  min-height: 148px;
+  color: #dce5f0;
+}
+
+.empty-state {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  border: 1px dashed #354153;
+  border-radius: 8px;
+  color: #748297;
+}
+
+.toast {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  max-width: 440px;
+  border: 1px solid #374256;
+  border-radius: 8px;
+  padding: 11px 13px;
+  background: #111827;
+  color: #f8fafc;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}

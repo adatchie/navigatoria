@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="cache-control" content="no-store" />
+    <title>顔グラ生成</title>
+    <link rel="stylesheet" href="/styles.css?v=image-request-20260508" />
+  </head>
+  <body>
+    <div class="workbench">
+      <header class="topbar">
+        <div>
+          <h1>顔グラ生成</h1>
+          <p id="summary">0件</p>
+        </div>
+        <div class="top-actions">
+          <button id="generateAllButton" class="primary" type="button">全件画像生成</button>
+          <button id="clearAllButton" type="button">全消去</button>
+        </div>
+      </header>
+
+      <aside class="input-column">
+        <section class="panel">
+          <h2>単体入力</h2>
+          <div class="two-col">
+            <label class="field">
+              <span>役職</span>
+              <select id="roleInput"></select>
+            </label>
+            <label class="field">
+              <span>国籍</span>
+              <select id="nationalityInput"></select>
+            </label>
+          </div>
+          <div class="two-col">
+            <label class="field">
+              <span>街</span>
+              <input id="portInput" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>年齢</span>
+              <select id="ageInput"></select>
+            </label>
+          </div>
+          <div class="two-col">
+            <label class="field">
+              <span>服飾年代</span>
+              <select id="periodInput"></select>
+            </label>
+            <label class="field">
+              <span>顔向き</span>
+              <select id="faceAngleInput"></select>
+            </label>
+          </div>
+          <label class="field">
+            <span>性別</span>
+            <select id="genderInput"></select>
+          </label>
+          <label class="field">
+            <span>設定</span>
+            <textarea id="settingInput" rows="4" spellcheck="false"></textarea>
+          </label>
+          <label class="field">
+            <span>表情・雰囲気</span>
+            <input id="moodInput" autocomplete="off" />
+          </label>
+          <button id="addSingleButton" class="primary wide" type="button">画像生成へ進む</button>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>一括入力</h2>
+            <button id="clearRowsButton" class="ghost" type="button">クリア</button>
+          </div>
+          <textarea id="rowsInput" rows="10" spellcheck="false"></textarea>
+          <div class="button-row">
+            <button id="previewRowsButton" type="button">確認</button>
+            <button id="addRowsButton" class="primary" type="button">まとめて追加</button>
+          </div>
+          <div id="rowPreview" class="row-preview"></div>
+        </section>
+      </aside>
+
+      <main class="output-column">
+        <div class="output-head">
+          <h2>画像生成待ち</h2>
+          <label class="field compact">
+            <span>検索</span>
+            <input id="searchInput" type="search" autocomplete="off" />
+          </label>
+        </div>
+        <div id="cards" class="cards"></div>
+      </main>
+    </div>
+
+    <div id="toast" class="toast" role="status"></div>
+    <script type="module" src="/app.js?v=portrait-style-lock-20260509"></script>
+  </body>
+</html>
