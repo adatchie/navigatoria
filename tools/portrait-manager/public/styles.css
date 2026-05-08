@@ -176,6 +176,16 @@ button.ghost {
   white-space: nowrap;
 }
 
+.status-line.is-running {
+  color: #f0ddb8;
+  font-weight: 700;
+}
+
+.status-line.is-failed {
+  color: #f3c2cb;
+  font-weight: 700;
+}
+
 .field {
   display: grid;
   gap: 6px;

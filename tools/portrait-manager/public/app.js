@@ -121,9 +121,12 @@ const state = {
   recordSearch: '',
   records: [],
   generatedImages: [],
+  submittingGeneration: false,
   thread: null,
   job: null,
 }
+
+let jobPollTimer = 0
 
 const $ = (id) => document.getElementById(id)
 
@@ -186,13 +189,13 @@ function valueFor(options, value, fallback = '') {
   return exact?.[0] ?? value
 }
 
-function showToast(message) {
+function showToast(message, duration = 1800) {
   elements.toast.textContent = message
   elements.toast.classList.add('show')
   window.clearTimeout(showToast.timer)
   showToast.timer = window.setTimeout(() => {
     elements.toast.classList.remove('show')
-  }, 1800)
+  }, duration)
 }
 
 function saveWorkspace() {
@@ -835,6 +838,7 @@ function createCard(brief) {
   generateButton.type = 'button'
   generateButton.className = 'primary'
   generateButton.textContent = '送信'
+  generateButton.disabled = state.submittingGeneration || isJobRunning()
   generateButton.addEventListener('click', () => requestGeneration([brief]).catch((error) => showToast(error.message)))
 
   const removeButton = document.createElement('button')
@@ -1113,27 +1117,39 @@ async function requestGeneration(briefs) {
     return
   }
 
-  const response = await fetch('/api/app-server/generate', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      requests: briefs.map((brief) => ({
-        title: briefTitle(brief),
-        prompt: buildPrompt(brief),
-        negativePrompt: negativePrompt(),
-        styleProfile: styleProfile(),
-        brief,
-      })),
-    }),
-  })
-  const data = await response.json().catch(() => ({}))
-  if (!response.ok) {
-    throw new Error(data.message || data.error || `HTTP ${response.status}`)
+  state.submittingGeneration = true
+  elements.generateAllButton.disabled = true
+  elements.jobStatus.textContent = `送信中: ${briefTitle(briefs[0]) || '生成対象'}`
+  elements.jobStatus.classList.add('is-running')
+  renderCards()
+
+  try {
+    const response = await fetch('/api/app-server/generate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        requests: briefs.map((brief) => ({
+          title: briefTitle(brief),
+          prompt: buildPrompt(brief),
+          negativePrompt: negativePrompt(),
+          styleProfile: styleProfile(),
+          brief,
+        })),
+      }),
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(data.message || data.error || `HTTP ${response.status}`)
+    }
+    showToast(`${data.count}件を生成開始しました。状況は自動更新されます`, 5000)
+    await refreshJobStatus()
+    await Promise.allSettled([loadRecords(), loadGeneratedImages()])
+    startJobPolling()
+  } finally {
+    state.submittingGeneration = false
+    elements.generateAllButton.disabled = isJobRunning()
+    renderCards()
   }
-  showToast(`${data.count}件を画像専用スレッドへ送信しました`)
-  refreshJobStatus().catch(() => {})
-  loadRecords().catch(() => {})
-  loadGeneratedImages().catch(() => {})
 }
 
 function addBriefs(briefs) {
@@ -1245,6 +1261,7 @@ async function refreshJobStatus() {
   const data = await response.json()
   state.job = data
   renderJobStatus()
+  renderCards()
 }
 
 async function loadRecords() {
@@ -1265,12 +1282,54 @@ function renderJobStatus() {
   const job = state.job
   if (!job || job.status === 'idle') {
     elements.jobStatus.textContent = '待機中'
+    elements.jobStatus.classList.remove('is-running', 'is-failed')
+    elements.generateAllButton.disabled = state.submittingGeneration
     return
   }
-  const base = `${job.status} ${job.completed || 0} / ${job.count || 0}`
+  const base = `${jobStatusLabel(job.status)} ${job.completed || 0} / ${job.count || 0}`
   elements.jobStatus.textContent = job.currentTitle
     ? `${base} / ${job.currentTitle}`
     : base
+  elements.jobStatus.classList.toggle('is-running', isJobRunning())
+  elements.jobStatus.classList.toggle('is-failed', job.status === 'failed')
+  elements.generateAllButton.disabled = state.submittingGeneration || isJobRunning()
+}
+
+function jobStatusLabel(status) {
+  switch (status) {
+    case 'running':
+      return '生成中'
+    case 'completed':
+      return '完了'
+    case 'failed':
+      return '失敗'
+    default:
+      return status || '待機'
+  }
+}
+
+function isJobRunning() {
+  return state.job?.status === 'running'
+}
+
+function startJobPolling() {
+  if (jobPollTimer) return
+  jobPollTimer = window.setInterval(() => {
+    refreshJobStatus()
+      .then(() => Promise.allSettled([loadRecords(), loadGeneratedImages()]))
+      .then(() => {
+        if (!isJobRunning()) {
+          stopJobPolling()
+        }
+      })
+      .catch(() => {})
+  }, 4000)
+}
+
+function stopJobPolling() {
+  if (!jobPollTimer) return
+  window.clearInterval(jobPollTimer)
+  jobPollTimer = 0
 }
 
 fillOptions(elements.roleInput, roles)
@@ -1296,6 +1355,8 @@ renderCards()
 renderRecords()
 renderGeneratedImages()
 loadImageThread().catch(() => {})
-refreshJobStatus().catch(() => {})
+refreshJobStatus().then(() => {
+  if (isJobRunning()) startJobPolling()
+}).catch(() => {})
 loadRecords().catch(() => {})
 loadGeneratedImages().catch(() => {})
