@@ -246,38 +246,135 @@ function costumeGuidance(brief) {
   return guidance
 }
 
+function roleIdentityGuidance(brief) {
+  const base = [
+    'successful prompt pattern: line-art-first 2D hand-drawn head-and-shoulders character portrait, clear profession through 16th-century clothing and one subtle prop, muted wash background, no busy scene',
+    'historical cues come from clothing construction, social role, posture, age, and work context; do not add photographic skin, western fantasy toughness, grime, scars, oversized hands, weapons, or muscular silhouette',
+  ]
+
+  switch (brief.role) {
+    case 'navigator':
+      return [
+        ...base,
+        'role cue: maritime pilot or route reader, shown with a small astrolabe, folded chart edge, or simple corded tool near the lower edge; not a pirate, not a naval hero',
+      ]
+    case 'barmaid':
+      return [
+        ...base,
+        'role cue: tavern worker shown through practical linen and wool layers, apron-like work layer, and alert social expression; no pin-up styling, no fantasy tavern costume',
+      ]
+    case 'merchant':
+      return [
+        ...base,
+        'role cue: maritime trader shown through sober quality fabric, account cord, small purse, or folded letter edge; no ostentatious court costume',
+      ]
+    case 'officer':
+      return [
+        ...base,
+        'role cue: 16th-century officer shown through restrained bearing, fitted doublet, modest cloak, and disciplined expression; not a modern naval uniform, not a musketeer',
+      ]
+    case 'mercenary':
+      return [
+        ...base,
+        'role cue: hired guard or escort shown through worn but period-correct clothing and one small belt detail; avoid western fantasy rogue, huge shoulders, heavy armor, and theatrical scars',
+      ]
+    case 'guild_master':
+      return [
+        ...base,
+        'role cue: guild authority shown through composed expression, neat clothing, and a small ledger or seal case at the lower edge; no bureaucratic modern suit',
+      ]
+    case 'shipwright':
+      return [
+        ...base,
+        'role cue: shipwright shown through simple work cap, plain doublet or jerkin, and a small wooden ruler or marking gauge; not a rugged laborer portrait, not rough hands in the foreground',
+      ]
+    case 'noble':
+      return [
+        ...base,
+        'role cue: noble status shown through restrained fabric quality and posture, not jewelry overload or fantasy court glamour',
+      ]
+    case 'scholar':
+      return [
+        ...base,
+        'role cue: scholar or chart clerk shown through plain scholarly clothing, focused eyes, and a rolled parchment edge; no readable text, no crowded study background',
+      ]
+    default:
+      return base
+  }
+}
+
+function genderHandlingGuidance(brief) {
+  if (brief.gender === 'male') {
+    return [
+      'male character handling: adult male with controlled Japanese game-illustration stylization, memorable slightly emphasized eyes, clean facial silhouette, modest jaw and nose, restrained expression, clean-shaven or only faint stubble unless the setting explicitly requires more',
+      'male appeal: make him cooler and more characterful than a realistic portrait through elegant eye shape, clear brows, simplified planes, and subtle attractive distortion; do not make him comedic, chibi, cartoonish, or childlike',
+      'male failure mode to avoid: rugged western RPG man, beard-dominant face, muscular laborer, fantasy rogue, gritty hero, fashion model beauty, photoreal skin, cinematic toughness',
+    ]
+  }
+
+  if (brief.gender === 'female' || brief.role === 'barmaid') {
+    return [
+      'female character handling: adult woman with controlled Japanese game-illustration stylization, memorable slightly emphasized eyes, composed expression, historically plausible hair covering or cap when appropriate, and practical clothing cues rather than glamour',
+      'female appeal: make her cuter and more characterful than a realistic portrait through elegant eye shape, clean silhouette, simplified planes, and subtle attractive distortion; do not make her comedic, chibi, cartoonish, or childlike',
+      'female failure mode to avoid: pin-up styling, fantasy tavern girl, court dress excess, modern makeup, photoreal model face, glossy anime cel shading',
+    ]
+  }
+
+  return [
+    'character handling: adult human face with controlled Japanese game-illustration stylization; keep the design memorable through slightly emphasized eyes, clean silhouette, clothing structure, and one subtle role cue',
+  ]
+}
+
 function styleGuidance() {
   return [
     `最重要の画風指定: ${coreStylePhrase}`,
     '用途指定: 会話ウィンドウ用の顔グラフィック、ジョブや職業が一目で伝わる日本のゲームキャラクター肖像',
-    '画面上の第一印象: 写真でも西洋古典絵画でもなく、日本のコンソールRPGの設定画・会話用顔グラとして見えること',
-    '線画: 細く繊細で抑制されたインク線、髪・まぶた・鼻筋・唇・襟・布の皺に密度のある描線、輪郭線は太くしない',
-    '陰影: 写実的な光源再現ではなく、細いハッチングとクロスハッチングの線の重なりで頬・鼻梁・目元・首・襟の立体感を作る',
-    '塗り: 彩度を落とした淡い水彩、薄い影色を何層も重ねる、紙に染み込むような透明感、線画を塗りで潰さない',
-    '顔: 写真のような写実ではなく、日本のゲームイラストとして整理された目鼻立ち、印象に残る目、静かな表情、端正なキャラクターデザイン',
+    '画面上の第一印象: 2D手描きの日本のコンソールRPG設定画・会話用顔グラとして見えること',
+    '線画優先: 線画が塗りと陰影より強く見える、細く繊細で抑制されたインク線、輪郭線は太くしない',
+    '描線密度: 髪・まぶた・鼻筋・唇・襟・布の皺には細い線を多めに入れ、肌の面は塗り込みすぎず余白を残す',
+    '陰影: 光源再現ではなく、細いハッチングとクロスハッチングの線の重なりで頬・鼻梁・目元・首・襟を軽く立体化する',
+    '塗り: 彩度を落とした淡い水彩、薄い影色を少量重ねる、紙に染み込むような透明感、線画を塗りで潰さない',
+    '顔: 日本のゲームイラストとして整理された目鼻立ち、印象に残る目、静かな表情、端正なキャラクターデザイン',
+    '目力と誇張: 目はリアルな比率より少しだけ大きく印象的に、瞳とまぶたの線に情報量を置く。鼻・口・顎は整理して、かっこいい/かわいいイラストならではの魅力を出す',
+    '誇張の上限: コミカル、デフォルメ強め、ちびキャラ、子供っぽさ、巨大なアニメ目、漫画的な記号顔にはしない',
+    'イラスト化: 肌の質感、毛穴、強い立体レンダリング、複雑な反射光、写真のような質感描写は入れない',
     '服飾の描写: 16世紀の衣服構造を細い線で読み取れるように描き、布の質感は淡い水彩と線影で出す',
-    '失敗判定: 西洋肖像画、古い銅版画そのもの、洋ゲー風リアル、映画的な写実レンダー、厚塗りコンセプトアートに見える場合は誤り',
+    '失敗判定: 実在人物の肖像、重い立体レンダー、西洋肖像画、古い銅版画そのもの、洋ゲー風、映画的レンダー、厚塗りコンセプトアートに見える場合は誤り',
   ]
 }
 
 function styleProfile() {
   return {
     core: coreStylePhrase,
-    targetRead: 'Japanese console tactical RPG conversation portrait, delicate line art, faded watercolor shadows',
+    targetRead: '2D hand-drawn Japanese console tactical RPG conversation portrait, delicate line art first, faded watercolor shadows',
+    successfulPromptPattern: [
+      'line-art-first 2D hand-drawn head-and-shoulders portrait',
+      'profession shown by 16th-century clothing and one subtle prop',
+      'muted wash background without a busy scene',
+      'historical cues from clothing, posture, age, and social role',
+    ],
     mustHave: [
       'thin restrained ink linework',
       'visible hatching and cross-hatching on face, neck, hair, collar, and costume folds',
       'faded transparent watercolor shadows',
       'Japanese game character-design facial simplification',
+      'slightly emphasized memorable eyes with elegant eyelid lines',
+      'controlled attractive stylization without comedy or chibi proportions',
+      'skin left partly as pale paper and light wash rather than fully rendered',
       '16th-century costume details readable through linework',
     ],
     rejectIfReadsAs: [
       'western museum portrait',
       'old master oil painting',
       'literal antique print',
-      'photorealistic western RPG concept art',
+      'highly rendered western RPG portrait',
       'cinematic character render',
       'thick opaque digital painting',
+      'rugged western fantasy character',
+      'fashion model portrait',
+      'cartoon gag face',
+      'chibi character',
+      'oversized anime eyes',
     ],
   }
 }
@@ -289,8 +386,8 @@ function buildPrompt(brief) {
   const gender = labelFor(genders, brief.gender)
   return [
     `primary art direction: ${coreStylePhrase}`,
-    'original Japanese console tactical RPG face portrait of a historically accurate 16th-century Renaissance maritime character',
-    'must read as Japanese game character portrait art and character design, not as western museum art or live-action concept art',
+    'original 2D hand-drawn Japanese console tactical RPG face portrait of a 16th-century Renaissance maritime character',
+    'must read as line-art-first Japanese game character portrait art and character design, not as a rendered portrait',
     role,
     nationality,
     gender !== '未指定' ? gender : '',
@@ -301,10 +398,13 @@ function buildPrompt(brief) {
     'head and shoulders portrait, UI-ready face icon crop',
     faceAnglePrompt(brief),
     ...costumeGuidance(brief),
+    ...roleIdentityGuidance(brief),
+    ...genderHandlingGuidance(brief),
     ...styleGuidance(),
-    'self-check before final image: if the result resembles a western oil portrait, photorealistic western RPG concept art, antique print, or cinematic render, redraw it toward delicate Japanese game illustration linework with faded watercolor shadows',
-    'expressive eyes and believable facial structure simplified into a memorable game portrait, not a live-action likeness',
-    'simple parchment-toned or muted wash background, no cinematic lighting',
+    'self-check before final image: if shading, skin texture, lighting, or painted volume dominates the linework, redraw it flatter and more illustrated with delicate Japanese game linework and faded watercolor shadows',
+    'self-check for appeal: the face should have memorable eye power and controlled cool or cute illustration distortion, but must not become comedic, chibi, childish, or symbol-like',
+    'expressive eyes and simplified facial structure arranged into a memorable game portrait',
+    'simple parchment-toned or muted wash background, no dramatic lighting',
     'square 1024x1024 composition, UI-ready face icon, no readable text',
   ].filter(Boolean).join(', ')
 }

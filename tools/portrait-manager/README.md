@@ -58,17 +58,34 @@ prompt and repeated inside the detailed style guardrails:
 ```
 
 The prompt does not use living artist names. Instead, it locks the
-desired result through concrete rendering rules: thin restrained ink
-linework, hatching and cross-hatching on the face and costume, faded
-transparent watercolor shadows, Japanese console RPG character-design
-facial simplification, and a failure check that rejects western museum
-portrait, old master painting, documentary reenactor realism, western
-RPG portrait, AAA concept art, photorealistic digital painting,
-cinematic lighting, oil painting, airbrushed skin, opaque painterly
-fills, and literal antique-print results.
+desired result through concrete illustration rules: line-art-first 2D
+hand-drawn Japanese console RPG portrait, thin restrained ink linework,
+hatching and cross-hatching on the face and costume, faded transparent
+watercolor shadows, pale paper-like skin areas, and simplified
+character-design facial structure. It also adds controlled attractive
+stylization: slightly emphasized memorable eyes, elegant eyelid lines,
+cleaner facial silhouettes, and subtle cool/cute distortion that stays
+short of comedy, chibi proportions, childish faces, or oversized anime
+eyes. The failure check rejects outputs where shading, skin texture,
+lighting, or painted volume dominates the linework.
 
 Each generation request also stores a separate `styleProfile` object
 beside the final prompt. That keeps the target style, required visual
 traits, and rejection criteria machine-readable so future generation
 steps can inspect or reinforce the style lock without scraping the
 prompt text.
+
+## Prompt Lessons Applied
+
+The better female test worked because it kept the subject controlled:
+one clear profession, one subtle prop, 16th-century clothing, muted
+background, and a calm Japanese game portrait read. It did not try to
+create weight through dirt, scars, rough hands, heavy beard, muscle,
+weapons, strong lighting, or toughness.
+
+The prompt builder now applies that pattern to every role. Role identity
+comes from clothing structure, posture, age, social role, and one small
+prop near the lower edge. Male prompts also include a guardrail against
+the failure loop seen in tests: rugged western RPG man, beard-dominant
+face, muscular laborer, fantasy rogue, fashion-model beauty, skin
+texture rendering, and cinematic toughness.
