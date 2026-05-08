@@ -1,0 +1,9 @@
+{
+  "notebook_id": "3a0002ac-2224-4b43-bf1c-28e6aeed47e4",
+  "language": "ja",
+  "project_root": "C:\\dol",
+  "notes": [
+    "Navigatoria仕様書検索用NotebookLM設定。",
+    "notebooklm-pyの認証情報はこのファイルには保存しない。"
+  ]
+}

@@ -5,7 +5,7 @@
 
 import { Suspense, lazy, useMemo, useRef, useEffect } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { CircleGeometry, CylinderGeometry, MeshBasicMaterial, Raycaster, SphereGeometry, Vector2, Plane, Vector3, type Mesh, type Group } from 'three'
+import { BoxGeometry, CircleGeometry, ConeGeometry, CylinderGeometry, MeshBasicMaterial, MeshStandardMaterial, Raycaster, Vector2, Plane, Vector3, type Mesh, type Group } from 'three'
 import type { Port } from '@/types/port.ts'
 import { OceanScene } from '@/rendering/OceanScene.tsx'
 import { SkyBox } from '@/rendering/SkyBox.tsx'
@@ -25,11 +25,18 @@ const DebugGrid = lazy(async () => import('./DebugGrid.tsx').then((mod) => ({ de
 const DebugStats = lazy(async () => import('./DebugStats.tsx').then((mod) => ({ default: mod.DebugStats })))
 
 const PORT_MARKER_GEOMETRIES = {
-  base: new CircleGeometry(0.18, 20),
-  orb: new SphereGeometry(0.22, 16, 16),
-  halo: new CircleGeometry(0.42, 28),
-  pin: new CylinderGeometry(0.022, 0.022, 1.4, 10),
-  hitbox: new CylinderGeometry(0.22, 0.22, 1.8, 10),
+  plaza: new CircleGeometry(0.74, 24),
+  halo: new CircleGeometry(1.02, 28),
+  quay: new BoxGeometry(1.08, 0.12, 0.24),
+  storehouse: new BoxGeometry(0.34, 0.36, 0.32),
+  house: new BoxGeometry(0.28, 0.42, 0.28),
+  manor: new BoxGeometry(0.44, 0.62, 0.38),
+  tower: new CylinderGeometry(0.13, 0.16, 0.9, 8),
+  roof: new ConeGeometry(0.26, 0.22, 4),
+  towerRoof: new ConeGeometry(0.2, 0.28, 8),
+  flagPole: new CylinderGeometry(0.018, 0.018, 0.68, 8),
+  flag: new BoxGeometry(0.3, 0.16, 0.018),
+  hitbox: new CylinderGeometry(0.82, 0.82, 2.1, 14),
 }
 const PORT_MARKER_HITBOX_MATERIAL = new MeshBasicMaterial({
   transparent: true,
@@ -38,15 +45,15 @@ const PORT_MARKER_HITBOX_MATERIAL = new MeshBasicMaterial({
   depthTest: false,
 })
 
-const PORT_MARKER_MATERIALS: Record<string, MeshBasicMaterial> = {
-  portugal: new MeshBasicMaterial({ color: 0x34d399, depthTest: true, depthWrite: false, fog: false }),
-  spain: new MeshBasicMaterial({ color: 0xf97316, depthTest: true, depthWrite: false, fog: false }),
-  england: new MeshBasicMaterial({ color: 0x60a5fa, depthTest: true, depthWrite: false, fog: false }),
-  netherlands: new MeshBasicMaterial({ color: 0xfacc15, depthTest: true, depthWrite: false, fog: false }),
-  france: new MeshBasicMaterial({ color: 0xa78bfa, depthTest: true, depthWrite: false, fog: false }),
-  venice: new MeshBasicMaterial({ color: 0xf87171, depthTest: true, depthWrite: false, fog: false }),
-  ottoman: new MeshBasicMaterial({ color: 0x22c55e, depthTest: true, depthWrite: false, fog: false }),
-  default: new MeshBasicMaterial({ color: 0xffffff, depthTest: true, depthWrite: false, fog: false }),
+const PORT_MARKER_MATERIALS: Record<string, MeshStandardMaterial> = {
+  portugal: new MeshStandardMaterial({ color: 0x34d399, roughness: 0.72, metalness: 0.03 }),
+  spain: new MeshStandardMaterial({ color: 0xf97316, roughness: 0.72, metalness: 0.03 }),
+  england: new MeshStandardMaterial({ color: 0x60a5fa, roughness: 0.72, metalness: 0.03 }),
+  netherlands: new MeshStandardMaterial({ color: 0xfacc15, roughness: 0.72, metalness: 0.03 }),
+  france: new MeshStandardMaterial({ color: 0xa78bfa, roughness: 0.72, metalness: 0.03 }),
+  venice: new MeshStandardMaterial({ color: 0xf87171, roughness: 0.72, metalness: 0.03 }),
+  ottoman: new MeshStandardMaterial({ color: 0x22c55e, roughness: 0.72, metalness: 0.03 }),
+  default: new MeshStandardMaterial({ color: 0xffffff, roughness: 0.72, metalness: 0.03 }),
 }
 const PORT_MARKER_HALO_MATERIALS: Record<string, MeshBasicMaterial> = {
   portugal: new MeshBasicMaterial({ color: 0x34d399, depthTest: false, depthWrite: false, fog: false, transparent: true, opacity: 0.2 }),
@@ -60,19 +67,20 @@ const PORT_MARKER_HALO_MATERIALS: Record<string, MeshBasicMaterial> = {
 }
 
 const PORT_MARKER_HEIGHT = 0.08
-const PORT_MARKER_BASE_Y = 0.01
-const PORT_MARKER_PIN_Y = 0.72
-const PORT_MARKER_ORB_Y = 1.48
-const PORT_MARKER_HALO_Y = 1.48
-const PORT_MARKER_HITBOX_Y = 0.9
-const PORT_MARKER_PIN_MATERIAL = new MeshBasicMaterial({
-  color: 0xd8ecff,
-  depthTest: true,
-  depthWrite: false,
-  fog: false,
-  transparent: true,
-  opacity: 0.9,
-})
+const PORT_CITY_BASE_Y = 1.92
+const PORT_CITY_HALO_Y = 1.94
+const PORT_MARKER_HITBOX_Y = 2.48
+const PORT_CITY_WALL_MATERIAL = new MeshStandardMaterial({ color: 0xc7b38a, roughness: 0.84, metalness: 0 })
+const PORT_CITY_ROOF_MATERIAL = new MeshStandardMaterial({ color: 0x9f4f2d, roughness: 0.78, metalness: 0 })
+const PORT_CITY_QUAY_MATERIAL = new MeshStandardMaterial({ color: 0x6b5138, roughness: 0.9, metalness: 0 })
+const PORT_CITY_WINDOW_MATERIAL = new MeshBasicMaterial({ color: 0xfff3b0, transparent: true, opacity: 0.9 })
+
+const PORT_CITY_SIZE_CONFIG = {
+  small: { scale: 0.82, extraHouses: 0, towerScale: 0.78 },
+  medium: { scale: 1, extraHouses: 1, towerScale: 0.92 },
+  large: { scale: 1.16, extraHouses: 2, towerScale: 1.05 },
+  capital: { scale: 1.34, extraHouses: 3, towerScale: 1.22 },
+} as const
 
 export function GameCanvas() {
   const showFPS = useUIStore((s) => s.debugFlags.showFPS)
@@ -244,10 +252,16 @@ function PortMarkers() {
 }
 
 function PortMarker({ port }: { port: Port }) {
-  const material = PORT_MARKER_MATERIALS[port.nationality] ?? PORT_MARKER_MATERIALS.default
+  const flagMaterial = PORT_MARKER_MATERIALS[port.nationality] ?? PORT_MARKER_MATERIALS.default
   const haloMaterial = PORT_MARKER_HALO_MATERIALS[port.nationality] ?? PORT_MARKER_HALO_MATERIALS.default
   const haloRef = useRef<Mesh>(null)
   const { camera } = useThree()
+  const sizeConfig = PORT_CITY_SIZE_CONFIG[port.size]
+  const rotationY = useMemo(() => {
+    let hash = 0
+    for (const char of port.id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
+    return ((hash % 360) * Math.PI) / 180
+  }, [port.id])
 
   useFrame(() => {
     if (!haloRef.current) return
@@ -288,7 +302,7 @@ function PortMarker({ port }: { port: Port }) {
 
   const [x, , z] = worldToScene(port.position)
   return (
-    <group position={[x, PORT_MARKER_HEIGHT, z]}>
+    <group position={[x, PORT_MARKER_HEIGHT, z]} scale={sizeConfig.scale}>
       <mesh
         geometry={PORT_MARKER_GEOMETRIES.hitbox}
         material={PORT_MARKER_HITBOX_MATERIAL}
@@ -297,31 +311,116 @@ function PortMarker({ port }: { port: Port }) {
         renderOrder={5}
       />
       <mesh
-        geometry={PORT_MARKER_GEOMETRIES.base}
+        geometry={PORT_MARKER_GEOMETRIES.halo}
         material={haloMaterial}
-        position={[0, PORT_MARKER_BASE_Y, 0]}
+        position={[0, PORT_CITY_HALO_Y, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
         renderOrder={6}
       />
-      <mesh
-        geometry={PORT_MARKER_GEOMETRIES.pin}
-        material={PORT_MARKER_PIN_MATERIAL}
-        position={[0, PORT_MARKER_PIN_Y, 0]}
-        renderOrder={7}
-      />
-      <mesh
-        geometry={PORT_MARKER_GEOMETRIES.orb}
-        material={material}
-        position={[0, PORT_MARKER_ORB_Y, 0]}
-        onClick={handleClick}
-        renderOrder={8}
-      />
+      <group rotation={[0, rotationY, 0]} onClick={handleClick}>
+        <mesh
+          geometry={PORT_MARKER_GEOMETRIES.plaza}
+          material={PORT_CITY_WALL_MATERIAL}
+          position={[0, PORT_CITY_BASE_Y, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          renderOrder={7}
+        />
+        <mesh
+          geometry={PORT_MARKER_GEOMETRIES.quay}
+          material={PORT_CITY_QUAY_MATERIAL}
+          position={[0, PORT_CITY_BASE_Y + 0.08, -0.72]}
+          renderOrder={8}
+        />
+        <mesh
+          geometry={PORT_MARKER_GEOMETRIES.storehouse}
+          material={PORT_CITY_WALL_MATERIAL}
+          position={[-0.28, PORT_CITY_BASE_Y + 0.24, -0.24]}
+          renderOrder={8}
+        />
+        <mesh
+          geometry={PORT_MARKER_GEOMETRIES.roof}
+          material={PORT_CITY_ROOF_MATERIAL}
+          position={[-0.28, PORT_CITY_BASE_Y + 0.55, -0.24]}
+          rotation={[0, Math.PI / 4, 0]}
+          renderOrder={9}
+        />
+        <mesh
+          geometry={PORT_MARKER_GEOMETRIES.manor}
+          material={PORT_CITY_WALL_MATERIAL}
+          position={[0.18, PORT_CITY_BASE_Y + 0.34, 0.02]}
+          renderOrder={8}
+        />
+        <mesh
+          geometry={PORT_MARKER_GEOMETRIES.roof}
+          material={PORT_CITY_ROOF_MATERIAL}
+          position={[0.18, PORT_CITY_BASE_Y + 0.77, 0.02]}
+          rotation={[0, Math.PI / 4, 0]}
+          scale={[1.25, 1, 1.05]}
+          renderOrder={9}
+        />
+        <mesh
+          geometry={PORT_MARKER_GEOMETRIES.tower}
+          material={PORT_CITY_WALL_MATERIAL}
+          position={[-0.02, PORT_CITY_BASE_Y + 0.45 * sizeConfig.towerScale, 0.38]}
+          scale={[sizeConfig.towerScale, sizeConfig.towerScale, sizeConfig.towerScale]}
+          renderOrder={8}
+        />
+        <mesh
+          geometry={PORT_MARKER_GEOMETRIES.towerRoof}
+          material={PORT_CITY_ROOF_MATERIAL}
+          position={[-0.02, PORT_CITY_BASE_Y + 0.98 * sizeConfig.towerScale, 0.38]}
+          scale={[sizeConfig.towerScale, sizeConfig.towerScale, sizeConfig.towerScale]}
+          renderOrder={9}
+        />
+        {Array.from({ length: sizeConfig.extraHouses + 2 }).map((_, index) => {
+          const angle = -0.95 + index * 0.45
+          const radius = index % 2 === 0 ? 0.42 : 0.56
+          const houseX = Math.sin(angle) * radius
+          const houseZ = Math.cos(angle) * radius
+          return (
+            <group key={index} position={[houseX, 0, houseZ]} rotation={[0, angle * 0.6, 0]}>
+              <mesh
+                geometry={PORT_MARKER_GEOMETRIES.house}
+                material={PORT_CITY_WALL_MATERIAL}
+                position={[0, PORT_CITY_BASE_Y + 0.28, 0]}
+                renderOrder={8}
+              />
+              <mesh
+                geometry={PORT_MARKER_GEOMETRIES.roof}
+                material={PORT_CITY_ROOF_MATERIAL}
+                position={[0, PORT_CITY_BASE_Y + 0.58, 0]}
+                rotation={[0, Math.PI / 4, 0]}
+                renderOrder={9}
+              />
+            </group>
+          )
+        })}
+        <mesh
+          geometry={PORT_MARKER_GEOMETRIES.flagPole}
+          material={PORT_CITY_QUAY_MATERIAL}
+          position={[0.42, PORT_CITY_BASE_Y + 0.88, 0.34]}
+          renderOrder={10}
+        />
+        <mesh
+          geometry={PORT_MARKER_GEOMETRIES.flag}
+          material={flagMaterial}
+          position={[0.58, PORT_CITY_BASE_Y + 1.06, 0.34]}
+          renderOrder={10}
+        />
+        <mesh
+          geometry={PORT_MARKER_GEOMETRIES.flag}
+          material={PORT_CITY_WINDOW_MATERIAL}
+          position={[0.18, PORT_CITY_BASE_Y + 0.4, -0.18]}
+          scale={[0.46, 0.42, 0.28]}
+          renderOrder={10}
+        />
+      </group>
       <mesh
         ref={haloRef}
         geometry={PORT_MARKER_GEOMETRIES.halo}
         material={haloMaterial}
-        position={[0, PORT_MARKER_HALO_Y, 0]}
-        renderOrder={9}
+        position={[0, PORT_CITY_HALO_Y + 1.05, 0]}
+        renderOrder={11}
       />
     </group>
   )
