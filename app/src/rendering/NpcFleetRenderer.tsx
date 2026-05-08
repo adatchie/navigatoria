@@ -1,94 +1,47 @@
-import { createRef, useMemo } from 'react'
+import { Suspense, createRef, useMemo, useRef } from 'react'
 import type { CSSProperties } from 'react'
-import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
-import {
-  BoxGeometry,
-  CylinderGeometry,
-  DoubleSide,
-  MeshBasicMaterial,
-  MeshStandardMaterial,
-  PlaneGeometry,
-  type Group,
-  type Material,
-} from 'three'
+import { useFrame } from '@react-three/fiber'
+import type { Group } from 'three'
 import { NPC_FLEETS } from '@/data/master/npcFleets.ts'
-import { getNpcFleetSnapshots } from '@/game/world/npcFleetSimulation.ts'
+import { getNpcFleetSnapshot } from '@/game/world/npcFleetSimulation.ts'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
+import { ShipModelRenderer, ShipRenderer } from '@/rendering/ShipRenderer.tsx'
 import { worldToScene } from '@/rendering/worldTransform.ts'
-import type { Nationality } from '@/types/character.ts'
 import type { NpcFleetRole } from '@/types/npcFleet.ts'
 
-interface NpcFleetPart {
-  geometry: BoxGeometry | CylinderGeometry | PlaneGeometry
-  material: Material
-  position: [number, number, number]
-  rotation?: [number, number, number]
+interface NpcFleetRenderState {
+  x: number
+  y: number
+  z: number
+  heading: number
+  visible: boolean
 }
 
-const HULL_GEOMETRY = new BoxGeometry(0.42, 0.22, 1.75)
-const BOW_GEOMETRY = new BoxGeometry(0.32, 0.16, 0.5)
-const MAST_GEOMETRY = new CylinderGeometry(0.015, 0.02, 1.55, 6)
-const SAIL_GEOMETRY = new PlaneGeometry(0.8, 0.95)
-const WAKE_GEOMETRY = new PlaneGeometry(0.62, 2.2)
-
-const NATIONALITY_COLORS: Record<Nationality, number> = {
-  portugal: 0x34d399,
-  spain: 0xf97316,
-  england: 0x60a5fa,
-  netherlands: 0xfacc15,
-  france: 0xa78bfa,
-  venice: 0xf87171,
-  ottoman: 0x22c55e,
-}
+const POSITION_LERP = 8
+const HEADING_LERP = 10
+const SNAP_DISTANCE = 320
 
 const ROLE_SCALE: Record<NpcFleetRole, number> = {
-  merchant: 1.05,
-  naval: 1.12,
-  privateer: 1.02,
-  corsair: 0.92,
-  explorer: 0.98,
-  smuggler: 0.88,
+  merchant: 0.78,
+  naval: 0.84,
+  privateer: 0.76,
+  corsair: 0.72,
+  explorer: 0.74,
+  smuggler: 0.7,
 }
 
-const HULL_MATERIALS = new Map<Nationality, MeshStandardMaterial>()
-const FLAG_MATERIALS = new Map<Nationality, MeshBasicMaterial>()
-const SAIL_MATERIAL = new MeshStandardMaterial({ color: 0xf6ead2, roughness: 0.9, side: DoubleSide })
-const WAKE_MATERIAL = new MeshBasicMaterial({ color: 0xcffafe, transparent: true, opacity: 0.26, depthWrite: false, side: DoubleSide })
-const MAST_MATERIAL = new MeshStandardMaterial({ color: 0x5b3a24, roughness: 0.86 })
-
-function getHullMaterial(nationality: Nationality): MeshStandardMaterial {
-  const cached = HULL_MATERIALS.get(nationality)
-  if (cached) return cached
-
-  const material = new MeshStandardMaterial({
-    color: NATIONALITY_COLORS[nationality],
-    roughness: 0.76,
-    metalness: 0.03,
-  })
-  HULL_MATERIALS.set(nationality, material)
-  return material
+function getExactTotalDays(): number {
+  return useGameStore.getState().gameTime.totalGameSeconds / 86400
 }
 
-function getFlagMaterial(nationality: Nationality): MeshBasicMaterial {
-  const cached = FLAG_MATERIALS.get(nationality)
-  if (cached) return cached
-
-  const material = new MeshBasicMaterial({ color: NATIONALITY_COLORS[nationality], side: DoubleSide })
-  FLAG_MATERIALS.set(nationality, material)
-  return material
+function getAngleDelta(current: number, target: number): number {
+  return ((((target - current) % 360) + 540) % 360) - 180
 }
 
-function buildFleetParts(nationality: Nationality): NpcFleetPart[] {
-  return [
-    { geometry: WAKE_GEOMETRY, material: WAKE_MATERIAL, position: [0, 0.02, -1.34], rotation: [-Math.PI / 2, 0, 0] },
-    { geometry: HULL_GEOMETRY, material: getHullMaterial(nationality), position: [0, 0.19, 0] },
-    { geometry: BOW_GEOMETRY, material: getHullMaterial(nationality), position: [0, 0.23, 1.08], rotation: [0.22, 0, 0] },
-    { geometry: MAST_GEOMETRY, material: MAST_MATERIAL, position: [0, 0.98, 0.12] },
-    { geometry: SAIL_GEOMETRY, material: SAIL_MATERIAL, position: [0, 1.08, 0.16] },
-    { geometry: SAIL_GEOMETRY, material: getFlagMaterial(nationality), position: [0.2, 1.54, -0.08], rotation: [0, Math.PI / 2, 0] },
-  ]
+function getSceneDistance(a: NpcFleetRenderState, x: number, y: number, z: number): number {
+  return Math.hypot(a.x - x, a.y - y, a.z - z)
 }
 
 export function NpcFleetRenderer() {
@@ -96,49 +49,86 @@ export function NpcFleetRenderer() {
     () => Array.from({ length: NPC_FLEETS.length }, () => createRef<Group>()),
     [],
   )
+  const renderStatesRef = useRef(new Map<string, NpcFleetRenderState>())
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const ports = useWorldStore.getState().ports
     if (ports.length === 0) return
 
-    const totalDays = useGameStore.getState().timeState.totalDays
-    const snapshots = getNpcFleetSnapshots(NPC_FLEETS, ports, totalDays)
+    const totalDays = getExactTotalDays()
     const elapsed = state.clock.elapsedTime
+    const positionLerp = 1 - Math.exp(-POSITION_LERP * delta)
+    const headingLerp = 1 - Math.exp(-HEADING_LERP * delta)
+    const activeFleetIds = new Set<string>()
 
-    for (let index = 0; index < fleetRefs.length; index += 1) {
+    for (let index = 0; index < NPC_FLEETS.length; index += 1) {
+      const fleet = NPC_FLEETS[index]!
       const group = fleetRefs[index]?.current
       if (!group) continue
 
-      const snapshot = snapshots[index]
+      const snapshot = getNpcFleetSnapshot(fleet, ports, totalDays)
+      activeFleetIds.add(fleet.id)
+
       if (!snapshot || snapshot.inPort) {
         group.position.set(0, -10000, 0)
         group.scale.setScalar(0.0001)
+        const renderState = renderStatesRef.current.get(fleet.id)
+        if (renderState) renderState.visible = false
         continue
       }
 
-      const [x, y, z] = worldToScene(snapshot.position)
-      const fleetScale = ROLE_SCALE[snapshot.definition.role] ?? 1
-      group.position.set(x, y + 0.34 + Math.sin(elapsed * 1.1 + index) * 0.035, z)
-      group.rotation.set(0, (-snapshot.heading * Math.PI) / 180, 0)
+      const [targetX, targetY, targetZ] = worldToScene(snapshot.position)
+      const targetBaseY = targetY + 0.34
+      const renderState = renderStatesRef.current.get(fleet.id) ?? {
+        x: targetX,
+        y: targetBaseY,
+        z: targetZ,
+        heading: snapshot.heading,
+        visible: false,
+      }
+
+      if (!renderState.visible || getSceneDistance(renderState, targetX, targetBaseY, targetZ) > SNAP_DISTANCE) {
+        renderState.x = targetX
+        renderState.y = targetBaseY
+        renderState.z = targetZ
+        renderState.heading = snapshot.heading
+        renderState.visible = true
+      } else {
+        renderState.x += (targetX - renderState.x) * positionLerp
+        renderState.y += (targetBaseY - renderState.y) * positionLerp
+        renderState.z += (targetZ - renderState.z) * positionLerp
+        renderState.heading = (
+          renderState.heading +
+          getAngleDelta(renderState.heading, snapshot.heading) * headingLerp +
+          360
+        ) % 360
+      }
+
+      renderStatesRef.current.set(fleet.id, renderState)
+
+      const fleetScale = ROLE_SCALE[snapshot.definition.role] ?? 0.76
+      group.position.set(
+        renderState.x,
+        renderState.y + Math.sin(elapsed * 0.75 + index * 0.3) * 0.08,
+        renderState.z,
+      )
+      group.rotation.set(0, (-renderState.heading * Math.PI) / 180, 0)
       group.scale.setScalar(fleetScale)
     }
+
+    renderStatesRef.current.forEach((_, fleetId) => {
+      if (!activeFleetIds.has(fleetId)) renderStatesRef.current.delete(fleetId)
+    })
   })
 
   return (
     <group>
       {NPC_FLEETS.map((fleet, fleetIndex) => (
         <group key={fleet.id} ref={fleetRefs[fleetIndex]}>
-          {buildFleetParts(fleet.nationality).map((part, partIndex) => (
-            <mesh
-              key={`${fleet.id}-${partIndex}`}
-              geometry={part.geometry}
-              material={part.material}
-              position={part.position}
-              rotation={part.rotation}
-              renderOrder={3}
-            />
-          ))}
-          <Html position={[0, 2.1, 0]} center distanceFactor={34} style={styles.label}>
+          <Suspense fallback={<ShipRenderer heading={0} scale={1} />}>
+            <ShipModelRenderer heading={0} scale={1} />
+          </Suspense>
+          <Html position={[0, 4.75, 0]} center distanceFactor={42} style={styles.label}>
             <div style={styles.labelInner}>
               <strong>{fleet.commander}</strong>
               <span>{fleet.name}</span>
