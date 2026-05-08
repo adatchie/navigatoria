@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta http-equiv="cache-control" content="no-store" />
     <title>顔グラ生成</title>
-    <link rel="stylesheet" href="/styles.css?v=image-request-20260508" />
+    <link rel="stylesheet" href="/styles.css?v=portrait-batch-app-server-20260509" />
   </head>
   <body>
     <div class="workbench">
@@ -15,12 +15,33 @@
           <p id="summary">0件</p>
         </div>
         <div class="top-actions">
-          <button id="generateAllButton" class="primary" type="button">全件画像生成</button>
+          <button id="createImageThreadButton" type="button">画像スレッド作成</button>
+          <button id="refreshJobButton" type="button">状況更新</button>
+          <button id="generateAllButton" class="primary" type="button">承認分を画像スレッドへ送信</button>
           <button id="clearAllButton" type="button">全消去</button>
         </div>
       </header>
 
       <aside class="input-column">
+        <section class="panel status-panel">
+          <h2>画像専用スレッド</h2>
+          <p id="threadStatus" class="status-line">未接続</p>
+          <p id="jobStatus" class="status-line">待機中</p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>属性案作成</h2>
+            <button id="approveAllCandidatesButton" class="ghost" type="button">全承認</button>
+          </div>
+          <label class="field">
+            <span>作成数</span>
+            <input id="candidateCountInput" type="number" min="1" max="80" value="24" />
+          </label>
+          <button id="generateCandidatesButton" class="primary wide" type="button">被りなし候補を作成</button>
+          <div id="candidates" class="candidate-list"></div>
+        </section>
+
         <section class="panel">
           <h2>単体入力</h2>
           <div class="two-col">
@@ -84,7 +105,7 @@
 
       <main class="output-column">
         <div class="output-head">
-          <h2>画像生成待ち</h2>
+          <h2>承認済み</h2>
           <label class="field compact">
             <span>検索</span>
             <input id="searchInput" type="search" autocomplete="off" />
@@ -95,6 +116,6 @@
     </div>
 
     <div id="toast" class="toast" role="status"></div>
-    <script type="module" src="/app.js?v=portrait-style-lock-20260509"></script>
+    <script type="module" src="/app.js?v=portrait-batch-app-server-20260509"></script>
   </body>
 </html>

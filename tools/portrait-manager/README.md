@@ -16,12 +16,36 @@ http://127.0.0.1:4178
 
 ## Generation Request
 
-The local browser does not call an external image API. Pressing `画像生成`
-writes the latest request to:
+The local browser does not call an external image API. Pressing
+`承認分を画像スレッドへ送信` writes the latest request to:
 
 ```text
 tools/portrait-manager/data/latest-generation-request.json
 ```
+
+Then the local server starts `codex app-server`, creates or reuses the
+dedicated image thread stored in:
+
+```text
+tools/portrait-manager/data/image-thread.json
+```
+
+and sends approved portraits one by one through `turn/start`. Job status
+is stored in:
+
+```text
+tools/portrait-manager/data/app-server-job.json
+```
+
+Those files are ignored by Git. Generated images are accumulated by Codex
+under the generated-images store for the dedicated thread, not in the
+current planning thread.
+
+## Approval Flow
+
+Use `属性案作成` to create non-duplicated character briefs. Edit any
+brief in the candidate list, approve individual entries or use `全承認`,
+then send only the approved list to the image thread.
 
 ## Batch Input
 

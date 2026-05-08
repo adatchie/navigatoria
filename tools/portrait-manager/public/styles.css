@@ -100,6 +100,10 @@ button.ghost {
   gap: 8px;
 }
 
+.top-actions {
+  align-items: center;
+}
+
 .input-column {
   grid-area: inputs;
   overflow: auto;
@@ -132,6 +136,21 @@ button.ghost {
 .output-head h2 {
   color: #dce5f0;
   font-size: 14px;
+}
+
+.status-panel {
+  border-bottom: 1px solid #27303d;
+  padding-bottom: 14px;
+}
+
+.status-line {
+  overflow: hidden;
+  margin: 8px 0 0;
+  color: #9fb0c3;
+  font-size: 12px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .field {
@@ -189,6 +208,66 @@ textarea:focus {
   display: grid;
   gap: 6px;
   margin-top: 10px;
+}
+
+.candidate-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.candidate-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid #2b3544;
+  border-radius: 8px;
+  padding: 10px;
+  background: #11161d;
+}
+
+.candidate-card h3 {
+  overflow: hidden;
+  margin: 0;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.candidate-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.compact-edit {
+  margin-bottom: 0;
+}
+
+.compact-edit span {
+  font-size: 10px;
+}
+
+.compact-edit input,
+.compact-edit select,
+.compact-edit textarea {
+  min-width: 0;
+  padding: 6px 7px;
+  font-size: 12px;
+}
+
+.full-edit {
+  grid-column: 1 / -1;
+}
+
+.mini-empty {
+  display: grid;
+  place-items: center;
+  min-height: 80px;
+  border: 1px dashed #354153;
+  border-radius: 8px;
+  color: #748297;
+  font-size: 12px;
 }
 
 .preview-row {

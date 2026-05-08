@@ -60,17 +60,64 @@ const defaultRows = [
 ].join('\n')
 
 const coreStylePhrase = 'エッチングっぽい陰影がついた繊細な日本のゲームイラスト的な線画、褪せた色味の水彩で陰影をつけた塗り'
+const workspaceStorageKey = 'navigatoriaPortraitManagerWorkspaceV1'
+
+const candidateSeeds = [
+  { role: 'navigator', nationality: 'portugal', port: 'リスボン', age: '30s', period: 'mid_16c', faceAngle: 'three_quarter_right', gender: 'male', setting: 'インド航路帰りの慎重な水先案内人', mood: '静かな目力、観察深い' },
+  { role: 'merchant', nationality: 'venice', port: 'ヴェネツィア', age: '40s', period: 'mid_16c', faceAngle: 'three_quarter_left', gender: 'male', setting: '香辛料と絹を扱う海上商人', mood: '柔らかいが抜け目ない' },
+  { role: 'barmaid', nationality: 'spain', port: 'セビリア', age: '20s', period: 'late_16c', faceAngle: 'front', gender: 'female', setting: '船乗りの噂に通じた港酒場の給仕', mood: '明るい目、少し挑むような笑み' },
+  { role: 'scholar', nationality: 'venice', port: 'ヴェネツィア', age: '30s', period: 'mid_16c', faceAngle: 'three_quarter_left', gender: 'male', setting: '海図工房で記録を整理する書記', mood: '知的で控えめ' },
+  { role: 'shipwright', nationality: 'netherlands', port: 'アントウェルペン', age: '50s', period: 'late_16c', faceAngle: 'three_quarter_right', gender: 'male', setting: '北海船を修理する親方船大工', mood: '穏やかで頑固' },
+  { role: 'officer', nationality: 'england', port: 'プリマス', age: '30s', period: 'late_16c', faceAngle: 'profile_left', gender: 'male', setting: '私掠船団に随行する若い士官', mood: '鋭い視線、礼節を保つ' },
+  { role: 'guild_master', nationality: 'france', port: 'ルーアン', age: '50s', period: 'mid_16c', faceAngle: 'three_quarter_left', gender: 'female', setting: '港湾倉庫を束ねる商人ギルドの女主人', mood: '落ち着いた威厳' },
+  { role: 'mercenary', nationality: 'spain', port: 'カディス', age: '40s', period: 'mid_16c', faceAngle: 'three_quarter_right', gender: 'male', setting: '護衛契約で船に乗る古参の傭兵', mood: '寡黙、警戒心がある' },
+  { role: 'noble', nationality: 'portugal', port: 'ポルト', age: '20s', period: 'early_16c', faceAngle: 'three_quarter_left', gender: 'female', setting: '交易権を持つ下級貴族の令嬢', mood: '端正で芯が強い' },
+  { role: 'navigator', nationality: 'ottoman', port: 'イスタンブール', age: '40s', period: 'mid_16c', faceAngle: 'front', gender: 'male', setting: '東地中海を知るオスマンの航路案内人', mood: '静かに見透かす' },
+  { role: 'merchant', nationality: 'france', port: 'マルセイユ', age: '30s', period: 'late_16c', faceAngle: 'profile_right', gender: 'female', setting: '地中海ワインを扱う若い仲買商', mood: '快活で計算高い' },
+  { role: 'scholar', nationality: 'spain', port: 'トレド', age: 'elder', period: 'early_16c', faceAngle: 'three_quarter_right', gender: 'male', setting: '航海暦を読む老学者', mood: '柔らかい知性' },
+  { role: 'barmaid', nationality: 'portugal', port: 'リスボン', age: '30s', period: 'mid_16c', faceAngle: 'three_quarter_right', gender: 'female', setting: '帰港船員を見分ける港酒場の女主人', mood: '親しみやすく抜け目ない' },
+  { role: 'officer', nationality: 'venice', port: 'キオッジャ', age: '40s', period: 'early_16c', faceAngle: 'three_quarter_left', gender: 'male', setting: '護送船団の規律を預かる士官', mood: '冷静で実務的' },
+  { role: 'shipwright', nationality: 'portugal', port: 'ラゴス', age: '30s', period: 'early_16c', faceAngle: 'profile_left', gender: 'male', setting: '探検船の艤装を担う船大工', mood: '若く集中している' },
+  { role: 'guild_master', nationality: 'venice', port: 'ヴェネツィア', age: 'elder', period: 'late_16c', faceAngle: 'three_quarter_right', gender: 'male', setting: '交易契約を裁く老ギルド長', mood: '温厚だが隙がない' },
+  { role: 'mercenary', nationality: 'france', port: 'ラ・ロシェル', age: '20s', period: 'late_16c', faceAngle: 'front', gender: 'female', setting: '商船護衛に雇われた軽装の護衛', mood: '勇ましいが軽やか' },
+  { role: 'noble', nationality: 'england', port: 'ロンドン', age: '40s', period: 'late_16c', faceAngle: 'three_quarter_left', gender: 'male', setting: '海外投資に関わる廷臣貴族', mood: '優雅で警戒心がある' },
+  { role: 'navigator', nationality: 'netherlands', port: 'アムステルダム', age: '20s', period: 'late_16c', faceAngle: 'three_quarter_left', gender: 'female', setting: '北海の潮流に詳しい若い航海士', mood: '涼しい目、好奇心' },
+  { role: 'merchant', nationality: 'ottoman', port: 'アレクサンドリア', age: '50s', period: 'mid_16c', faceAngle: 'three_quarter_right', gender: 'male', setting: '紅海交易を取り仕切る隊商商人', mood: '穏やかな迫力' },
+  { role: 'scholar', nationality: 'england', port: 'ブリストル', age: '30s', period: 'late_16c', faceAngle: 'profile_right', gender: 'female', setting: '天測記録を写す港町の学者', mood: '内省的で澄んだ目' },
+  { role: 'barmaid', nationality: 'netherlands', port: 'ロッテルダム', age: '40s', period: 'late_16c', faceAngle: 'three_quarter_left', gender: 'female', setting: '河口の酒場を切り盛りする女主人', mood: '温かく頼もしい' },
+  { role: 'officer', nationality: 'portugal', port: 'ゴア', age: '50s', period: 'mid_16c', faceAngle: 'three_quarter_right', gender: 'male', setting: 'インド洋拠点を守る遠征士官', mood: '疲れを隠した威厳' },
+  { role: 'shipwright', nationality: 'ottoman', port: 'ガラタ', age: '40s', period: 'mid_16c', faceAngle: 'three_quarter_left', gender: 'male', setting: 'ガレー船の修理を監督する造船職人', mood: '沈着で手堅い' },
+  { role: 'guild_master', nationality: 'spain', port: 'セビリア', age: '40s', period: 'late_16c', faceAngle: 'front', gender: 'female', setting: '新大陸交易の荷を差配する組合幹部', mood: '明晰で堂々としている' },
+  { role: 'mercenary', nationality: 'venice', port: 'ザラ', age: '30s', period: 'mid_16c', faceAngle: 'profile_left', gender: 'male', setting: 'アドリア海沿岸の船団護衛', mood: '細い目つき、無駄がない' },
+  { role: 'noble', nationality: 'france', port: 'ボルドー', age: '30s', period: 'mid_16c', faceAngle: 'three_quarter_right', gender: 'female', setting: 'ワイン交易に出資する地方貴族', mood: '優美で冷静' },
+  { role: 'navigator', nationality: 'spain', port: 'サンルーカル', age: '50s', period: 'late_16c', faceAngle: 'three_quarter_left', gender: 'male', setting: '大西洋横断路を知る熟練水先人', mood: '重みのある目' },
+  { role: 'merchant', nationality: 'england', port: 'ロンドン', age: '20s', period: 'late_16c', faceAngle: 'front', gender: 'male', setting: '新興会社に出入りする若い商人', mood: '野心を隠した笑み' },
+  { role: 'scholar', nationality: 'portugal', port: 'コインブラ', age: '40s', period: 'early_16c', faceAngle: 'three_quarter_right', gender: 'female', setting: '航海術を教える修道院育ちの学者', mood: '静謐で芯がある' },
+  { role: 'barmaid', nationality: 'france', port: 'ディエップ', age: 'late teens', period: 'mid_16c', faceAngle: 'three_quarter_right', gender: 'female', setting: '港の噂を聞き集める若い給仕', mood: '素直だが勘が鋭い' },
+  { role: 'officer', nationality: 'ottoman', port: 'アルジェ', age: '30s', period: 'mid_16c', faceAngle: 'three_quarter_left', gender: 'male', setting: '西地中海の護衛任務に就く士官', mood: '端正で厳しい' },
+]
 
 const state = {
+  candidates: [],
   items: [],
   parsedRows: [],
   search: '',
+  thread: null,
+  job: null,
 }
 
 const $ = (id) => document.getElementById(id)
 
 const elements = {
   summary: $('summary'),
+  threadStatus: $('threadStatus'),
+  jobStatus: $('jobStatus'),
+  createImageThreadButton: $('createImageThreadButton'),
+  refreshJobButton: $('refreshJobButton'),
+  candidateCountInput: $('candidateCountInput'),
+  generateCandidatesButton: $('generateCandidatesButton'),
+  approveAllCandidatesButton: $('approveAllCandidatesButton'),
+  candidates: $('candidates'),
   roleInput: $('roleInput'),
   nationalityInput: $('nationalityInput'),
   portInput: $('portInput'),
@@ -121,6 +168,24 @@ function showToast(message) {
   }, 1800)
 }
 
+function saveWorkspace() {
+  localStorage.setItem(workspaceStorageKey, JSON.stringify({
+    candidates: state.candidates,
+    items: state.items,
+  }))
+}
+
+function loadWorkspace() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(workspaceStorageKey) || '{}')
+    state.candidates = Array.isArray(parsed.candidates) ? parsed.candidates.map(normalizeBrief) : []
+    state.items = Array.isArray(parsed.items) ? parsed.items.map(normalizeBrief) : []
+  } catch {
+    state.candidates = []
+    state.items = []
+  }
+}
+
 function createId() {
   return `brief_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`
 }
@@ -149,6 +214,18 @@ function briefTitle(brief) {
     labelFor(periods, brief.period),
     labelFor(faceAngles, brief.faceAngle),
   ].filter(Boolean).join(' / ')
+}
+
+function briefKey(brief) {
+  return [
+    brief.role,
+    brief.nationality,
+    brief.port,
+    brief.age,
+    brief.period,
+    brief.gender,
+    brief.setting,
+  ].join('|')
 }
 
 function hashString(input) {
@@ -519,6 +596,169 @@ function matchesSearch(brief) {
   ].join(' ').toLowerCase().includes(needle)
 }
 
+function generateCandidates({ silent = false } = {}) {
+  const requestedCount = Math.max(1, Math.min(80, Number(elements.candidateCountInput.value) || 24))
+  const existingKeys = new Set([...state.items, ...state.candidates].map(briefKey))
+  const nextCandidates = []
+
+  for (const seed of candidateSeeds) {
+    if (nextCandidates.length >= requestedCount) break
+    const brief = normalizeBrief(seed)
+    const key = briefKey(brief)
+    if (existingKeys.has(key)) continue
+    existingKeys.add(key)
+    nextCandidates.push(brief)
+  }
+
+  state.candidates = nextCandidates
+  saveWorkspace()
+  renderCandidates()
+  if (!silent) {
+    showToast(`${nextCandidates.length}件の候補を作成しました`)
+  }
+}
+
+function renderCandidates() {
+  elements.candidates.replaceChildren()
+
+  if (!state.candidates.length) {
+    const empty = document.createElement('div')
+    empty.className = 'mini-empty'
+    empty.textContent = '候補なし'
+    elements.candidates.append(empty)
+    return
+  }
+
+  for (const candidate of state.candidates) {
+    elements.candidates.append(createCandidateCard(candidate))
+  }
+}
+
+function createCandidateCard(brief) {
+  const card = document.createElement('article')
+  card.className = 'candidate-card'
+
+  const head = document.createElement('div')
+  head.className = 'brief-head'
+
+  const title = document.createElement('h3')
+  title.textContent = briefTitle(brief)
+
+  const approveButton = document.createElement('button')
+  approveButton.type = 'button'
+  approveButton.className = 'primary'
+  approveButton.textContent = '承認'
+  approveButton.addEventListener('click', () => approveCandidate(brief.id))
+
+  const removeButton = document.createElement('button')
+  removeButton.type = 'button'
+  removeButton.textContent = '却下'
+  removeButton.addEventListener('click', () => {
+    state.candidates = state.candidates.filter((item) => item.id !== brief.id)
+    saveWorkspace()
+    renderCandidates()
+  })
+
+  const actions = document.createElement('div')
+  actions.className = 'card-actions'
+  actions.append(approveButton, removeButton)
+  head.append(title, actions)
+
+  const fields = document.createElement('div')
+  fields.className = 'candidate-fields'
+  fields.append(
+    editableSelect(brief, 'role', roles),
+    editableSelect(brief, 'nationality', nationalities),
+    editableText(brief, 'port', '街'),
+    editableSelect(brief, 'age', ages),
+    editableSelect(brief, 'period', periods),
+    editableSelect(brief, 'faceAngle', faceAngles),
+    editableSelect(brief, 'gender', genders),
+  )
+
+  const setting = editableTextarea(brief, 'setting', '設定')
+  const mood = editableText(brief, 'mood', '表情')
+  card.append(head, fields, setting, mood)
+  return card
+}
+
+function editableSelect(brief, key, options) {
+  const label = document.createElement('label')
+  label.className = 'field compact-edit'
+  const caption = document.createElement('span')
+  caption.textContent = {
+    role: '役職',
+    nationality: '国籍',
+    age: '年齢',
+    period: '年代',
+    faceAngle: '向き',
+    gender: '性別',
+  }[key] || key
+  const select = document.createElement('select')
+  fillOptions(select, options)
+  select.value = brief[key]
+  select.addEventListener('change', () => {
+    brief[key] = select.value
+    saveWorkspace()
+  })
+  label.append(caption, select)
+  return label
+}
+
+function editableText(brief, key, captionText) {
+  const label = document.createElement('label')
+  label.className = 'field compact-edit'
+  const caption = document.createElement('span')
+  caption.textContent = captionText
+  const input = document.createElement('input')
+  input.value = brief[key] || ''
+  input.autocomplete = 'off'
+  input.addEventListener('input', () => {
+    brief[key] = input.value.trim()
+    saveWorkspace()
+  })
+  label.append(caption, input)
+  return label
+}
+
+function editableTextarea(brief, key, captionText) {
+  const label = document.createElement('label')
+  label.className = 'field compact-edit full-edit'
+  const caption = document.createElement('span')
+  caption.textContent = captionText
+  const textarea = document.createElement('textarea')
+  textarea.rows = 2
+  textarea.value = brief[key] || ''
+  textarea.spellcheck = false
+  textarea.addEventListener('input', () => {
+    brief[key] = textarea.value.trim()
+    saveWorkspace()
+  })
+  label.append(caption, textarea)
+  return label
+}
+
+function approveCandidate(id) {
+  const candidate = state.candidates.find((item) => item.id === id)
+  if (!candidate) return
+  state.candidates = state.candidates.filter((item) => item.id !== id)
+  addBriefs([candidate])
+  saveWorkspace()
+  renderCandidates()
+}
+
+function approveAllCandidates() {
+  if (!state.candidates.length) {
+    showToast('承認する候補がありません')
+    return
+  }
+  const candidates = [...state.candidates]
+  state.candidates = []
+  addBriefs(candidates)
+  saveWorkspace()
+  renderCandidates()
+}
+
 function renderCards() {
   const filtered = state.items.filter(matchesSearch)
   elements.summary.textContent = `${filtered.length} / ${state.items.length}件`
@@ -553,14 +793,15 @@ function createCard(brief) {
   const generateButton = document.createElement('button')
   generateButton.type = 'button'
   generateButton.className = 'primary'
-  generateButton.textContent = '画像生成'
-  generateButton.addEventListener('click', () => requestGeneration([brief]))
+  generateButton.textContent = '送信'
+  generateButton.addEventListener('click', () => requestGeneration([brief]).catch((error) => showToast(error.message)))
 
   const removeButton = document.createElement('button')
   removeButton.type = 'button'
   removeButton.textContent = '削除'
   removeButton.addEventListener('click', () => {
     state.items = state.items.filter((item) => item.id !== brief.id)
+    saveWorkspace()
     renderCards()
   })
 
@@ -604,7 +845,7 @@ async function requestGeneration(briefs) {
     return
   }
 
-  const response = await fetch('/api/generate', {
+  const response = await fetch('/api/app-server/generate', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
@@ -621,13 +862,23 @@ async function requestGeneration(briefs) {
   if (!response.ok) {
     throw new Error(data.message || data.error || `HTTP ${response.status}`)
   }
-  showToast(`${data.count}件の画像生成を依頼しました`)
+  showToast(`${data.count}件を画像専用スレッドへ送信しました`)
+  refreshJobStatus().catch(() => {})
 }
 
 function addBriefs(briefs) {
-  state.items = [...state.items, ...briefs.map(normalizeBrief)]
+  const existingKeys = new Set(state.items.map(briefKey))
+  const nextBriefs = []
+  for (const brief of briefs.map(normalizeBrief)) {
+    const key = briefKey(brief)
+    if (existingKeys.has(key)) continue
+    existingKeys.add(key)
+    nextBriefs.push(brief)
+  }
+  state.items = [...state.items, ...nextBriefs]
+  saveWorkspace()
   renderCards()
-  showToast(`${briefs.length}件追加しました`)
+  showToast(`${nextBriefs.length}件追加しました`)
 }
 
 function addSingle() {
@@ -645,6 +896,14 @@ function addSingle() {
 }
 
 function bindEvents() {
+  elements.createImageThreadButton.addEventListener('click', () => {
+    createImageThread().catch((error) => showToast(error.message))
+  })
+  elements.refreshJobButton.addEventListener('click', () => {
+    refreshJobStatus().catch((error) => showToast(error.message))
+  })
+  elements.generateCandidatesButton.addEventListener('click', generateCandidates)
+  elements.approveAllCandidatesButton.addEventListener('click', approveAllCandidates)
   elements.addSingleButton.addEventListener('click', addSingle)
   elements.previewRowsButton.addEventListener('click', renderRowPreview)
   elements.rowsInput.addEventListener('input', renderRowPreview)
@@ -658,12 +917,63 @@ function bindEvents() {
   })
   elements.clearAllButton.addEventListener('click', () => {
     state.items = []
+    saveWorkspace()
     renderCards()
   })
   elements.searchInput.addEventListener('input', (event) => {
     state.search = event.target.value
     renderCards()
   })
+}
+
+async function loadImageThread() {
+  const response = await fetch('/api/image-thread')
+  const data = await response.json()
+  state.thread = data
+  renderThreadStatus()
+}
+
+async function createImageThread() {
+  elements.createImageThreadButton.disabled = true
+  try {
+    const response = await fetch('/api/image-thread', { method: 'POST' })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(data.message || data.error || `HTTP ${response.status}`)
+    }
+    state.thread = data
+    renderThreadStatus()
+    showToast('画像専用スレッドを用意しました')
+  } finally {
+    elements.createImageThreadButton.disabled = false
+  }
+}
+
+function renderThreadStatus() {
+  if (!state.thread?.threadId) {
+    elements.threadStatus.textContent = '未接続'
+    return
+  }
+  elements.threadStatus.textContent = `${state.thread.name || '顔グラ量産'} / ${state.thread.threadId}`
+}
+
+async function refreshJobStatus() {
+  const response = await fetch('/api/app-server/job')
+  const data = await response.json()
+  state.job = data
+  renderJobStatus()
+}
+
+function renderJobStatus() {
+  const job = state.job
+  if (!job || job.status === 'idle') {
+    elements.jobStatus.textContent = '待機中'
+    return
+  }
+  const base = `${job.status} ${job.completed || 0} / ${job.count || 0}`
+  elements.jobStatus.textContent = job.currentTitle
+    ? `${base} / ${job.currentTitle}`
+    : base
 }
 
 fillOptions(elements.roleInput, roles)
@@ -678,6 +988,13 @@ elements.periodInput.value = 'strict_16c'
 elements.faceAngleInput.value = 'random'
 elements.rowsInput.placeholder = '役職,国籍,街,年齢,設定,表情・雰囲気,服飾年代（任意）,顔向き（任意）'
 elements.rowsInput.value = defaultRows
+loadWorkspace()
+if (!state.candidates.length && !state.items.length) {
+  generateCandidates({ silent: true })
+}
 bindEvents()
 renderRowPreview()
+renderCandidates()
 renderCards()
+loadImageThread().catch(() => {})
+refreshJobStatus().catch(() => {})
