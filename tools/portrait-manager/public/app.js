@@ -102,6 +102,8 @@ const state = {
   items: [],
   parsedRows: [],
   search: '',
+  recordSearch: '',
+  records: [],
   thread: null,
   job: null,
 }
@@ -137,6 +139,10 @@ const elements = {
   clearAllButton: $('clearAllButton'),
   searchInput: $('searchInput'),
   cards: $('cards'),
+  recordSummary: $('recordSummary'),
+  recordSearchInput: $('recordSearchInput'),
+  refreshRecordsButton: $('refreshRecordsButton'),
+  records: $('records'),
   toast: $('toast'),
 }
 
@@ -839,6 +845,194 @@ function createCard(brief) {
   return card
 }
 
+function recordStatusLabel(status) {
+  switch (status) {
+    case 'queued':
+      return '待機'
+    case 'generating':
+      return '生成中'
+    case 'generated':
+      return '生成済み'
+    case 'linked':
+      return '実装紐づけ済み'
+    case 'failed':
+      return '失敗'
+    default:
+      return status || '未送信'
+  }
+}
+
+function recordHeading(record) {
+  return record.displayName
+    || record.title
+    || [
+      labelFor(roles, record.role),
+      labelFor(nationalities, record.nationality),
+      record.port,
+    ].filter(Boolean).join(' / ')
+    || record.id
+}
+
+function matchesRecordSearch(record) {
+  const needle = state.recordSearch.trim().toLowerCase()
+  if (!needle) return true
+  return [
+    record.displayName,
+    record.implementationId,
+    record.title,
+    labelFor(roles, record.role),
+    labelFor(nationalities, record.nationality),
+    record.port,
+    labelFor(ages, record.age),
+    labelFor(periods, record.period),
+    labelFor(faceAngles, record.faceAngle),
+    labelFor(genders, record.gender),
+    record.setting,
+    record.mood,
+    record.notes,
+    record.imagePath,
+  ].join(' ').toLowerCase().includes(needle)
+}
+
+function renderRecords() {
+  const filtered = state.records.filter(matchesRecordSearch)
+  elements.recordSummary.textContent = `${filtered.length} / ${state.records.length}件`
+  elements.records.replaceChildren()
+
+  if (!filtered.length) {
+    const empty = document.createElement('div')
+    empty.className = 'empty-state'
+    empty.textContent = '画像専用スレッドへ送信すると、ここに生成履歴と実装用の紐づけ欄が残ります'
+    elements.records.append(empty)
+    return
+  }
+
+  for (const record of filtered) {
+    elements.records.append(createRecordCard(record))
+  }
+}
+
+function createRecordCard(record) {
+  const card = document.createElement('article')
+  card.className = 'record-card'
+
+  const preview = document.createElement('div')
+  preview.className = 'record-preview'
+  if (record.imagePath) {
+    const image = document.createElement('img')
+    image.src = `/api/portrait-image?path=${encodeURIComponent(record.imagePath)}`
+    image.alt = recordHeading(record)
+    preview.append(image)
+  } else {
+    preview.textContent = '画像未設定'
+  }
+
+  const body = document.createElement('div')
+  body.className = 'record-body'
+
+  const head = document.createElement('div')
+  head.className = 'brief-head'
+  const title = document.createElement('h3')
+  title.textContent = recordHeading(record)
+  const status = document.createElement('span')
+  status.className = `chip status-chip status-${record.status || 'unknown'}`
+  status.textContent = recordStatusLabel(record.status)
+  head.append(title, status)
+
+  const meta = document.createElement('div')
+  meta.className = 'brief-meta'
+  for (const value of [
+    labelFor(roles, record.role),
+    labelFor(nationalities, record.nationality),
+    record.port,
+    labelFor(ages, record.age),
+    labelFor(periods, record.period),
+    labelFor(faceAngles, record.faceAngle),
+    labelFor(genders, record.gender),
+  ].filter(Boolean)) {
+    const chip = document.createElement('span')
+    chip.className = 'chip'
+    chip.textContent = value
+    meta.append(chip)
+  }
+
+  const setting = document.createElement('p')
+  setting.className = 'setting'
+  setting.textContent = [record.setting, record.mood].filter(Boolean).join(' / ') || '-'
+
+  const fields = document.createElement('div')
+  fields.className = 'record-fields'
+  fields.append(
+    recordTextField(record, 'displayName', '名前'),
+    recordTextField(record, 'implementationId', '実装ID'),
+    recordTextField(record, 'imagePath', '画像パス', 'wide-field'),
+    recordTextareaField(record, 'notes', 'メモ', 'wide-field'),
+  )
+
+  const details = document.createElement('details')
+  details.className = 'record-details'
+  const summary = document.createElement('summary')
+  summary.textContent = 'プロンプト'
+  const prompt = document.createElement('textarea')
+  prompt.className = 'prompt-box'
+  prompt.rows = 6
+  prompt.readOnly = true
+  prompt.value = record.prompt || ''
+  details.append(summary, prompt)
+
+  body.append(head, meta, setting, fields, details)
+  card.append(preview, body)
+  return card
+}
+
+function recordTextField(record, key, captionText, extraClass = '') {
+  const label = document.createElement('label')
+  label.className = `field compact-edit ${extraClass}`.trim()
+  const caption = document.createElement('span')
+  caption.textContent = captionText
+  const input = document.createElement('input')
+  input.value = record[key] || ''
+  input.autocomplete = 'off'
+  input.addEventListener('change', () => {
+    updateRecord(record.id, { [key]: input.value }).catch((error) => showToast(error.message))
+  })
+  label.append(caption, input)
+  return label
+}
+
+function recordTextareaField(record, key, captionText, extraClass = '') {
+  const label = document.createElement('label')
+  label.className = `field compact-edit ${extraClass}`.trim()
+  const caption = document.createElement('span')
+  caption.textContent = captionText
+  const textarea = document.createElement('textarea')
+  textarea.rows = 2
+  textarea.value = record[key] || ''
+  textarea.spellcheck = false
+  textarea.addEventListener('change', () => {
+    updateRecord(record.id, { [key]: textarea.value }).catch((error) => showToast(error.message))
+  })
+  label.append(caption, textarea)
+  return label
+}
+
+async function updateRecord(id, patch) {
+  const response = await fetch(`/api/portrait-records/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ patch }),
+  })
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    throw new Error(data.message || data.error || `HTTP ${response.status}`)
+  }
+  const index = state.records.findIndex((record) => record.id === id)
+  if (index >= 0) {
+    state.records[index] = data.record
+  }
+  renderRecords()
+}
+
 async function requestGeneration(briefs) {
   if (!briefs.length) {
     showToast('生成対象がありません')
@@ -864,6 +1058,7 @@ async function requestGeneration(briefs) {
   }
   showToast(`${data.count}件を画像専用スレッドへ送信しました`)
   refreshJobStatus().catch(() => {})
+  loadRecords().catch(() => {})
 }
 
 function addBriefs(briefs) {
@@ -901,6 +1096,7 @@ function bindEvents() {
   })
   elements.refreshJobButton.addEventListener('click', () => {
     refreshJobStatus().catch((error) => showToast(error.message))
+    loadRecords().catch((error) => showToast(error.message))
   })
   elements.generateCandidatesButton.addEventListener('click', generateCandidates)
   elements.approveAllCandidatesButton.addEventListener('click', approveAllCandidates)
@@ -923,6 +1119,13 @@ function bindEvents() {
   elements.searchInput.addEventListener('input', (event) => {
     state.search = event.target.value
     renderCards()
+  })
+  elements.recordSearchInput.addEventListener('input', (event) => {
+    state.recordSearch = event.target.value
+    renderRecords()
+  })
+  elements.refreshRecordsButton.addEventListener('click', () => {
+    loadRecords().catch((error) => showToast(error.message))
   })
 }
 
@@ -964,6 +1167,13 @@ async function refreshJobStatus() {
   renderJobStatus()
 }
 
+async function loadRecords() {
+  const response = await fetch('/api/portrait-records')
+  const data = await response.json()
+  state.records = Array.isArray(data.records) ? data.records : []
+  renderRecords()
+}
+
 function renderJobStatus() {
   const job = state.job
   if (!job || job.status === 'idle') {
@@ -996,5 +1206,7 @@ bindEvents()
 renderRowPreview()
 renderCandidates()
 renderCards()
+renderRecords()
 loadImageThread().catch(() => {})
 refreshJobStatus().catch(() => {})
+loadRecords().catch(() => {})

@@ -77,7 +77,9 @@ button.ghost {
 .topbar p,
 .panel h2,
 .output-head h2,
+.section-count,
 .brief-card h3,
+.record-card h3,
 .setting {
   margin: 0;
 }
@@ -93,14 +95,22 @@ button.ghost {
   font-size: 12px;
 }
 
+.section-count {
+  margin-top: 4px;
+  color: #95a1b2;
+  font-size: 11px;
+}
+
 .top-actions,
 .button-row,
-.card-actions {
+.card-actions,
+.db-actions {
   display: flex;
   gap: 8px;
 }
 
-.top-actions {
+.top-actions,
+.db-actions {
   align-items: center;
 }
 
@@ -289,6 +299,17 @@ textarea:focus {
   gap: 12px;
 }
 
+.db-section {
+  margin-top: 28px;
+  border-top: 1px solid #252c36;
+  padding-top: 16px;
+}
+
+.records {
+  display: grid;
+  gap: 12px;
+}
+
 .brief-card {
   display: grid;
   gap: 10px;
@@ -306,6 +327,67 @@ textarea:focus {
   white-space: nowrap;
 }
 
+.record-card {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  border: 1px solid #2e3847;
+  border-radius: 8px;
+  padding: 12px;
+  background: #171d25;
+}
+
+.record-preview {
+  display: grid;
+  place-items: center;
+  width: 112px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px dashed #3b4656;
+  border-radius: 6px;
+  background: #0f1318;
+  color: #748297;
+  font-size: 11px;
+  text-align: center;
+}
+
+.record-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.record-body {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.record-card h3 {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.record-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.wide-field {
+  grid-column: 1 / -1;
+}
+
+.record-details summary {
+  cursor: pointer;
+  color: #a9b5c5;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .brief-meta {
   display: flex;
   flex-wrap: wrap;
@@ -319,6 +401,27 @@ textarea:focus {
   color: #c8d3e1;
   font-size: 10px;
   font-weight: 700;
+}
+
+.status-chip {
+  flex: 0 0 auto;
+}
+
+.status-generated,
+.status-linked {
+  background: #214c39;
+  color: #caeedc;
+}
+
+.status-generating,
+.status-queued {
+  background: #473e28;
+  color: #f0ddb8;
+}
+
+.status-failed {
+  background: #4f2730;
+  color: #f3c2cb;
 }
 
 .setting {

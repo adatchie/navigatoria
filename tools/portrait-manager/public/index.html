@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta http-equiv="cache-control" content="no-store" />
     <title>顔グラ生成</title>
-    <link rel="stylesheet" href="/styles.css?v=portrait-batch-app-server-20260509" />
+    <link rel="stylesheet" href="/styles.css?v=portrait-db-20260509" />
   </head>
   <body>
     <div class="workbench">
@@ -112,10 +112,27 @@
           </label>
         </div>
         <div id="cards" class="cards"></div>
+
+        <section class="db-section">
+          <div class="output-head">
+            <div>
+              <h2>顔グラDB</h2>
+              <p id="recordSummary" class="section-count">0件</p>
+            </div>
+            <div class="db-actions">
+              <label class="field compact">
+                <span>DB検索</span>
+                <input id="recordSearchInput" type="search" autocomplete="off" />
+              </label>
+              <button id="refreshRecordsButton" type="button">DB更新</button>
+            </div>
+          </div>
+          <div id="records" class="records"></div>
+        </section>
       </main>
     </div>
 
     <div id="toast" class="toast" role="status"></div>
-    <script type="module" src="/app.js?v=portrait-batch-app-server-20260509"></script>
+    <script type="module" src="/app.js?v=portrait-db-20260509"></script>
   </body>
 </html>

@@ -37,6 +37,12 @@ is stored in:
 tools/portrait-manager/data/app-server-job.json
 ```
 
+Each sent portrait is also recorded in the local implementation DB:
+
+```text
+tools/portrait-manager/data/portrait-records.json
+```
+
 Those files are ignored by Git. Generated images are accumulated by Codex
 under the generated-images store for the dedicated thread, not in the
 current planning thread.
@@ -46,6 +52,26 @@ current planning thread.
 Use `属性案作成` to create non-duplicated character briefs. Edit any
 brief in the candidate list, approve individual entries or use `全承認`,
 then send only the approved list to the image thread.
+
+## Implementation DB
+
+`顔グラDB` is a thin local database for production use. It is created
+from approved generation requests, then lets you attach the final display
+name, implementation ID, generated image path, and notes after the image
+exists. The generated prompt, role, nationality, port, age, period, face
+angle, gender, setting, mood, and dedicated image-thread ID remain on the
+record so the portrait can later be linked to game data without relying
+on the temporary browser list.
+
+The server also exposes generated image discovery for the dedicated
+thread through:
+
+```text
+GET /api/generated-images
+```
+
+Image previews are served only from Codex's generated-images directory
+when an image path is attached to a DB record.
 
 ## Batch Input
 

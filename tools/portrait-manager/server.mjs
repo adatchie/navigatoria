@@ -1,7 +1,7 @@
 import { createServer } from 'node:http'
-import { readFile, writeFile, mkdir } from 'node:fs/promises'
+import { readFile, writeFile, mkdir, readdir, stat } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
-import { randomBytes } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -12,11 +12,21 @@ const DATA_DIR = path.join(TOOL_DIR, 'data')
 const REQUEST_FILE = path.join(DATA_DIR, 'latest-generation-request.json')
 const IMAGE_THREAD_FILE = path.join(DATA_DIR, 'image-thread.json')
 const JOB_FILE = path.join(DATA_DIR, 'app-server-job.json')
+const PORTRAIT_RECORDS_FILE = path.join(DATA_DIR, 'portrait-records.json')
 const PORT = Number(process.env.PORT ?? 4178)
 const MAX_BODY_BYTES = 4 * 1024 * 1024
 const CODEX_CMD = process.env.CODEX_CMD || 'C:\\home\\adatc\\.npm-global\\codex.cmd'
 const IMAGE_THREAD_NAME = '顔グラ量産'
 const TURN_TIMEOUT_MS = 12 * 60 * 1000
+const GENERATED_IMAGES_ROOT = process.env.CODEX_GENERATED_IMAGES_ROOT
+  || path.join(process.env.USERPROFILE || process.env.HOME || '', '.codex', 'generated_images')
+const RECORD_PATCH_FIELDS = new Set([
+  'displayName',
+  'implementationId',
+  'imagePath',
+  'notes',
+  'status',
+])
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -85,6 +95,166 @@ async function readJsonFile(filePath, fallback) {
 async function writeJsonFile(filePath, payload) {
   await mkdir(path.dirname(filePath), { recursive: true })
   await writeFile(filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8')
+}
+
+function nowIso() {
+  return new Date().toISOString()
+}
+
+function cleanText(value) {
+  return String(value ?? '').trim()
+}
+
+function stableHash(input) {
+  return createHash('sha1').update(input).digest('hex').slice(0, 14)
+}
+
+function portraitSourceKey(request) {
+  const briefId = cleanText(request.brief?.id)
+  if (briefId) return `brief:${briefId}`
+  return `prompt:${stableHash(`${request.title}\n${request.prompt}`)}`
+}
+
+function portraitRecordId(request) {
+  const briefId = cleanText(request.brief?.id)
+  if (briefId) {
+    return `portrait_${briefId.replace(/[^\w-]/g, '_')}`
+  }
+  return `portrait_${stableHash(`${request.title}\n${request.prompt}`)}`
+}
+
+async function readPortraitRecordStore() {
+  const store = await readJsonFile(PORTRAIT_RECORDS_FILE, { records: [] })
+  return {
+    updatedAt: store.updatedAt || '',
+    records: Array.isArray(store.records) ? store.records : [],
+  }
+}
+
+async function writePortraitRecordStore(records) {
+  await writeJsonFile(PORTRAIT_RECORDS_FILE, {
+    updatedAt: nowIso(),
+    records,
+  })
+}
+
+function createPortraitRecord(request, threadId, existing = null) {
+  const brief = request.brief || {}
+  const now = nowIso()
+  return {
+    id: existing?.id || portraitRecordId(request),
+    sourceKey: portraitSourceKey(request),
+    sourceBriefId: cleanText(brief.id),
+    status: 'queued',
+    title: cleanText(request.title),
+    displayName: cleanText(existing?.displayName),
+    implementationId: cleanText(existing?.implementationId),
+    role: cleanText(brief.role),
+    nationality: cleanText(brief.nationality),
+    port: cleanText(brief.port),
+    age: cleanText(brief.age),
+    period: cleanText(brief.period),
+    faceAngle: cleanText(brief.faceAngle),
+    gender: cleanText(brief.gender),
+    setting: cleanText(brief.setting),
+    mood: cleanText(brief.mood),
+    prompt: cleanText(request.prompt),
+    negativePrompt: cleanText(request.negativePrompt),
+    styleProfile: request.styleProfile && typeof request.styleProfile === 'object' ? request.styleProfile : {},
+    imageThreadId: threadId || cleanText(existing?.imageThreadId),
+    imagePath: cleanText(existing?.imagePath),
+    notes: cleanText(existing?.notes),
+    createdAt: existing?.createdAt || now,
+    queuedAt: now,
+    updatedAt: now,
+  }
+}
+
+async function upsertPortraitRecords(requests, threadId) {
+  const store = await readPortraitRecordStore()
+  const records = [...store.records]
+  const bySourceKey = new Map(records.map((record) => [record.sourceKey, record]))
+  const recordIds = []
+
+  for (const request of requests) {
+    const sourceKey = portraitSourceKey(request)
+    const existing = bySourceKey.get(sourceKey)
+    const nextRecord = createPortraitRecord(request, threadId, existing)
+    if (existing) {
+      Object.assign(existing, nextRecord)
+      recordIds.push(existing.id)
+    } else {
+      records.push(nextRecord)
+      bySourceKey.set(sourceKey, nextRecord)
+      recordIds.push(nextRecord.id)
+    }
+  }
+
+  await writePortraitRecordStore(records)
+  return recordIds
+}
+
+async function updatePortraitRecord(id, patch) {
+  const store = await readPortraitRecordStore()
+  const record = store.records.find((item) => item.id === id)
+  if (!record) return null
+
+  for (const [key, value] of Object.entries(patch || {})) {
+    if (!RECORD_PATCH_FIELDS.has(key)) continue
+    record[key] = cleanText(value)
+  }
+  if (record.status === 'linked' && (!record.implementationId || !record.imagePath)) {
+    record.status = 'generated'
+  }
+  if (record.status === 'generated' && record.implementationId && record.imagePath) {
+    record.status = 'linked'
+  }
+  record.updatedAt = nowIso()
+  await writePortraitRecordStore(store.records)
+  return record
+}
+
+async function updatePortraitRecordStatus(id, status, patch = {}) {
+  const store = await readPortraitRecordStore()
+  const record = store.records.find((item) => item.id === id)
+  if (!record) return
+  Object.assign(record, patch, {
+    status,
+    updatedAt: nowIso(),
+  })
+  await writePortraitRecordStore(store.records)
+}
+
+function isPathInside(childPath, parentPath) {
+  const relativePath = path.relative(parentPath, childPath)
+  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath))
+}
+
+async function listGeneratedImages(threadId) {
+  if (!threadId || !GENERATED_IMAGES_ROOT) return []
+  const threadDir = path.resolve(GENERATED_IMAGES_ROOT, threadId)
+  if (!isPathInside(threadDir, path.resolve(GENERATED_IMAGES_ROOT))) return []
+
+  try {
+    const entries = await readdir(threadDir, { withFileTypes: true })
+    const images = []
+    for (const entry of entries) {
+      if (!entry.isFile()) continue
+      if (!/\.(png|jpe?g|webp)$/i.test(entry.name)) continue
+      const filePath = path.join(threadDir, entry.name)
+      const fileStat = await stat(filePath)
+      images.push({
+        name: entry.name,
+        path: filePath,
+        size: fileStat.size,
+        createdAt: fileStat.birthtime.toISOString(),
+        updatedAt: fileStat.mtime.toISOString(),
+      })
+    }
+    return images.sort((a, b) => a.name.localeCompare(b.name))
+  } catch {
+    return []
+  }
 }
 
 function createRpcId(prefix) {
@@ -299,13 +469,16 @@ async function ensureImageThread(client) {
 
 async function runGenerationJob(requests) {
   const client = new AppServerClient()
+  let currentRecordId = ''
   const job = {
     status: 'running',
-    startedAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    startedAt: nowIso(),
+    updatedAt: nowIso(),
     count: requests.length,
     completed: 0,
     threadId: '',
+    recordIds: [],
+    currentRecordId: '',
     currentTitle: '',
     error: '',
   }
@@ -315,13 +488,21 @@ async function runGenerationJob(requests) {
   try {
     await client.initialize()
     job.threadId = await ensureImageThread(client)
+    job.recordIds = await upsertPortraitRecords(requests, job.threadId)
     await client.request('thread/resume', { threadId: job.threadId }, 60_000)
-    await writeJsonFile(JOB_FILE, { ...job, updatedAt: new Date().toISOString() })
+    await writeJsonFile(JOB_FILE, { ...job, updatedAt: nowIso() })
 
     for (let index = 0; index < requests.length; index += 1) {
       const request = requests[index]
+      currentRecordId = job.recordIds[index] || ''
+      job.currentRecordId = currentRecordId
       job.currentTitle = request.title || `portrait-${index + 1}`
-      await writeJsonFile(JOB_FILE, { ...job, updatedAt: new Date().toISOString() })
+      if (currentRecordId) {
+        await updatePortraitRecordStatus(currentRecordId, 'generating', {
+          generationStartedAt: nowIso(),
+        })
+      }
+      await writeJsonFile(JOB_FILE, { ...job, updatedAt: nowIso() })
 
       const completion = client.waitFor('turn/completed', (message) => {
         const messageThreadId = threadIdFromMessage(message)
@@ -341,22 +522,33 @@ async function runGenerationJob(requests) {
       await completion
 
       job.completed = index + 1
-      await writeJsonFile(JOB_FILE, { ...job, updatedAt: new Date().toISOString() })
+      if (currentRecordId) {
+        await updatePortraitRecordStatus(currentRecordId, 'generated', {
+          generatedAt: nowIso(),
+        })
+      }
+      await writeJsonFile(JOB_FILE, { ...job, updatedAt: nowIso() })
     }
 
     await writeJsonFile(JOB_FILE, {
       ...job,
       status: 'completed',
+      currentRecordId: '',
       currentTitle: '',
-      updatedAt: new Date().toISOString(),
-      completedAt: new Date().toISOString(),
+      updatedAt: nowIso(),
+      completedAt: nowIso(),
     })
   } catch (error) {
+    if (currentRecordId) {
+      await updatePortraitRecordStatus(currentRecordId, 'failed', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
     await writeJsonFile(JOB_FILE, {
       ...job,
       status: 'failed',
       error: error instanceof Error ? error.message : String(error),
-      updatedAt: new Date().toISOString(),
+      updatedAt: nowIso(),
     })
   } finally {
     client.stop()
@@ -428,16 +620,65 @@ async function handleApi(request, response, url) {
       requests: validRequests,
     }
     await writeJsonFile(REQUEST_FILE, payload)
+    const savedThread = await readJsonFile(IMAGE_THREAD_FILE, {})
+    const recordIds = await upsertPortraitRecords(validRequests, cleanText(savedThread.threadId))
 
     activeGenerationJob = runGenerationJob(validRequests).finally(() => {
       activeGenerationJob = null
     })
-    sendJson(response, 202, { count: validRequests.length })
+    sendJson(response, 202, { count: validRequests.length, recordIds })
     return
   }
 
   if (request.method === 'GET' && url.pathname === '/api/app-server/job') {
     sendJson(response, 200, await readJsonFile(JOB_FILE, { status: 'idle', count: 0, completed: 0 }))
+    return
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/portrait-records') {
+    sendJson(response, 200, await readPortraitRecordStore())
+    return
+  }
+
+  if (request.method === 'PATCH' && url.pathname.startsWith('/api/portrait-records/')) {
+    const id = decodeURIComponent(url.pathname.slice('/api/portrait-records/'.length))
+    const body = await readJsonBody(request)
+    const record = await updatePortraitRecord(id, body.patch || body)
+    if (!record) {
+      sendJson(response, 404, { error: 'not_found', message: '顔グラDBレコードが見つかりません' })
+      return
+    }
+    sendJson(response, 200, { record })
+    return
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/generated-images') {
+    const saved = await readJsonFile(IMAGE_THREAD_FILE, {})
+    const threadId = cleanText(url.searchParams.get('threadId')) || cleanText(saved.threadId)
+    sendJson(response, 200, {
+      root: GENERATED_IMAGES_ROOT,
+      threadId,
+      images: await listGeneratedImages(threadId),
+    })
+    return
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/portrait-image') {
+    const requestedPath = cleanText(url.searchParams.get('path'))
+    const root = path.resolve(GENERATED_IMAGES_ROOT)
+    const resolvedPath = path.resolve(requestedPath)
+    if (!requestedPath || !isPathInside(resolvedPath, root)) {
+      sendJson(response, 403, { error: 'forbidden' })
+      return
+    }
+
+    try {
+      const file = await readFile(resolvedPath)
+      const contentType = MIME_TYPES[path.extname(resolvedPath).toLowerCase()] ?? 'application/octet-stream'
+      send(response, 200, file, { 'content-type': contentType })
+    } catch {
+      notFound(response)
+    }
     return
   }
 
