@@ -22,6 +22,8 @@ const NAMES: Record<Nationality, string[]> = {
   ottoman: ['Piri Reis', 'Seydi Ali Reis', 'Ayla Hatun', 'Kemal Reis', 'Murat Reis'],
 }
 
+const SAMPLE_PORTRAIT_URL = 'generated/portraits/sample-navigator.jpg'
+
 function hashSeed(input: string): number {
   let hash = 2166136261
   for (let i = 0; i < input.length; i++) {
@@ -83,6 +85,7 @@ export function generateTavernOfficerOffers(port: Port, day: number, tavernLevel
       level,
       hireCost: 260 + level * 120 + statTotal * 18,
       salary: 18 + level * 7 + Math.round(statTotal * 1.6),
+      portraitUrl: SAMPLE_PORTRAIT_URL,
       description: SPECIALTY_DESCRIPTIONS[specialty],
     }
   })

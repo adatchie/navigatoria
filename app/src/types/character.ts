@@ -84,6 +84,7 @@ export interface Officer {
   level: number
   hireCost: number
   salary: number
+  portraitUrl?: string
   description: string
 }
 

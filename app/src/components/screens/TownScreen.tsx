@@ -9,6 +9,7 @@ import { useQuestStore } from '@/stores/useQuestStore.ts'
 import { VOYAGE_CONFIG } from '@/config/gameConfig.ts'
 import { formatOfficerStats, getAssignedOfficer } from '@/game/officers/officerEffects.ts'
 import { generateTavernOfficerOffers, getOfficerSpecialtyLabel } from '@/game/officers/officerGenerator.ts'
+import type { Officer, OfficerStats } from '@/types/character.ts'
 import type { Quest, QuestRank, QuestReward, TradeQuestCategory } from '@/types/quest.ts'
 import { uiText } from '@/i18n/uiText.ts'
 
@@ -53,6 +54,13 @@ const OUTFIT_OPTIONS = [
 const OUTFIT_BASE_COST = { rigging: 320, cargo: 280, gunnery: 360 }
 const OUTFIT_STEP = { rigging: 90, cargo: 70, gunnery: 120 }
 const OUTFIT_MAX_LEVEL = 3
+const OFFICER_STAT_AXES: { key: keyof OfficerStats; label: string }[] = [
+  { key: 'navigation', label: '航海' },
+  { key: 'trade', label: '交易' },
+  { key: 'gunnery', label: '砲術' },
+  { key: 'repair', label: '修理' },
+  { key: 'leadership', label: '統率' },
+]
 const LISBON_CITY_HOTSPOTS: CityHotspot[] = [
   { section: 'departure', label: '出航所', caption: '河岸の桟橋', x: 78, y: 72, tone: '#38bdf8', emblem: '⚓' },
   { section: 'market', label: '市場', caption: '港前広場', x: 38, y: 60, tone: '#f59e0b', emblem: '◇' },
@@ -128,6 +136,68 @@ function getShipyardRequirement(category: string): number {
   return 4
 }
 
+function resolvePortraitUrl(url?: string): string {
+  const fallback = 'generated/portraits/sample-navigator.jpg'
+  const source = url || fallback
+  if (/^(https?:|data:|blob:)/.test(source)) return source
+  return `${import.meta.env.BASE_URL}${source.replace(/^\/+/, '')}`
+}
+
+function getRadarPoint(index: number, total: number, value: number, radius: number, center: number): string {
+  const angle = -Math.PI / 2 + (Math.PI * 2 * index) / total
+  const normalized = Math.max(0, Math.min(10, value)) / 10
+  const x = center + Math.cos(angle) * radius * normalized
+  const y = center + Math.sin(angle) * radius * normalized
+  return `${x.toFixed(1)},${y.toFixed(1)}`
+}
+
+function OfficerRadarChart({ stats }: { stats: OfficerStats }) {
+  const size = 148
+  const center = size / 2
+  const radius = 48
+  const total = OFFICER_STAT_AXES.length
+  const valuePoints = OFFICER_STAT_AXES.map((axis, index) => getRadarPoint(index, total, stats[axis.key], radius, center)).join(' ')
+  const gridLevels = [0.25, 0.5, 0.75, 1]
+
+  return (
+    <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} role="img" aria-label="航海士能力レーダーチャート" style={styles.officerRadar}>
+      {gridLevels.map((level) => (
+        <polygon
+          key={level}
+          points={OFFICER_STAT_AXES.map((_, index) => getRadarPoint(index, total, 10 * level, radius, center)).join(' ')}
+          fill="none"
+          stroke="rgba(148, 163, 184, 0.28)"
+          strokeWidth="1"
+        />
+      ))}
+      {OFFICER_STAT_AXES.map((axis, index) => {
+        const axisPoint = getRadarPoint(index, total, 10, radius, center)
+        const [x, y] = axisPoint.split(',').map(Number)
+        const labelPoint = getRadarPoint(index, total, 12, radius, center)
+        const [labelX, labelY] = labelPoint.split(',').map(Number)
+        return (
+          <g key={axis.key}>
+            <line x1={center} y1={center} x2={x} y2={y} stroke="rgba(148, 163, 184, 0.22)" strokeWidth="1" />
+            <text x={labelX} y={labelY} textAnchor="middle" dominantBaseline="central" fill="#cbd5e1" fontSize="10">{axis.label}</text>
+          </g>
+        )
+      })}
+      <polygon points={valuePoints} fill="rgba(96, 165, 250, 0.36)" stroke="#60a5fa" strokeWidth="2" />
+      {OFFICER_STAT_AXES.map((axis, index) => {
+        const [x, y] = getRadarPoint(index, total, stats[axis.key], radius, center).split(',').map(Number)
+        return <circle key={`${axis.key}-value`} cx={x} cy={y} r="2.8" fill="#facc15" />
+      })}
+    </svg>
+  )
+}
+
+function OfficerPortrait({ officer }: { officer: Officer }) {
+  return (
+    <div style={styles.officerPortraitFrame}>
+      <img src={resolvePortraitUrl(officer.portraitUrl)} alt={`${officer.name} portrait`} style={styles.officerPortraitImage} />
+    </div>
+  )
+}
 
 export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const portId = useNavigationStore((s) => s.dockedPortId)
@@ -694,13 +764,36 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                         {tavernOfficerOffers.map((officer) => {
                           const hired = hiredOfficerIds.has(officer.id)
                           return (
-                            <div key={officer.id} style={styles.compactActionRow}>
-                              <div style={styles.tradeMeta}>
-                                <strong>{officer.name} / {getOfficerSpecialtyLabel(officer.specialty)} Lv.{officer.level}</strong>
-                                <span style={styles.tradeSub}>{formatOfficerStats(officer)}</span>
-                                <span style={styles.tradeSub}>{officer.description} / 雇用 {officer.hireCost} d / 日給 {officer.salary} d</span>
+                            <div key={officer.id} style={styles.officerOfferCard}>
+                              <div style={styles.officerPortraitColumn}>
+                                <OfficerPortrait officer={officer} />
+                                <span style={styles.officerPortraitCaption}>{officer.nationality}</span>
                               </div>
-                              <button style={styles.primaryButton} disabled={hired || (player?.money ?? 0) < officer.hireCost} onClick={() => handleAction(hireOfficer(officer))}>{hired ? '雇用済み' : '雇用する'}</button>
+                              <div style={styles.officerOfferBody}>
+                                <div style={styles.officerOfferHeader}>
+                                  <div style={styles.tradeMeta}>
+                                    <strong>{officer.name} / {getOfficerSpecialtyLabel(officer.specialty)} Lv.{officer.level}</strong>
+                                    <span style={styles.tradeSub}>{officer.description}</span>
+                                  </div>
+                                  <button style={styles.primaryButton} disabled={hired || (player?.money ?? 0) < officer.hireCost} onClick={() => handleAction(hireOfficer(officer))}>{hired ? '雇用済み' : '雇用する'}</button>
+                                </div>
+                                <div style={styles.officerOfferMain}>
+                                  <OfficerRadarChart stats={officer.stats} />
+                                  <div style={styles.officerStatList}>
+                                    {OFFICER_STAT_AXES.map((axis) => (
+                                      <div key={`${officer.id}-${axis.key}`} style={styles.officerStatRow}>
+                                        <span>{axis.label}</span>
+                                        <strong>{officer.stats[axis.key]}</strong>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <div style={styles.officerCostBox}>
+                                    <span>雇用 {officer.hireCost} d</span>
+                                    <span>日給 {officer.salary} d</span>
+                                    <small>{formatOfficerStats(officer)}</small>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           )
                         })}
@@ -714,10 +807,13 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                           const assignedShip = ships.find((ship) => ship.captainOfficerId === officer.id)
                           return (
                             <div key={officer.id} style={styles.compactActionRow}>
-                              <div style={styles.tradeMeta}>
-                                <strong>{officer.name} / 現在 {assignedShip?.name ?? '未任命'}</strong>
-                                <span style={styles.tradeSub}>{getOfficerSpecialtyLabel(officer.specialty)} / {formatOfficerStats(officer)}</span>
-                                <span style={styles.tradeSub}>効果: 航海=速力・旋回 / 交易=売買価格・積載補助 / 砲術=戦術砲門 / 修理=修理効率 / 統率=士気低下軽減</span>
+                              <div style={styles.assignedOfficerSummary}>
+                                <OfficerPortrait officer={officer} />
+                                <div style={styles.tradeMeta}>
+                                  <strong>{officer.name} / 現在 {assignedShip?.name ?? '未任命'}</strong>
+                                  <span style={styles.tradeSub}>{getOfficerSpecialtyLabel(officer.specialty)} / {formatOfficerStats(officer)}</span>
+                                  <span style={styles.tradeSub}>効果: 航海=速力・旋回 / 交易=売買価格・積載補助 / 砲術=戦術砲門 / 修理=修理効率 / 統率=士気低下軽減</span>
+                                </div>
                               </div>
                               <div style={styles.inlineButtonGroup}>
                                 {consortShips.map((ship) => (
@@ -933,6 +1029,19 @@ const styles: Record<string, React.CSSProperties> = {
   denseRow: { display: 'flex', justifyContent: 'space-between', gap: 10, padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' },
   inlineMeta: { display: 'block', color: '#89a6c9', fontSize: 11, marginTop: 2 },
   compactActionRow: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 12, alignItems: 'center', padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.035)' },
+  officerOfferCard: { display: 'grid', gridTemplateColumns: '112px minmax(0, 1fr)', gap: 14, alignItems: 'stretch', padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(148, 163, 184, 0.12)' },
+  officerPortraitColumn: { display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' },
+  officerPortraitFrame: { width: 96, aspectRatio: '1 / 1', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(244, 201, 130, 0.32)', background: 'linear-gradient(180deg, rgba(69, 52, 35, 0.65), rgba(20, 28, 42, 0.9))', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)' },
+  officerPortraitImage: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
+  officerPortraitCaption: { color: '#9fb3cf', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' },
+  officerOfferBody: { display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 },
+  officerOfferHeader: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 12, alignItems: 'start' },
+  officerOfferMain: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, alignItems: 'center' },
+  officerRadar: { display: 'block', maxWidth: '100%' },
+  officerStatList: { display: 'grid', gridTemplateColumns: '1fr', gap: 5 },
+  officerStatRow: { display: 'grid', gridTemplateColumns: '42px 1fr', alignItems: 'center', gap: 8, color: '#b8c7dc', fontSize: 12 },
+  officerCostBox: { display: 'flex', flexDirection: 'column', gap: 5, color: '#dbeafe', fontSize: 12, padding: 10, borderRadius: 12, background: 'rgba(15, 23, 42, 0.34)', border: '1px solid rgba(148, 163, 184, 0.12)' },
+  assignedOfficerSummary: { display: 'grid', gridTemplateColumns: '104px minmax(0, 1fr)', gap: 10, alignItems: 'center', minWidth: 0 },
   tradeMeta: { display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 },
   tradeSub: { color: '#93a8c4', fontSize: 12 },
   marketRowDense: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 10, alignItems: 'center', padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.035)' },
