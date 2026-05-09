@@ -91,16 +91,22 @@ export function restoreGameState(snapshot: GameSnapshot): void {
   const navigationState = dockedPort
     ? { ...snapshot.navigation, position: dockedPort.position }
     : snapshot.navigation
-  const playerState = dockedPort && snapshot.player.player
-    ? {
-      ...snapshot.player,
-      player: {
+  const playerState = {
+    ...snapshot.player,
+    officers: snapshot.player.officers ?? [],
+    officerSalaryProgress: snapshot.player.officerSalaryProgress ?? 0,
+    ships: snapshot.player.ships.map((ship) => ({
+      ...ship,
+      captainOfficerId: ship.instanceId === snapshot.player.activeShipId ? undefined : ship.captainOfficerId,
+    })),
+    player: dockedPort && snapshot.player.player
+      ? {
         ...snapshot.player.player,
         currentPortId: dockedPort.id,
         position: dockedPort.position,
-      },
-    }
-    : snapshot.player
+      }
+      : snapshot.player.player,
+  }
 
   const worldState = {
     ...snapshot.world,

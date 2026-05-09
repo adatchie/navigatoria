@@ -19,6 +19,7 @@ import { isPointOnLand } from '@/data/master/landmasses.ts'
 import { useUIStore } from '@/stores/useUIStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
 import { updateStopTimer } from '@/stores/useUIStore.ts'
+import { getFleetOfficerEffects } from '@/game/officers/officerEffects.ts'
 
 declare global {
   interface Window {
@@ -214,6 +215,7 @@ export class NavigationSystem implements GameSystem {
     const cargoUpgradeLevel = activeShip?.upgrades?.cargo ?? 0
     const riggingTurnFactor = 1 + riggingLevel * 0.06
     const riggingSpeedFactor = 1 + riggingLevel * 0.04
+    const officerEffects = getFleetOfficerEffects(playerStore.ships, playerStore.officers)
 
     const minimumCrew = shipType?.crew.min ?? 1
     const crewPerformance = getCrewPerformance(activeShip?.currentCrew ?? minimumCrew, minimumCrew)
@@ -252,7 +254,7 @@ export class NavigationSystem implements GameSystem {
     const moraleFactor = getMoralePerformance(activeShip?.morale ?? 70)
 
     // --- 旋回 ---
-    const turnRate = (shipType?.turnRate ?? NAVIGATION_CONFIG.BASE_TURN_RATE) * riggingTurnFactor * crewTurnFactor * moraleFactor.turn
+    const turnRate = (shipType?.turnRate ?? NAVIGATION_CONFIG.BASE_TURN_RATE) * riggingTurnFactor * crewTurnFactor * moraleFactor.turn * officerEffects.turnFactor
     const headingDiff = ((nav.targetHeading - nav.heading + 540) % 360) - 180
     const maxTurn = turnRate * deltaTime
 
@@ -279,7 +281,7 @@ export class NavigationSystem implements GameSystem {
     const baseSpeed = (shipType?.speed ?? 8) * riggingSpeedFactor
     const verticalSails = shipType?.verticalSails ?? 1
     const horizontalSails = shipType?.horizontalSails ?? 1
-    const loadFactor = getLoadPerformance(activeShip?.usedCapacity ?? 0, activeShip?.maxCapacity ?? 1, cargoUpgradeLevel)
+    const loadFactor = getLoadPerformance(activeShip?.usedCapacity ?? 0, activeShip?.maxCapacity ?? 1, cargoUpgradeLevel) * officerEffects.cargoFactor
 
     // 風の影響: 帆の種類と風向から速度係数を計算
     const windFactor = windSpeedFactor(newHeading, nav.wind.direction, verticalSails, horizontalSails)
@@ -292,7 +294,7 @@ export class NavigationSystem implements GameSystem {
       NAVIGATION_CONFIG.MAX_SPEED,
       Math.max(
         0.5, // 微速前進の最低保証
-        baseSpeed * nav.sailRatio * windFactor * windSpeedBonus * crewSpeedFactor * moraleFactor.speed * loadFactor,
+        baseSpeed * nav.sailRatio * windFactor * windSpeedBonus * crewSpeedFactor * moraleFactor.speed * loadFactor * officerEffects.speedFactor,
       ),
     )
 

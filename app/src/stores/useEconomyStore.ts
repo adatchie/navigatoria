@@ -5,6 +5,7 @@ import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
 import { useQuestStore } from '@/stores/useQuestStore.ts'
+import { getOfficerShipEffects } from '@/game/officers/officerEffects.ts'
 import type { Port } from '@/types/port.ts'
 import type { CargoSlot } from '@/types/ship.ts'
 import type { PriceTrend, TradeGood } from '@/types/trade.ts'
@@ -49,7 +50,7 @@ interface EconomyStoreState {
   simulateToDay: (currentDay: number) => void
   buyGood: (portId: string, goodId: string, quantity: number, targetShipId?: string) => TradeActionResult
   sellGood: (portId: string, goodId: string, quantity: number, targetShipId?: string) => TradeActionResult
-  getBuyQuote: (portId: string, goodId: string, quantity?: number) => TradeQuote | null
+  getBuyQuote: (portId: string, goodId: string, quantity?: number, targetShipId?: string) => TradeQuote | null
   getSellQuote: (portId: string, goodId: string, quantity?: number, targetShipId?: string) => TradeQuote | null
   getPurchaseLimit: (portId: string, goodId: string) => number
   investInPort: (portId: string, amount: number) => TradeActionResult
@@ -259,16 +260,21 @@ export const useEconomyStore = create<EconomyStoreState>()((set, get) => ({
     return Math.max(1, Math.min(baseLimit - boughtToday, stockCap))
   },
 
-  getBuyQuote: (portId, goodId, quantity = 1) => {
+  getBuyQuote: (portId, goodId, quantity = 1, targetShipId) => {
     const market = get().markets[portId]
     const port = useWorldStore.getState().ports.find((entry) => entry.id === portId)
     const good = useDataStore.getState().getTradeGood(goodId as never)
     const player = usePlayerStore.getState().player
+    const playerState = usePlayerStore.getState()
+    const ship = playerState.ships.find((entry) => entry.instanceId === (targetShipId ?? playerState.activeShipId))
     const item = market?.items.find((entry) => entry.goodId === goodId)
     if (!market || !port || !good || !player || !item) return null
 
     const quote = calculateBuyQuote({ good, port, player, stock: item.stock, maxStock: item.maxStock, trend: item.trend })
-    return { ...quote, totalPrice: quote.unitPrice * quantity, taxAmount: quote.taxAmount * quantity }
+    const effects = getOfficerShipEffects(ship, playerState.officers)
+    const unitPrice = Math.max(1, Math.round(quote.unitPrice / effects.tradePriceFactor))
+    const taxAmount = Math.max(0, Math.round(quote.taxAmount / effects.tradePriceFactor))
+    return { ...quote, unitPrice, totalPrice: unitPrice * quantity, taxAmount: taxAmount * quantity }
   },
 
   getSellQuote: (portId, goodId, quantity = 1, targetShipId) => {
@@ -281,7 +287,10 @@ export const useEconomyStore = create<EconomyStoreState>()((set, get) => ({
     if (!port || !good || !cargoSlot) return null
 
     const quote = calculateSellQuote({ good, port, ports: useWorldStore.getState().ports, cargoSlot, trend })
-    return { ...quote, totalPrice: quote.unitPrice * quantity, taxAmount: quote.taxAmount * quantity }
+    const effects = getOfficerShipEffects(ship, playerState.officers)
+    const unitPrice = Math.max(1, Math.round(quote.unitPrice * effects.tradePriceFactor))
+    const taxAmount = Math.max(0, Math.round(quote.taxAmount * effects.tradePriceFactor))
+    return { ...quote, unitPrice, totalPrice: unitPrice * quantity, taxAmount: taxAmount * quantity }
   },
 
   buyGood: (portId, goodId, quantity, targetShipId) => {
@@ -301,7 +310,7 @@ export const useEconomyStore = create<EconomyStoreState>()((set, get) => ({
     if (quantity > limit) return { ok: false, message: `この港での購入上限は ${limit} です。` }
     if (item.stock < quantity) return { ok: false, message: '在庫が足りません。' }
 
-    const quote = get().getBuyQuote(portId, goodId, quantity)
+    const quote = get().getBuyQuote(portId, goodId, quantity, targetShip.instanceId)
     if (!quote) return { ok: false, message: '買値を計算できません。' }
 
     const requiredCapacity = good.weight * quantity
@@ -362,8 +371,8 @@ export const useEconomyStore = create<EconomyStoreState>()((set, get) => ({
     if (!port || !good || !player || !targetShip || !cargoSlot) return { ok: false, message: '売却対象が見つかりません。' }
     if (cargoSlot.quantity < quantity) return { ok: false, message: '売却数量が積荷を超えています。' }
 
-    const trend = get().markets[portId]?.items.find((entry) => entry.goodId === goodId)?.trend ?? 'stable'
-    const quote = calculateSellQuote({ good, port, ports: useWorldStore.getState().ports, cargoSlot, trend })
+    const quote = get().getSellQuote(portId, goodId, quantity, targetShip.instanceId)
+    if (!quote) return { ok: false, message: '売値を計算できません。' }
     const totalPrice = quote.unitPrice * quantity
     const freedCapacity = good.weight * quantity
     const profit = (quote.unitPrice - cargoSlot.buyPrice) * quantity

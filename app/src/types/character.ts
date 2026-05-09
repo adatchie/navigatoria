@@ -65,6 +65,28 @@ export interface Player {
   heading: number
 }
 
+export type OfficerSpecialty = 'navigation' | 'trade' | 'gunnery' | 'repair' | 'leadership'
+
+export interface OfficerStats {
+  navigation: number
+  trade: number
+  gunnery: number
+  repair: number
+  leadership: number
+}
+
+export interface Officer {
+  id: CharacterId
+  name: string
+  nationality: Nationality
+  specialty: OfficerSpecialty
+  stats: OfficerStats
+  level: number
+  hireCost: number
+  salary: number
+  description: string
+}
+
 export interface NPC {
   id: CharacterId
   name: string

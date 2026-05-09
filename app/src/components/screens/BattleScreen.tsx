@@ -40,6 +40,7 @@ export function BattleScreen() {
   const performCombatAction = useEncounterStore((s) => s.performCombatAction)
   const closeEncounter = useEncounterStore((s) => s.closeEncounter)
   const playerFleet = usePlayerStore((s) => s.ships)
+  const officers = usePlayerStore((s) => s.officers)
   const getShip = useDataStore((s) => s.getShip)
   const windDirection = useNavigationStore((s) => s.wind.direction)
   const windSpeed = useNavigationStore((s) => s.wind.speed)
@@ -51,8 +52,9 @@ export function BattleScreen() {
       playerShips: playerFleet,
       getShipType: (typeId) => getShip(typeId),
       wind,
+      officers,
     })
-  }, [encounter, getShip, playerFleet, wind])
+  }, [encounter, getShip, officers, playerFleet, wind])
 
   const [ships, setShips] = useState<TacticalShipState[]>(() => initialBattle?.ships ?? [])
   const [orders, setOrders] = useState<TacticalShipOrder[]>([])

@@ -2,7 +2,7 @@
 // 船型定義 — 船種マスタ、船インスタンス、パーツ構造
 // ============================================================
 
-import type { ShipId, Range } from './common.ts'
+import type { CharacterId, ShipId, Range } from './common.ts'
 
 export type ShipCategory = 'small_sail' | 'medium_sail' | 'large_sail' | 'galley' | 'oriental'
 
@@ -88,6 +88,7 @@ export interface ShipInstance {
   supplies: ShipSupplies
   reinforceCount: number
   maxReinforce: number
+  captainOfficerId?: CharacterId
   upgrades?: {
     rigging: number
     cargo: number

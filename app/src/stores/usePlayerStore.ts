@@ -3,13 +3,14 @@
 // ============================================================
 
 import { create } from 'zustand'
-import type { Player } from '@/types/character.ts'
+import type { Officer, Player } from '@/types/character.ts'
 import type { WeatherType } from '@/types/common.ts'
 import type { CargoSlot, ShipInstance, ShipSupplies, ShipType } from '@/types/ship.ts'
 import { INITIAL_PLAYER, VOYAGE_CONFIG } from '@/config/gameConfig.ts'
 import { createShipId, type CharacterId, type Position2D } from '@/types/common.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { getPortWorldPosition } from '@/data/master/portWorldPosition.ts'
+import { getOfficerShipEffects } from '@/game/officers/officerEffects.ts'
 
 type TavernService = 'meal' | 'rounds' | 'recruit'
 type RepairMode = 'emergency' | 'standard' | 'overhaul'
@@ -29,6 +30,8 @@ interface PortActionResult {
 interface PlayerStoreState {
   player: Player | null
   ships: ShipInstance[]
+  officers: Officer[]
+  officerSalaryProgress: number
   activeShipId: string | null
   lastVoyageNotice: string | null
   lastVoyageEventDay: number
@@ -49,6 +52,9 @@ interface PlayerStoreState {
   consumeVoyageResources: (gameDayDelta: number) => void
   resupplyShip: (target: 'food' | 'water' | 'all', amount?: number) => PortActionResult
   hireCrew: (amount: number, targetShipId?: string) => PortActionResult
+  hireOfficer: (officer: Officer) => PortActionResult
+  assignOfficerToShip: (officerId: string, targetShipId: string) => PortActionResult
+  unassignOfficer: (officerId: string) => PortActionResult
   visitTavern: (service: TavernService, amount?: number, tavernLevel?: number, targetShipId?: string) => PortActionResult
   repairShip: (mode?: RepairMode, amount?: number, facilityLevel?: number, targetShipId?: string) => PortActionResult
   outfitShip: (option: 'rigging' | 'cargo' | 'gunnery', targetShipId?: string) => PortActionResult
@@ -216,6 +222,8 @@ function getShipyardRequirement(shipType: ShipType): number {
 export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
   player: null,
   ships: [],
+  officers: [],
+  officerSalaryProgress: 0,
   activeShipId: null,
   lastVoyageNotice: null,
   lastVoyageEventDay: -1,
@@ -281,7 +289,7 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
       position: START_PORT_POSITION,
       heading: 0,
     }
-    set({ player, ships: starterShips, activeShipId: starterShips[0].instanceId, lastVoyageNotice: null, lastVoyageEventDay: -1 })
+    set({ player, ships: starterShips, officers: [], officerSalaryProgress: 0, activeShipId: starterShips[0].instanceId, lastVoyageNotice: null, lastVoyageEventDay: -1 })
   },
 
   setPosition: (position) => {
@@ -322,7 +330,12 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
   },
 
   setActiveShip: (instanceId) => {
-    set((state) => state.ships.some((ship) => ship.instanceId === instanceId) ? { activeShipId: instanceId } : state)
+    set((state) => state.ships.some((ship) => ship.instanceId === instanceId)
+      ? {
+        activeShipId: instanceId,
+        ships: state.ships.map((ship) => ship.instanceId === instanceId ? { ...ship, captainOfficerId: undefined } : ship),
+      }
+      : state)
   },
 
   purchaseShip: (shipTypeId, facilityLevel = 1) => {
@@ -421,10 +434,17 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
       const shortage =
         waterResult.shortage * VOYAGE_CONFIG.DEHYDRATION_ATTRITION_FACTOR +
         foodResult.shortage * VOYAGE_CONFIG.STARVATION_ATTRITION_FACTOR
+      const dailyOfficerSalary = state.officers.reduce((sum, officer) => sum + officer.salary, 0)
+      const salaryDue = state.officerSalaryProgress + dailyOfficerSalary * gameDayDelta
+      const payableSalary = Math.floor(salaryDue)
+      const paidSalary = Math.min(state.player?.money ?? 0, payableSalary)
+      const unpaidSalary = Math.max(0, payableSalary - paidSalary)
+      const salaryMoraleLoss = unpaidSalary > 0 ? Math.min(6, unpaidSalary / Math.max(1, dailyOfficerSalary) * 8) : 0
 
       const ships = waterResult.ships.map((ship) => {
         const crewShare = totalCrew > 0 ? ship.currentCrew / totalCrew : 1 / Math.max(1, waterResult.ships.length)
-        const moraleLoss = VOYAGE_CONFIG.PASSIVE_MORALE_LOSS_PER_DAY * gameDayDelta + shortage * VOYAGE_CONFIG.SHORTAGE_MORALE_DAMAGE_FACTOR * crewShare
+        const officerEffects = getOfficerShipEffects(ship, state.officers)
+        const moraleLoss = (VOYAGE_CONFIG.PASSIVE_MORALE_LOSS_PER_DAY * gameDayDelta + shortage * VOYAGE_CONFIG.SHORTAGE_MORALE_DAMAGE_FACTOR * crewShare) * officerEffects.moraleLossFactor + salaryMoraleLoss * crewShare
         const depleted = applyShortageEffects({
           ...ship,
           morale: clamp(getShipMorale(ship) - moraleLoss, 0, 100),
@@ -435,7 +455,11 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
         }
       })
 
-      return { ships }
+      return {
+        player: state.player && paidSalary > 0 ? { ...state.player, money: state.player.money - paidSalary } : state.player,
+        ships,
+        officerSalaryProgress: salaryDue - paidSalary,
+      }
     })
   },
 
@@ -493,6 +517,54 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
     }))
 
     return { ok: true, message: `船員を ${hireable} 人雇用しました。` }
+  },
+
+  hireOfficer: (officer) => {
+    const state = get()
+    const player = state.player
+    if (!player) return { ok: false, message: '航海士を雇用できる状態ではありません。' }
+    if (state.officers.some((entry) => entry.id === officer.id)) return { ok: false, message: `${officer.name} はすでに雇用済みです。` }
+    if (player.money < officer.hireCost) return { ok: false, message: '所持金が足りません。' }
+
+    set((current) => ({
+      player: current.player ? { ...current.player, money: current.player.money - officer.hireCost } : current.player,
+      officers: [...current.officers, officer],
+    }))
+
+    return { ok: true, message: `${officer.name} を航海士として雇用しました。` }
+  },
+
+  assignOfficerToShip: (officerId, targetShipId) => {
+    const state = get()
+    const officer = state.officers.find((entry) => entry.id === officerId)
+    const ship = state.ships.find((entry) => entry.instanceId === targetShipId)
+    if (!officer) return { ok: false, message: '航海士が見つかりません。' }
+    if (!ship) return { ok: false, message: '任命先の船が見つかりません。' }
+    if (ship.instanceId === state.activeShipId) return { ok: false, message: '旗艦はプレイヤーが指揮しています。航海士は僚艦に任命してください。' }
+
+    set((current) => ({
+      ships: current.ships.map((entry) => {
+        if (entry.captainOfficerId === officer.id) return { ...entry, captainOfficerId: undefined }
+        if (entry.instanceId === targetShipId) return { ...entry, captainOfficerId: officer.id }
+        return entry
+      }),
+    }))
+
+    return { ok: true, message: `${officer.name} を ${ship.name} の船長に任命しました。` }
+  },
+
+  unassignOfficer: (officerId) => {
+    const state = get()
+    const officer = state.officers.find((entry) => entry.id === officerId)
+    if (!officer) return { ok: false, message: '航海士が見つかりません。' }
+    const assigned = state.ships.some((ship) => ship.captainOfficerId === officerId)
+    if (!assigned) return { ok: false, message: `${officer.name} は船長に任命されていません。` }
+
+    set((current) => ({
+      ships: current.ships.map((ship) => ship.captainOfficerId === officerId ? { ...ship, captainOfficerId: undefined } : ship),
+    }))
+
+    return { ok: true, message: `${officer.name} の船長任命を解除しました。` }
   },
 
   visitTavern: (service, amount = 0, tavernLevel = 1, targetShipId) => {
@@ -595,6 +667,9 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
       moraleBonus = level >= 3 ? 2 : 0
       label = '修理'
     }
+
+    const officerEffects = getOfficerShipEffects(ship, state.officers)
+    repaired = Math.min(missing, Math.max(1, Math.floor(repaired * officerEffects.repairFactor)))
 
     const totalCost = repaired * costPerPoint
     if (player.money < totalCost) return { ok: false, message: '所持金が足りません。' }

@@ -7,6 +7,8 @@ import { useDataStore } from '@/stores/useDataStore.ts'
 import { useEconomyStore } from '@/stores/useEconomyStore.ts'
 import { useQuestStore } from '@/stores/useQuestStore.ts'
 import { VOYAGE_CONFIG } from '@/config/gameConfig.ts'
+import { formatOfficerStats, getAssignedOfficer } from '@/game/officers/officerEffects.ts'
+import { generateTavernOfficerOffers, getOfficerSpecialtyLabel } from '@/game/officers/officerGenerator.ts'
 import type { Quest, QuestRank, QuestReward, TradeQuestCategory } from '@/types/quest.ts'
 import { uiText } from '@/i18n/uiText.ts'
 
@@ -132,6 +134,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const ports = useWorldStore((s) => s.ports)
   const player = usePlayerStore((s) => s.player)
   const ships = usePlayerStore((s) => s.ships)
+  const officers = usePlayerStore((s) => s.officers)
   const activeShipId = usePlayerStore((s) => s.activeShipId)
   const setPhase = useGameStore((s) => s.setPhase)
   const day = useGameStore((s) => Math.floor(s.timeState.totalDays))
@@ -151,6 +154,9 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const repayDebt = useEconomyStore((s) => s.repayDebt)
   const resupplyShip = usePlayerStore((s) => s.resupplyShip)
   const visitTavern = usePlayerStore((s) => s.visitTavern)
+  const hireOfficer = usePlayerStore((s) => s.hireOfficer)
+  const assignOfficerToShip = usePlayerStore((s) => s.assignOfficerToShip)
+  const unassignOfficer = usePlayerStore((s) => s.unassignOfficer)
   const repairShip = usePlayerStore((s) => s.repairShip)
   const purchaseShip = usePlayerStore((s) => s.purchaseShip)
   const sellInventoryItem = usePlayerStore((s) => s.sellInventoryItem)
@@ -218,11 +224,11 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
       const good = getTradeGood(item.goodId)
       if (!good) return null
       const quantity = quantities[item.goodId] ?? 1
-      const quote = portId ? getBuyQuote(portId, item.goodId, quantity) : null
+      const quote = portId ? getBuyQuote(portId, item.goodId, quantity, marketTargetShip?.instanceId) : null
       const limit = portId ? getPurchaseLimit(portId, item.goodId) : 0
       return { item, good, quantity, quote, limit }
     }).filter((row): row is NonNullable<typeof row> => Boolean(row)).sort((a, b) => a.quote!.unitPrice - b.quote!.unitPrice),
-    [getBuyQuote, getPurchaseLimit, getTradeGood, market?.items, portId, quantities],
+    [getBuyQuote, getPurchaseLimit, getTradeGood, market?.items, marketTargetShip?.instanceId, portId, quantities],
   )
 
   const cargoRows = useMemo(
@@ -309,6 +315,10 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const tavernMealCost = Math.max(20, Math.ceil(Math.max(1, tavernTargetShip?.currentCrew ?? 1) * VOYAGE_CONFIG.TAVERN_MEAL_COST_PER_CREW * (1 - tavernLevel * 0.04)))
   const tavernRoundsCost = Math.max(60, Math.ceil(VOYAGE_CONFIG.TAVERN_ROUND_BASE_COST * (1 + (tavernTargetShip?.maxCrew ?? 1) * 0.04) * (1 - tavernLevel * 0.03)))
   const tavernRecruitUnitCost = Math.max(10, 18 - tavernLevel * VOYAGE_CONFIG.TAVERN_RECRUIT_DISCOUNT_PER_LEVEL)
+  const tavernOfficerOffers = tavernFacility ? generateTavernOfficerOffers(port, day, tavernLevel, player?.stats.fame ?? 0) : []
+  const hiredOfficerIds = new Set(officers.map((officer) => officer.id))
+  const consortShips = ships.filter((ship) => ship.instanceId !== activeShipId)
+  const officerDailySalary = officers.reduce((sum, officer) => sum + officer.salary, 0)
   const captainLevel = Math.max(player?.stats.tradeLevel ?? 0, player?.stats.combatLevel ?? 0, player?.stats.adventureLevel ?? 0)
   const ownedShipTypeIds = new Set(ships.map((ship) => ship.typeId))
   const shipyardOffers = shipCatalog
@@ -358,6 +368,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
           <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.crew}</span><strong>{fleetStats.crew}/{fleetStats.maxCrew}</strong></div>
           <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.cargo}</span><strong>{fleetStats.cargo.toFixed(1)}/{fleetStats.maxCargo.toFixed(1)}</strong></div>
           <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.morale}</span><strong>{formatMorale(fleetMorale)}</strong></div>
+          <div style={styles.statCard}><span style={styles.statLabel}>航海士</span><strong>{officers.length} 名 / 日給 {officerDailySalary} d</strong></div>
           <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.supplies}</span><strong>食 {fleetSupply.food.toFixed(0)}/{fleetSupply.maxFood.toFixed(0)} / 水 {fleetSupply.water.toFixed(0)}/{fleetSupply.maxWater.toFixed(0)}</strong></div>
         </div>
 
@@ -516,12 +527,13 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                         {ships.map((ship) => {
                           const type = getShip(ship.typeId)
                           const isRepairTarget = ship.instanceId === repairTargetShip?.instanceId
+                          const captain = getAssignedOfficer(ship, officers)
                           return (
                             <div key={ship.instanceId} style={styles.compactActionRow}>
                               <div style={styles.tradeMeta}>
                                 <strong>{type?.name ?? ship.name}{ship.instanceId === activeShipId ? ` / ${uiText.town.labels.active}` : ''}{isRepairTarget ? ' / 操作対象' : ''}</strong>
                                 <span style={styles.tradeSub}>船員 {ship.currentCrew}/{ship.maxCrew} / 船体 {ship.currentDurability}/{ship.maxDurability} / 積荷 {ship.usedCapacity}/{ship.maxCapacity}</span>
-                                <span style={styles.tradeSub}>速力 {type?.speed ?? '-'} / 旋回 {type?.turnRate ?? '-'} / 砲門 {type?.cannonSlots ?? '-'}</span>
+                                <span style={styles.tradeSub}>速力 {type?.speed ?? '-'} / 旋回 {type?.turnRate ?? '-'} / 砲門 {type?.cannonSlots ?? '-'} / 船長 {captain?.name ?? (ship.instanceId === activeShipId ? 'プレイヤー' : '未任命')}</span>
                               </div>
                               <button style={isRepairTarget ? styles.secondaryButton : styles.primaryButton} disabled={isRepairTarget} onClick={() => setRepairTargetShipId(ship.instanceId)}>操作対象にする</button>
                             </div>
@@ -674,6 +686,49 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                       <p style={styles.serviceLabel}>船員雇用</p>
                       <div style={styles.serviceGrid}>
                         {CREW_HIRE_AMOUNTS.map((amount) => <button key={`crew-${amount}`} style={styles.secondaryButton} onClick={() => handleAction(visitTavern('recruit', amount, tavernLevel, tavernTargetShip?.instanceId))}>{amount} 人雇う</button>)}
+                      </div>
+                    </div>
+                    <div>
+                      <p style={styles.serviceLabel}>航海士雇用</p>
+                      <div style={styles.list}>
+                        {tavernOfficerOffers.map((officer) => {
+                          const hired = hiredOfficerIds.has(officer.id)
+                          return (
+                            <div key={officer.id} style={styles.compactActionRow}>
+                              <div style={styles.tradeMeta}>
+                                <strong>{officer.name} / {getOfficerSpecialtyLabel(officer.specialty)} Lv.{officer.level}</strong>
+                                <span style={styles.tradeSub}>{formatOfficerStats(officer)}</span>
+                                <span style={styles.tradeSub}>{officer.description} / 雇用 {officer.hireCost} d / 日給 {officer.salary} d</span>
+                              </div>
+                              <button style={styles.primaryButton} disabled={hired || (player?.money ?? 0) < officer.hireCost} onClick={() => handleAction(hireOfficer(officer))}>{hired ? '雇用済み' : '雇用する'}</button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                    <div>
+                      <p style={styles.serviceLabel}>僚艦船長任命</p>
+                      <div style={styles.list}>
+                        {officers.length === 0 && <div style={styles.emptyState}>雇用済みの航海士はいません。</div>}
+                        {officers.map((officer) => {
+                          const assignedShip = ships.find((ship) => ship.captainOfficerId === officer.id)
+                          return (
+                            <div key={officer.id} style={styles.compactActionRow}>
+                              <div style={styles.tradeMeta}>
+                                <strong>{officer.name} / 現在 {assignedShip?.name ?? '未任命'}</strong>
+                                <span style={styles.tradeSub}>{getOfficerSpecialtyLabel(officer.specialty)} / {formatOfficerStats(officer)}</span>
+                                <span style={styles.tradeSub}>効果: 航海=速力・旋回 / 交易=売買価格・積載補助 / 砲術=戦術砲門 / 修理=修理効率 / 統率=士気低下軽減</span>
+                              </div>
+                              <div style={styles.inlineButtonGroup}>
+                                {consortShips.map((ship) => (
+                                  <button key={`${officer.id}-${ship.instanceId}`} style={ship.captainOfficerId === officer.id ? styles.secondaryButton : styles.primaryButton} disabled={ship.captainOfficerId === officer.id} onClick={() => handleAction(assignOfficerToShip(officer.id, ship.instanceId))}>{ship.name}</button>
+                                ))}
+                                <button style={styles.secondaryButton} disabled={!assignedShip} onClick={() => handleAction(unassignOfficer(officer.id))}>任を解く</button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                        {officers.length > 0 && consortShips.length === 0 && <div style={styles.emptyState}>船長を任命できる僚艦がありません。</div>}
                       </div>
                     </div>
                   </div>
@@ -886,6 +941,7 @@ const styles: Record<string, React.CSSProperties> = {
   compactFigure: { minWidth: 72, textAlign: 'right', color: '#eef4ff', fontSize: 12 },
   emptyState: { color: '#7b8fab', fontSize: 13, padding: '14px 4px' },
   serviceGrid: { display: 'flex', flexWrap: 'wrap', gap: 10 },
+  inlineButtonGroup: { display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end' },
   serviceColumns: { display: 'grid', gridTemplateColumns: '1fr', gap: 16 },
   facilityTargetRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: 12, borderRadius: 14, border: '1px solid rgba(96, 165, 250, 0.24)', background: 'rgba(37, 99, 235, 0.08)' },
   commandTargetLabel: { display: 'flex', alignItems: 'center', gap: 8, color: '#b7c9e3', fontSize: 12 },

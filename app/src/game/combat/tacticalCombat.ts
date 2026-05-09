@@ -2,6 +2,8 @@ import type { EncounterState } from '@/types/encounter.ts'
 import type { Position2D } from '@/types/common.ts'
 import type { ShipInstance, ShipType } from '@/types/ship.ts'
 import type { TacticalBattleState, TacticalShipOrder, TacticalShipState, TacticalWindState } from '@/types/tacticalCombat.ts'
+import type { Officer } from '@/types/character.ts'
+import { getOfficerShipEffects } from '@/game/officers/officerEffects.ts'
 
 const PLAYER_START_X = 22
 const ENEMY_START_X = 78
@@ -120,9 +122,11 @@ export function buildInitialTacticalBattle(params: {
   playerShips: ShipInstance[]
   getShipType: (typeId: string) => ShipType | undefined
   wind: TacticalWindState
+  officers?: Officer[]
 }): TacticalBattleState {
   const playerShips = params.playerShips.slice(0, 5).map((ship, index, list): TacticalShipState => {
     const shipType = params.getShipType(ship.typeId)
+    const officerEffects = getOfficerShipEffects(ship, params.officers ?? [])
     return {
       id: ship.instanceId,
       side: 'player',
@@ -133,9 +137,9 @@ export function buildInitialTacticalBattle(params: {
       maxDurability: ship.maxDurability,
       crew: ship.currentCrew,
       maxCrew: ship.maxCrew,
-      speed: shipType?.speed ?? 7,
-      turnRate: shipType?.turnRate ?? 45,
-      cannonSlots: shipType?.cannonSlots ?? 2,
+      speed: (shipType?.speed ?? 7) * officerEffects.speedFactor,
+      turnRate: (shipType?.turnRate ?? 45) * officerEffects.turnFactor,
+      cannonSlots: Math.max(1, Math.round((shipType?.cannonSlots ?? 2) * officerEffects.gunneryFactor)),
       status: ship.currentDurability <= 0 ? 'sunk' : ship.currentCrew <= 0 ? 'disabled' : 'active',
     }
   })
