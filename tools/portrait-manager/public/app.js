@@ -1,9 +1,12 @@
 const roles = [
   ['navigator', '航海士'],
+  ['sailor', '水夫'],
   ['barmaid', '酒場女'],
   ['merchant', '商人'],
   ['officer', '士官'],
   ['mercenary', '傭兵'],
+  ['corsair', '海賊・私掠'],
+  ['missionary', '宣教師'],
   ['guild_master', 'ギルド'],
   ['shipwright', '船大工'],
   ['noble', '貴族'],
@@ -45,6 +48,69 @@ const faceAngles = [
   ['three_quarter_right', '右向き3/4'],
   ['profile_left', '左横顔'],
   ['profile_right', '右横顔'],
+]
+
+const viewAngles = [
+  ['random', '自動ばらし'],
+  ['eye_level', '目線高さ'],
+  ['slightly_high', '斜め上から'],
+  ['slightly_low', 'やや見上げ'],
+  ['chin_down_eyes_up', '顎引き・上目'],
+  ['over_shoulder', '振り返り'],
+]
+
+const expressions = [
+  ['random', '自動ばらし'],
+  ['calm', '静か'],
+  ['faint_smile', '微笑'],
+  ['skeptical', '疑い深い'],
+  ['wary', '警戒'],
+  ['tired', '疲れ'],
+  ['confident', '自信'],
+  ['amused', '面白がる'],
+  ['stern', '厳格'],
+]
+
+const headwears = [
+  ['random', '自動ばらし'],
+  ['none', '帽子なし'],
+  ['flat_cap', '平帽'],
+  ['soft_bonnet', '柔らかい帽子'],
+  ['cloth_cap', '布帽'],
+  ['hood_or_coif', '頭巾・コイフ'],
+  ['morion', 'モリオン兜'],
+  ['zucchetto', 'ズケット'],
+  ['turban', 'ターバン'],
+]
+
+const facialHairs = [
+  ['random', '自動ばらし'],
+  ['clean_shaven', '髭なし'],
+  ['faint_stubble', '薄い無精髭'],
+  ['trimmed_moustache', '短い口髭'],
+  ['small_goatee', '小さな顎髭'],
+  ['short_beard', '短い顎髭'],
+]
+
+const hairColors = [
+  ['random', '自動ばらし'],
+  ['black', '黒髪'],
+  ['dark_brown', '濃茶'],
+  ['chestnut', '栗色'],
+  ['auburn', '赤褐色'],
+  ['dark_blond', '暗金髪'],
+  ['grey', '灰色'],
+  ['white', '白髪'],
+]
+
+const eyeColors = [
+  ['random', '自動ばらし'],
+  ['dark_brown', '濃茶'],
+  ['hazel', '榛色'],
+  ['amber', '琥珀'],
+  ['grey', '灰色'],
+  ['blue', '青'],
+  ['green', '緑'],
 ]
 
 const genders = [
@@ -111,6 +177,20 @@ const candidateSeeds = [
   { role: 'barmaid', nationality: 'england', port: 'ダートマス', age: '20s', period: 'late_16c', faceAngle: 'three_quarter_right', gender: 'female', setting: '帰港した船乗りから情報を集める港酒場の給仕', mood: '茶目っ気を抑えた明るさ' },
   { role: 'noble', nationality: 'venice', port: 'ラグーザ', age: '30s', period: 'early_16c', faceAngle: 'three_quarter_left', gender: 'male', setting: 'アドリア海交易に出資する都市貴族', mood: '優雅で観察深い' },
   { role: 'shipwright', nationality: 'local', port: 'アレクサンドリア', age: '40s', period: 'mid_16c', faceAngle: 'profile_right', gender: 'male', setting: '地中海と紅海の船を見分ける港の修理職人', mood: '穏やかだが職人気質' },
+  { role: 'corsair', nationality: 'england', port: 'プリマス', age: '30s', period: 'late_16c', faceAngle: 'three_quarter_left', viewAngle: 'slightly_low', expression: 'confident', headwear: 'none', facialHair: 'trimmed_moustache', hairColor: 'dark_brown', eyeColor: 'grey', gender: 'male', setting: '大西洋沿岸で私掠に関わる荒れた身なりの船乗り', mood: '挑むような自信、軽い不敵さ' },
+  { role: 'corsair', nationality: 'france', port: 'ラ・ロシェル', age: '40s', period: 'late_16c', faceAngle: 'profile_right', viewAngle: 'chin_down_eyes_up', expression: 'wary', headwear: 'cloth_cap', facialHair: 'short_beard', hairColor: 'chestnut', eyeColor: 'hazel', gender: 'male', setting: '沿岸襲撃と密貿易を行き来するフランスの海賊船乗り', mood: '警戒心が強く、抜け目ない' },
+  { role: 'corsair', nationality: 'ottoman', port: 'アルジェ', age: '50s', period: 'mid_16c', faceAngle: 'three_quarter_right', viewAngle: 'slightly_high', expression: 'stern', headwear: 'turban', facialHair: 'small_goatee', hairColor: 'black', eyeColor: 'dark_brown', gender: 'male', setting: '西地中海で名を知られるバルバリア海賊の船長格', mood: '静かな威圧感' },
+  { role: 'merchant', nationality: 'ottoman', port: 'イスタンブール', age: '30s', period: 'mid_16c', faceAngle: 'three_quarter_left', viewAngle: 'over_shoulder', expression: 'skeptical', headwear: 'turban', facialHair: 'trimmed_moustache', hairColor: 'black', eyeColor: 'amber', gender: 'male', setting: '香料と書簡を運ぶムスリム系の海上商人', mood: '疑い深いが礼を失わない' },
+  { role: 'officer', nationality: 'ottoman', port: 'ロードス', age: '40s', period: 'mid_16c', faceAngle: 'front', viewAngle: 'slightly_low', expression: 'stern', headwear: 'turban', facialHair: 'short_beard', hairColor: 'black', eyeColor: 'dark_brown', gender: 'male', setting: '東地中海の軍船を率いるムスリム系士官', mood: '規律と威厳' },
+  { role: 'merchant', nationality: 'local', port: 'ホルムズ', age: '50s', period: 'early_16c', faceAngle: 'profile_left', viewAngle: 'eye_level', expression: 'amused', headwear: 'turban', facialHair: 'small_goatee', hairColor: 'grey', eyeColor: 'hazel', gender: 'male', setting: 'ペルシア湾の宝石と馬を扱うムスリム系商人', mood: '老練で余裕がある' },
+  { role: 'corsair', nationality: 'spain', port: 'カディス', age: '20s', period: 'mid_16c', faceAngle: 'three_quarter_right', viewAngle: 'slightly_high', expression: 'amused', headwear: 'soft_bonnet', facialHair: 'faint_stubble', hairColor: 'auburn', eyeColor: 'green', gender: 'male', setting: '正規船と海賊稼業の境目を渡る若い船乗り', mood: '笑みを隠した危うさ' },
+  { role: 'corsair', nationality: 'venice', port: 'キプロス', age: '30s', period: 'early_16c', faceAngle: 'front', viewAngle: 'chin_down_eyes_up', expression: 'skeptical', headwear: 'flat_cap', facialHair: 'clean_shaven', hairColor: 'dark_blond', eyeColor: 'blue', gender: 'male', setting: '東地中海の通商路で半ば私掠に手を染める船乗り', mood: '冷めた目、軽い皮肉' },
+  { role: 'missionary', nationality: 'portugal', port: 'ゴア', age: '40s', period: 'mid_16c', faceAngle: 'three_quarter_left', viewAngle: 'eye_level', expression: 'calm', headwear: 'zucchetto', facialHair: 'clean_shaven', hairColor: 'dark_brown', eyeColor: 'dark_brown', gender: 'male', setting: 'インド洋拠点で通訳と布教を担う宣教師', mood: '静かな説得力、柔らかい目' },
+  { role: 'missionary', nationality: 'spain', port: 'マニラ', age: '30s', period: 'late_16c', faceAngle: 'three_quarter_right', viewAngle: 'slightly_high', expression: 'tired', headwear: 'zucchetto', facialHair: 'faint_stubble', hairColor: 'black', eyeColor: 'hazel', gender: 'male', setting: '太平洋航路の書簡を携える宣教師', mood: '疲れを帯びた誠実さ' },
+  { role: 'sailor', nationality: 'portugal', port: 'リスボン', age: '20s', period: 'early_16c', faceAngle: 'profile_left', viewAngle: 'over_shoulder', expression: 'amused', headwear: 'cloth_cap', facialHair: 'faint_stubble', hairColor: 'chestnut', eyeColor: 'amber', gender: 'male', setting: '帆綱と荷揚げに慣れた若い水夫', mood: '軽さと油断のなさ' },
+  { role: 'sailor', nationality: 'netherlands', port: 'ロッテルダム', age: '40s', period: 'late_16c', faceAngle: 'three_quarter_left', viewAngle: 'chin_down_eyes_up', expression: 'skeptical', headwear: 'flat_cap', facialHair: 'short_beard', hairColor: 'grey', eyeColor: 'blue', gender: 'male', setting: '北海の荒天を知る古参水夫', mood: '口数少なく、目だけが鋭い' },
+  { role: 'officer', nationality: 'spain', port: 'カディス', age: '30s', period: 'mid_16c', faceAngle: 'three_quarter_right', viewAngle: 'slightly_low', expression: 'stern', headwear: 'morion', facialHair: 'trimmed_moustache', hairColor: 'dark_brown', eyeColor: 'grey', gender: 'male', setting: '港の守備と船団護衛を兼ねる士官', mood: '硬質な規律' },
+  { role: 'mercenary', nationality: 'venice', port: 'カンディア', age: '30s', period: 'mid_16c', faceAngle: 'profile_right', viewAngle: 'eye_level', expression: 'wary', headwear: 'morion', facialHair: 'small_goatee', hairColor: 'black', eyeColor: 'green', gender: 'male', setting: '東地中海の船団に雇われる護衛兵', mood: '静かな警戒心' },
 ]
 
 const state = {
@@ -147,6 +227,12 @@ const elements = {
   ageInput: $('ageInput'),
   periodInput: $('periodInput'),
   faceAngleInput: $('faceAngleInput'),
+  viewAngleInput: $('viewAngleInput'),
+  expressionInput: $('expressionInput'),
+  headwearInput: $('headwearInput'),
+  facialHairInput: $('facialHairInput'),
+  hairColorInput: $('hairColorInput'),
+  eyeColorInput: $('eyeColorInput'),
   genderInput: $('genderInput'),
   settingInput: $('settingInput'),
   moodInput: $('moodInput'),
@@ -229,6 +315,12 @@ function normalizeBrief(input = {}) {
     age: valueFor(ages, input.age, ''),
     period: valueFor(periods, input.period, 'strict_16c'),
     faceAngle: valueFor(faceAngles, input.faceAngle, 'random'),
+    viewAngle: valueFor(viewAngles, input.viewAngle, 'random'),
+    expression: valueFor(expressions, input.expression, 'random'),
+    headwear: valueFor(headwears, input.headwear, 'random'),
+    facialHair: valueFor(facialHairs, input.facialHair, 'random'),
+    hairColor: valueFor(hairColors, input.hairColor, 'random'),
+    eyeColor: valueFor(eyeColors, input.eyeColor, 'random'),
     gender: valueFor(genders, input.gender, 'unspecified'),
     setting: String(input.setting ?? '').trim(),
     mood: String(input.mood ?? '').trim(),
@@ -254,6 +346,13 @@ function briefKey(brief) {
     brief.age,
     brief.period,
     brief.gender,
+    brief.faceAngle,
+    brief.viewAngle,
+    brief.expression,
+    brief.headwear,
+    brief.facialHair,
+    brief.hairColor,
+    brief.eyeColor,
     brief.setting,
   ].join('|')
 }
@@ -280,10 +379,15 @@ function periodLabelForPrompt(period) {
   }
 }
 
+function resolvedOption(brief, key, options) {
+  const value = brief[key]
+  if (value && value !== 'random') return value
+  const choices = options.filter((option) => option[0] !== 'random')
+  return choices[hashString(`${brief.id}:${key}`) % choices.length][0]
+}
+
 function faceAnglePrompt(brief) {
-  const resolvedAngle = brief.faceAngle === 'random'
-    ? faceAngles[1 + (hashString(brief.id) % (faceAngles.length - 1))][0]
-    : brief.faceAngle
+  const resolvedAngle = resolvedOption(brief, 'faceAngle', faceAngles)
 
   switch (resolvedAngle) {
     case 'front':
@@ -301,10 +405,182 @@ function faceAnglePrompt(brief) {
   }
 }
 
+function viewAnglePrompt(brief) {
+  switch (resolvedOption(brief, 'viewAngle', viewAngles)) {
+    case 'eye_level':
+      return 'viewpoint: eye-level portrait, natural conversation camera height'
+    case 'slightly_high':
+      return 'viewpoint: seen slightly from above, head subtly tilted up so the eyes remain strong; no extreme top-down distortion'
+    case 'slightly_low':
+      return 'viewpoint: seen slightly from below, mild looking-up angle with readable jaw and collar; no heroic low-angle exaggeration'
+    case 'chin_down_eyes_up':
+      return 'viewpoint: chin slightly lowered with eyes looking up from under the brows, compact intense face angle'
+    case 'over_shoulder':
+      return 'viewpoint: shoulders angled away while the head turns back toward the viewer, readable face, not a full back view'
+    default:
+      return 'viewpoint: eye-level portrait, natural conversation camera height'
+  }
+}
+
+function expressionPrompt(brief) {
+  switch (resolvedOption(brief, 'expression', expressions)) {
+    case 'calm':
+      return 'expression: calm and observant, mouth relaxed, eyes doing most of the character work'
+    case 'faint_smile':
+      return 'expression: restrained faint smile, not broad or comedic'
+    case 'skeptical':
+      return 'expression: skeptical side glance, one brow slightly tense, controlled mouth'
+    case 'wary':
+      return 'expression: wary and alert, eyes narrowed slightly without becoming hostile'
+    case 'tired':
+      return 'expression: travel-worn tiredness, softened eyelids, no heavy realism or grime'
+    case 'confident':
+      return 'expression: quiet confidence, composed gaze and subtle lifted mouth corner'
+    case 'amused':
+      return 'expression: mildly amused, clever eyes, restrained smile'
+    case 'stern':
+      return 'expression: stern and disciplined, firm mouth, focused eyes'
+    default:
+      return 'expression: calm and observant, mouth relaxed, eyes doing most of the character work'
+  }
+}
+
+function allowsTurban(brief) {
+  return brief.nationality === 'ottoman'
+    || brief.nationality === 'local'
+    || /ムスリム|イスラム|ペルシア|紅海|ホルムズ|アレクサンドリア|アルジェ|チュニス|イスタンブール/.test(brief.setting || '')
+}
+
+function isMissionaryLike(brief) {
+  return brief.role === 'missionary'
+    || /宣教師|司祭|修道|イエズス|布教|missionary|jesuit|clergy|priest/i.test(brief.setting || '')
+}
+
+function allowsMorion(brief) {
+  return ['officer', 'mercenary', 'corsair'].includes(brief.role)
+    || /士官|傭兵|護衛|軍|兵|守備|私掠|海賊|戦闘|武装/.test(brief.setting || '')
+}
+
+function headwearChoicesFor(brief) {
+  const choices = ['none', 'flat_cap', 'soft_bonnet', 'cloth_cap', 'hood_or_coif']
+  if (allowsTurban(brief)) choices.push('turban')
+  if (allowsMorion(brief)) choices.push('morion')
+  if (isMissionaryLike(brief)) choices.push('zucchetto')
+  return choices
+}
+
+function headwearPrompt(brief) {
+  const choices = headwearChoicesFor(brief)
+  let resolvedHeadwear = brief.headwear && brief.headwear !== 'random'
+    ? brief.headwear
+    : choices[hashString(`${brief.id}:headwear`) % choices.length]
+
+  if (resolvedHeadwear === 'turban' && !allowsTurban(brief)) {
+    resolvedHeadwear = 'cloth_cap'
+  }
+  if (resolvedHeadwear === 'zucchetto' && !isMissionaryLike(brief)) {
+    resolvedHeadwear = 'soft_bonnet'
+  }
+  switch (resolvedHeadwear) {
+    case 'none':
+      return 'headwear variation: no hat, show a distinct hairline and hair silhouette appropriate to the 1500s'
+    case 'flat_cap':
+      return 'headwear variation: 16th-century flat cap, modest brim, period-correct cloth or wool'
+    case 'soft_bonnet':
+      return 'headwear variation: soft Renaissance bonnet, slouched cloth crown, not a modern beret'
+    case 'cloth_cap':
+      return 'headwear variation: simple working cloth cap or sailor wrap, practical and worn'
+    case 'hood_or_coif':
+      return 'headwear variation: hood, coif, or linen head covering appropriate to class and gender'
+    case 'morion':
+      return 'headwear variation: plain 16th-century morion helmet for a military or shipboard guard context, modest metal rim, no fantasy armor'
+    case 'zucchetto':
+      return 'headwear variation: small Catholic missionary zucchetto skullcap, simple dark cloth, restrained and period-appropriate, not a bishop mitre'
+    case 'turban':
+      return 'headwear variation: 16th-century Ottoman or eastern Mediterranean wrapped turban only if culturally appropriate; otherwise use a wrapped cloth cap'
+    default:
+      return 'headwear variation: no hat, show a distinct hairline and hair silhouette appropriate to the 1500s'
+  }
+}
+
+function facialHairPrompt(brief) {
+  const isFemale = brief.gender === 'female' || brief.role === 'barmaid'
+  if (isFemale) {
+    return 'facial hair variation: no facial hair'
+  }
+
+  switch (resolvedOption(brief, 'facialHair', facialHairs)) {
+    case 'clean_shaven':
+      return 'facial hair variation: clean-shaven face, clear jaw and mouth line'
+    case 'faint_stubble':
+      return 'facial hair variation: faint stubble drawn with sparse fine lines, not a beard-dominant face'
+    case 'trimmed_moustache':
+      return 'facial hair variation: short trimmed moustache, period-plausible and understated'
+    case 'small_goatee':
+      return 'facial hair variation: small neat goatee, restrained and not rugged'
+    case 'short_beard':
+      return 'facial hair variation: short trimmed beard, tidy 16th-century facial hair, not heavy fantasy beard'
+    default:
+      return 'facial hair variation: clean-shaven face, clear jaw and mouth line'
+  }
+}
+
+function hairColorPrompt(brief) {
+  switch (resolvedOption(brief, 'hairColor', hairColors)) {
+    case 'black':
+      return 'hair color variation: black hair, drawn with dense fine ink texture'
+    case 'dark_brown':
+      return 'hair color variation: dark brown hair, muted and natural'
+    case 'chestnut':
+      return 'hair color variation: chestnut brown hair, subtle warm wash'
+    case 'auburn':
+      return 'hair color variation: auburn hair, restrained reddish-brown tone'
+    case 'dark_blond':
+      return 'hair color variation: dark blond hair, desaturated ochre wash'
+    case 'grey':
+      return 'hair color variation: grey hair, age-appropriate and softly inked'
+    case 'white':
+      return 'hair color variation: white or pale grey hair, thin ink texture'
+    default:
+      return 'hair color variation: dark brown hair, muted and natural'
+  }
+}
+
+function eyeColorPrompt(brief) {
+  switch (resolvedOption(brief, 'eyeColor', eyeColors)) {
+    case 'dark_brown':
+      return 'eye color variation: dark brown eyes with clear inked eyelid lines'
+    case 'hazel':
+      return 'eye color variation: hazel eyes, subtle warm muted wash'
+    case 'amber':
+      return 'eye color variation: amber-brown eyes, restrained and not glowing'
+    case 'grey':
+      return 'eye color variation: grey eyes, cool muted wash'
+    case 'blue':
+      return 'eye color variation: muted blue eyes, natural and not bright fantasy'
+    case 'green':
+      return 'eye color variation: muted green eyes, natural and understated'
+    default:
+      return 'eye color variation: dark brown eyes with clear inked eyelid lines'
+  }
+}
+
+function compositionVariationPrompt(brief) {
+  const variations = [
+    'composition variation: prop is partly cropped at the lower left edge, face remains dominant',
+    'composition variation: prop is partly cropped at the lower right edge, avoid centered document pose',
+    'composition variation: no obvious prop in the foreground; rely on clothing, expression, and silhouette',
+    'composition variation: diagonal shoulder line and off-center head placement, UI crop still clean',
+    'composition variation: one hand or rolled paper barely enters the lower frame, not covering the face',
+  ]
+  return variations[hashString(`${brief.id}:composition`) % variations.length]
+}
+
 function costumeGuidance(brief) {
   const isFemale = brief.gender === 'female' || brief.role === 'barmaid'
   const isElite = ['noble', 'officer', 'guild_master', 'scholar'].includes(brief.role)
-  const isWorkingMaritime = ['navigator', 'shipwright', 'mercenary'].includes(brief.role)
+  const isWorkingMaritime = ['navigator', 'sailor', 'shipwright', 'mercenary', 'corsair'].includes(brief.role)
+  const isClergy = brief.role === 'missionary'
 
   const guidance = [
     `costume date: ${periodLabelForPrompt(brief.period)}`,
@@ -317,6 +593,12 @@ function costumeGuidance(brief) {
       'Ottoman 16th-century dress: wrapped turban or soft cap, long kaftan or robe, layered textile collar, silk or wool according to status',
       'do not use European ruff collars, tricorn hats, frock coats, cravats, wigs, or western naval uniforms',
     )
+    if (brief.role === 'corsair') {
+      guidance.push(
+        'for Ottoman or Barbary corsair styling: layered kaftan or sailor robe worn for shipboard use, practical sash, weathered cloth, restrained weapon or rope detail near the lower frame',
+        'avoid pirate stereotypes: no Caribbean pirate costume, tricorn, eyepatch, hook, skull emblem, striped shirt, 17th-century buccaneer coat, or flamboyant Golden Age pirate styling',
+      )
+    }
     return guidance
   }
 
@@ -324,6 +606,11 @@ function costumeGuidance(brief) {
     guidance.push(
       'European 16th-century women: linen smock, partlet or modest square neckline, fitted bodice, kirtle or gown, coif, hood, or simple cap according to class',
       'for tavern workers use practical linen/wool clothing and apron-like working layers, not court fantasy costume',
+    )
+  } else if (isClergy) {
+    guidance.push(
+      '16th-century Catholic missionary clothing: plain dark cassock or clerical robe over simple linen, small zucchetto or modest cap when used, travel-worn but orderly',
+      'avoid modern Roman collar, bishop mitre, cardinal hat, Baroque clerical portrait, jeweled vestments, and theatrical saint imagery',
     )
   } else if (isWorkingMaritime) {
     guidance.push(
@@ -339,6 +626,13 @@ function costumeGuidance(brief) {
   if (isElite) {
     guidance.push(
       'for elite status allow restrained embroidery, silk, velvet, gold or silver thread, but keep the silhouette within the 1500s',
+    )
+  }
+
+  if (brief.role === 'corsair') {
+    guidance.push(
+      'for corsair or privateer styling: 16th-century sailor clothing worn loose, open collar, weathered jerkin, practical sash or belt, and asymmetric layers; it must not read as Caribbean pirate costume',
+      'avoid pirate stereotypes: no tricorn, eyepatch, hook, skull emblem, striped shirt, 17th-century buccaneer coat, or flamboyant Golden Age pirate styling',
     )
   }
 
@@ -365,6 +659,11 @@ function roleIdentityGuidance(brief) {
         ...base,
         'role cue: maritime pilot or route reader, shown with a small astrolabe, folded chart edge, or simple corded tool near the lower edge; not a pirate, not a naval hero',
       ]
+    case 'sailor':
+      return [
+        ...base,
+        'role cue: working sailor shown through practical shipboard clothing, rope or sailcloth edge near the lower frame, weathered posture, and alert eyes; not a pirate costume and not a heroic officer portrait',
+      ]
     case 'barmaid':
       return [
         ...base,
@@ -384,6 +683,17 @@ function roleIdentityGuidance(brief) {
       return [
         ...base,
         'role cue: hired guard or escort shown through worn but period-correct clothing and one small belt detail; avoid western fantasy rogue, huge shoulders, heavy armor, and theatrical scars',
+      ]
+    case 'corsair':
+      return [
+        ...base,
+        'role cue: 16th-century corsair or privateer shown through period sailor clothing worn loose or weathered, a small sea-worn token, rope, dagger hilt, or folded letter edge near the lower frame',
+        'pirate guardrail: not a Caribbean pirate, not Golden Age piracy, no tricorn hat, no eyepatch, no hook hand, no skull symbols, no striped pirate costume; keep it as 1500s maritime clothing slightly disordered',
+      ]
+    case 'missionary':
+      return [
+        ...base,
+        'role cue: 16th-century missionary shown through plain clerical travel clothing, small book or folded letter edge, restrained zucchetto or simple cap, and calm persuasive eyes; not a modern priest portrait',
       ]
     case 'guild_master':
       return [
@@ -413,9 +723,9 @@ function roleIdentityGuidance(brief) {
 function genderHandlingGuidance(brief) {
   if (brief.gender === 'male') {
     return [
-      'male character handling: adult male with controlled Japanese game-illustration stylization, memorable slightly emphasized eyes, clean facial silhouette, modest jaw and nose, restrained expression, clean-shaven or only faint stubble unless the setting explicitly requires more',
+      'male character handling: adult male with controlled Japanese game-illustration stylization, memorable slightly emphasized eyes, clean facial silhouette, modest jaw and nose, restrained expression, facial hair follows the explicit facial hair variation only',
       'male appeal: make him cooler and more characterful than a realistic portrait through elegant eye shape, clear brows, simplified planes, and subtle attractive distortion; do not make him comedic, chibi, cartoonish, or childlike',
-      'male failure mode to avoid: rugged western RPG man, beard-dominant face, muscular laborer, fantasy rogue, gritty hero, fashion model beauty, photoreal skin, cinematic toughness',
+      'male failure mode to avoid: rugged western RPG man, unrequested beard-dominant face, muscular laborer, fantasy rogue, gritty hero, fashion model beauty, photoreal skin, cinematic toughness',
     ]
   }
 
@@ -464,6 +774,7 @@ function styleProfile() {
       'thin restrained ink linework',
       'visible hatching and cross-hatching on face, neck, hair, collar, and costume folds',
       'faded transparent watercolor shadows',
+      'varied viewpoint, expression, headwear, facial hair, hair color, eye color, and prop placement across portraits',
       'Japanese game character-design facial simplification',
       'slightly emphasized memorable eyes with elegant eyelid lines',
       'controlled attractive stylization without comedy or chibi proportions',
@@ -504,6 +815,13 @@ function buildPrompt(brief) {
     brief.port ? `associated with ${brief.port}` : '',
     'head and shoulders portrait, UI-ready face icon crop',
     faceAnglePrompt(brief),
+    viewAnglePrompt(brief),
+    expressionPrompt(brief),
+    headwearPrompt(brief),
+    facialHairPrompt(brief),
+    hairColorPrompt(brief),
+    eyeColorPrompt(brief),
+    compositionVariationPrompt(brief),
     ...costumeGuidance(brief),
     ...roleIdentityGuidance(brief),
     ...genderHandlingGuidance(brief),
@@ -527,7 +845,12 @@ function negativePrompt() {
     '18th century clothing',
     'Baroque fashion',
     'Golden Age pirate costume',
+    'Caribbean pirate costume',
+    'buccaneer costume',
     'tricorn hat',
+    'eyepatch',
+    'hook hand',
+    'skull emblem',
     'frock coat',
     'waistcoat',
     'cravat',
@@ -536,6 +859,10 @@ function negativePrompt() {
     'musketeer costume',
     'modern naval uniform',
     'modern clothing',
+    'modern clerical collar',
+    'bishop mitre',
+    'cardinal hat',
+    'Baroque clerical portrait',
     'western museum portrait',
     'European old master painting',
     'literal antique engraving plate',
@@ -579,6 +906,12 @@ function parseRows(text = elements.rowsInput.value) {
         period: columns[6],
         faceAngle: columns[7],
         gender: columns[8],
+        viewAngle: columns[9],
+        expression: columns[10],
+        headwear: columns[11],
+        facialHair: columns[12],
+        hairColor: columns[13],
+        eyeColor: columns[14],
       })
     })
 }
@@ -621,6 +954,12 @@ function matchesSearch(brief) {
     labelFor(ages, brief.age),
     labelFor(periods, brief.period),
     labelFor(faceAngles, brief.faceAngle),
+    labelFor(viewAngles, brief.viewAngle),
+    labelFor(expressions, brief.expression),
+    labelFor(headwears, brief.headwear),
+    labelFor(facialHairs, brief.facialHair),
+    labelFor(hairColors, brief.hairColor),
+    labelFor(eyeColors, brief.eyeColor),
     labelFor(genders, brief.gender),
     brief.setting,
     brief.mood,
@@ -628,7 +967,7 @@ function matchesSearch(brief) {
 }
 
 function generateCandidates({ silent = false } = {}) {
-  const requestedCount = Math.max(1, Math.min(80, Number(elements.candidateCountInput.value) || 24))
+  const requestedCount = Math.max(1, Math.min(candidateSeeds.length, Number(elements.candidateCountInput.value) || candidateSeeds.length))
   const existingKeys = new Set(state.items.map(briefKey))
   const nextCandidates = []
 
@@ -717,6 +1056,12 @@ function createCandidateCard(brief) {
     editableSelect(brief, 'age', ages),
     editableSelect(brief, 'period', periods),
     editableSelect(brief, 'faceAngle', faceAngles),
+    editableSelect(brief, 'viewAngle', viewAngles),
+    editableSelect(brief, 'expression', expressions),
+    editableSelect(brief, 'headwear', headwears),
+    editableSelect(brief, 'facialHair', facialHairs),
+    editableSelect(brief, 'hairColor', hairColors),
+    editableSelect(brief, 'eyeColor', eyeColors),
     editableSelect(brief, 'gender', genders),
   )
 
@@ -736,6 +1081,12 @@ function editableSelect(brief, key, options) {
     age: '年齢',
     period: '年代',
     faceAngle: '向き',
+    viewAngle: '視点',
+    expression: '表情',
+    headwear: '帽子',
+    facialHair: '髭',
+    hairColor: '髪色',
+    eyeColor: '瞳',
     gender: '性別',
   }[key] || key
   const select = document.createElement('select')
@@ -862,6 +1213,12 @@ function createCard(brief) {
     labelFor(ages, brief.age),
     labelFor(periods, brief.period),
     labelFor(faceAngles, brief.faceAngle),
+    labelFor(viewAngles, brief.viewAngle),
+    labelFor(expressions, brief.expression),
+    labelFor(headwears, brief.headwear),
+    labelFor(facialHairs, brief.facialHair),
+    labelFor(hairColors, brief.hairColor),
+    labelFor(eyeColors, brief.eyeColor),
     labelFor(genders, brief.gender),
   ].filter(Boolean)) {
     const chip = document.createElement('span')
@@ -927,6 +1284,12 @@ function matchesRecordSearch(record) {
     labelFor(ages, record.age),
     labelFor(periods, record.period),
     labelFor(faceAngles, record.faceAngle),
+    labelFor(viewAngles, record.viewAngle),
+    labelFor(expressions, record.expression),
+    labelFor(headwears, record.headwear),
+    labelFor(facialHairs, record.facialHair),
+    labelFor(hairColors, record.hairColor),
+    labelFor(eyeColors, record.eyeColor),
     labelFor(genders, record.gender),
     record.setting,
     record.mood,
@@ -989,6 +1352,12 @@ function createRecordCard(record) {
     labelFor(ages, record.age),
     labelFor(periods, record.period),
     labelFor(faceAngles, record.faceAngle),
+    labelFor(viewAngles, record.viewAngle),
+    labelFor(expressions, record.expression),
+    labelFor(headwears, record.headwear),
+    labelFor(facialHairs, record.facialHair),
+    labelFor(hairColors, record.hairColor),
+    labelFor(eyeColors, record.eyeColor),
     labelFor(genders, record.gender),
   ].filter(Boolean)) {
     const chip = document.createElement('span')
@@ -1175,6 +1544,12 @@ function addSingle() {
     age: elements.ageInput.value,
     period: elements.periodInput.value,
     faceAngle: elements.faceAngleInput.value,
+    viewAngle: elements.viewAngleInput.value,
+    expression: elements.expressionInput.value,
+    headwear: elements.headwearInput.value,
+    facialHair: elements.facialHairInput.value,
+    hairColor: elements.hairColorInput.value,
+    eyeColor: elements.eyeColorInput.value,
     gender: elements.genderInput.value,
     setting: elements.settingInput.value,
     mood: elements.moodInput.value,
@@ -1337,12 +1712,26 @@ fillOptions(elements.nationalityInput, nationalities)
 fillOptions(elements.ageInput, ages)
 fillOptions(elements.periodInput, periods)
 fillOptions(elements.faceAngleInput, faceAngles)
+fillOptions(elements.viewAngleInput, viewAngles)
+fillOptions(elements.expressionInput, expressions)
+fillOptions(elements.headwearInput, headwears)
+fillOptions(elements.facialHairInput, facialHairs)
+fillOptions(elements.hairColorInput, hairColors)
+fillOptions(elements.eyeColorInput, eyeColors)
 fillOptions(elements.genderInput, genders)
+elements.candidateCountInput.max = String(candidateSeeds.length)
+elements.candidateCountInput.value = String(candidateSeeds.length)
 elements.roleInput.value = 'navigator'
 elements.nationalityInput.value = 'portugal'
 elements.periodInput.value = 'strict_16c'
 elements.faceAngleInput.value = 'random'
-elements.rowsInput.placeholder = '役職,国籍,街,年齢,設定,表情・雰囲気,服飾年代（任意）,顔向き（任意）,性別（任意）'
+elements.viewAngleInput.value = 'random'
+elements.expressionInput.value = 'random'
+elements.headwearInput.value = 'random'
+elements.facialHairInput.value = 'random'
+elements.hairColorInput.value = 'random'
+elements.eyeColorInput.value = 'random'
+elements.rowsInput.placeholder = '役職,国籍,街,年齢,設定,表情・雰囲気,服飾年代,顔向き,性別,視点,表情,帽子,髭,髪色,瞳'
 elements.rowsInput.value = defaultRows
 loadWorkspace()
 if (!state.candidates.length && !state.items.length) {

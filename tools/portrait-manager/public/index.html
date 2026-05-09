@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta http-equiv="cache-control" content="no-store" />
     <title>顔グラ生成</title>
-    <link rel="stylesheet" href="/styles.css?v=portrait-progress-20260509" />
+    <link rel="stylesheet" href="/styles.css?v=portrait-variation-20260509" />
   </head>
   <body>
     <div class="workbench">
@@ -36,7 +36,7 @@
           </div>
           <label class="field">
             <span>作成数</span>
-            <input id="candidateCountInput" type="number" min="1" max="80" value="48" />
+            <input id="candidateCountInput" type="number" min="1" max="80" value="62" />
           </label>
           <div class="button-row">
             <button id="generateCandidatesButton" class="primary" type="button">被りなし候補を作成</button>
@@ -77,10 +77,42 @@
               <select id="faceAngleInput"></select>
             </label>
           </div>
-          <label class="field">
-            <span>性別</span>
-            <select id="genderInput"></select>
-          </label>
+          <div class="two-col">
+            <label class="field">
+              <span>視点</span>
+              <select id="viewAngleInput"></select>
+            </label>
+            <label class="field">
+              <span>表情</span>
+              <select id="expressionInput"></select>
+            </label>
+          </div>
+          <div class="two-col">
+            <label class="field">
+              <span>帽子</span>
+              <select id="headwearInput"></select>
+            </label>
+            <label class="field">
+              <span>髭</span>
+              <select id="facialHairInput"></select>
+            </label>
+          </div>
+          <div class="two-col">
+            <label class="field">
+              <span>髪色</span>
+              <select id="hairColorInput"></select>
+            </label>
+            <label class="field">
+              <span>瞳</span>
+              <select id="eyeColorInput"></select>
+            </label>
+          </div>
+          <div class="two-col">
+            <label class="field">
+              <span>性別</span>
+              <select id="genderInput"></select>
+            </label>
+          </div>
           <label class="field">
             <span>設定</span>
             <textarea id="settingInput" rows="4" spellcheck="false"></textarea>
@@ -147,6 +179,6 @@
     </div>
 
     <div id="toast" class="toast" role="status"></div>
-    <script type="module" src="/app.js?v=portrait-progress-20260509"></script>
+    <script type="module" src="/app.js?v=portrait-variation-20260509"></script>
   </body>
 </html>

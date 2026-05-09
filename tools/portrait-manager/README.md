@@ -59,9 +59,10 @@ then send only the approved list to the image thread.
 from approved generation requests, then lets you attach the final display
 name, implementation ID, generated image path, and notes after the image
 exists. The generated prompt, role, nationality, port, age, period, face
-angle, gender, setting, mood, and dedicated image-thread ID remain on the
-record so the portrait can later be linked to game data without relying
-on the temporary browser list.
+angle, viewpoint, expression, headwear, facial hair, hair color, eye
+color, gender, setting, mood, and dedicated image-thread ID remain on
+the record so the portrait can later be linked to game data without
+relying on the temporary browser list.
 
 The server also exposes generated image discovery for the dedicated
 thread through:
@@ -86,20 +87,27 @@ record.
 One record per line:
 
 ```text
-role,nationality,port,age,setting,mood,costumePeriod,faceAngle
+role,nationality,port,age,setting,mood,costumePeriod,faceAngle,gender,viewAngle,expression,headwear,facialHair,hairColor,eyeColor
 ```
 
 Example:
 
 ```text
-navigator,portugal,lisbon,30s,careful pilot,stern expression,late_16c,three_quarter_left,male
-barmaid,portugal,lisbon,20s,warm tavern hostess,friendly smile,strict_16c,random,female
+navigator,portugal,lisbon,30s,careful pilot,stern expression,late_16c,three_quarter_left,male,slightly_high,wary,flat_cap,faint_stubble,dark_brown,hazel
+corsair,england,plymouth,30s,privateer sailor,confident smile,late_16c,three_quarter_left,male,slightly_low,confident,none,trimmed_moustache,dark_brown,grey
+missionary,portugal,goa,40s,missionary interpreter,calm persuasive eyes,mid_16c,three_quarter_left,male,eye_level,calm,zucchetto,clean_shaven,dark_brown,dark_brown
+sailor,netherlands,rotterdam,40s,veteran North Sea sailor,watchful eyes,late_16c,three_quarter_left,male,chin_down_eyes_up,skeptical,flat_cap,short_beard,grey,blue
 ```
+
+Supported role values include `navigator`, `sailor`, `barmaid`,
+`merchant`, `officer`, `mercenary`, `corsair`, `missionary`,
+`guild_master`, `shipwright`, `noble`, and `scholar`.
 
 `costumePeriod` is optional. Supported values are `strict_16c`,
 `early_16c`, `mid_16c`, and `late_16c`. Prompts include explicit
 16th-century costume constraints and negative terms for later Baroque,
-pirate, tricorn, frock coat, cravat, and naval-uniform styles.
+pirate, tricorn, frock coat, cravat, modern clerical collar, bishop
+mitre, and naval-uniform styles.
 
 `faceAngle` is optional. Supported values are `random`, `front`,
 `three_quarter_left`, `three_quarter_right`, `profile_left`, and
@@ -107,6 +115,18 @@ pirate, tricorn, frock coat, cravat, and naval-uniform styles.
 
 `gender` can be added as the ninth column. Supported values are
 `unspecified`, `male`, and `female`.
+
+Additional optional columns control visual variation:
+`viewAngle`, `expression`, `headwear`, `facialHair`, `hairColor`, and
+`eyeColor`. Use `random` to let the manager pick a stable varied value
+per entry. Headwear values include `none`, `flat_cap`, `soft_bonnet`,
+`cloth_cap`, `hood_or_coif`, `morion`, `zucchetto`, and `turban`.
+Automatic headwear variation narrows those choices by role and cultural
+context, so missionary-style zucchettos and military morions do not
+bleed into unrelated briefs. `corsair` is available as a role for
+16th-century pirate/privateer characters. It explicitly avoids
+Caribbean or Golden Age pirate costume and instead uses loosened 1500s
+maritime clothing.
 
 ## Style Direction
 
