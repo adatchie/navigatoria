@@ -232,6 +232,28 @@ async function updatePortraitRecordStatus(id, status, patch = {}) {
   await writePortraitRecordStore(store.records)
 }
 
+async function normalizeJobState() {
+  const job = await readJsonFile(JOB_FILE, { status: 'idle', count: 0, completed: 0 })
+  if (job.status !== 'running' || activeGenerationJob) {
+    return job
+  }
+
+  const error = '画像生成ジョブは管理サーバー再起動で中断されました。必要なら同じ候補を再送信してください。'
+  const nextJob = {
+    ...job,
+    status: 'failed',
+    error,
+    updatedAt: nowIso(),
+    interruptedAt: nowIso(),
+  }
+
+  if (job.currentRecordId) {
+    await updatePortraitRecordStatus(job.currentRecordId, 'failed', { error })
+  }
+  await writeJsonFile(JOB_FILE, nextJob)
+  return nextJob
+}
+
 function dateMs(value) {
   const parsed = Date.parse(value || '')
   return Number.isFinite(parsed) ? parsed : 0
@@ -698,7 +720,7 @@ async function handleApi(request, response, url) {
   }
 
   if (request.method === 'GET' && url.pathname === '/api/app-server/job') {
-    sendJson(response, 200, await readJsonFile(JOB_FILE, { status: 'idle', count: 0, completed: 0 }))
+    sendJson(response, 200, await normalizeJobState())
     return
   }
 
