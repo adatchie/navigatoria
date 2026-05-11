@@ -1040,7 +1040,6 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                 <div style={styles.systemMessageWindow}>
                   <strong>{formatOfficerName(hireDialogue.officer)}が仲間になりました</strong>
                   <span>配置する船を選んでください</span>
-                  <small>クリックで閉じる</small>
                 </div>
               ) : (
                 <div style={styles.dialogueStack}>
