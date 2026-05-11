@@ -7,6 +7,7 @@ import { useEconomyStore } from '@/stores/useEconomyStore.ts'
 import { useQuestStore } from '@/stores/useQuestStore.ts'
 import { useEncounterStore } from '@/stores/useEncounterStore.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
+import { localizeOfficerName } from '@/game/officers/officerGenerator.ts'
 import type { Port } from '@/types/port.ts'
 
 export interface GameSnapshot {
@@ -93,7 +94,10 @@ export function restoreGameState(snapshot: GameSnapshot): void {
     : snapshot.navigation
   const playerState = {
     ...snapshot.player,
-    officers: snapshot.player.officers ?? [],
+    officers: (snapshot.player.officers ?? []).map((officer, index) => ({
+      ...officer,
+      name: localizeOfficerName(officer.name, index),
+    })),
     officerSalaryProgress: snapshot.player.officerSalaryProgress ?? 0,
     ships: snapshot.player.ships.map((ship) => ({
       ...ship,

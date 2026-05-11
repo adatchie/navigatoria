@@ -11,6 +11,7 @@ import { createShipId, type CharacterId, type Position2D } from '@/types/common.
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { getPortWorldPosition } from '@/data/master/portWorldPosition.ts'
 import { getOfficerShipEffects } from '@/game/officers/officerEffects.ts'
+import { localizeOfficerName } from '@/game/officers/officerGenerator.ts'
 
 type TavernService = 'meal' | 'rounds' | 'recruit'
 type RepairMode = 'emergency' | 'standard' | 'overhaul'
@@ -522,16 +523,17 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
   hireOfficer: (officer) => {
     const state = get()
     const player = state.player
+    const localizedOfficer = { ...officer, name: localizeOfficerName(officer.name) }
     if (!player) return { ok: false, message: '航海士を雇用できる状態ではありません。' }
-    if (state.officers.some((entry) => entry.id === officer.id)) return { ok: false, message: `${officer.name} はすでに雇用済みです。` }
+    if (state.officers.some((entry) => entry.id === officer.id)) return { ok: false, message: `${localizedOfficer.name} はすでに雇用済みです。` }
     if (player.money < officer.hireCost) return { ok: false, message: '所持金が足りません。' }
 
     set((current) => ({
       player: current.player ? { ...current.player, money: current.player.money - officer.hireCost } : current.player,
-      officers: [...current.officers, officer],
+      officers: [...current.officers, localizedOfficer],
     }))
 
-    return { ok: true, message: `${officer.name} を航海士として雇用しました。` }
+    return { ok: true, message: `${localizedOfficer.name} を航海士として雇用しました。` }
   },
 
   assignOfficerToShip: (officerId, targetShipId) => {
@@ -541,6 +543,7 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
     if (!officer) return { ok: false, message: '航海士が見つかりません。' }
     if (!ship) return { ok: false, message: '任命先の船が見つかりません。' }
     if (ship.instanceId === state.activeShipId) return { ok: false, message: '旗艦はプレイヤーが指揮しています。航海士は僚艦に任命してください。' }
+    const officerName = localizeOfficerName(officer.name)
 
     set((current) => ({
       ships: current.ships.map((entry) => {
@@ -550,7 +553,7 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
       }),
     }))
 
-    return { ok: true, message: `${officer.name} を ${ship.name} の船長に任命しました。` }
+    return { ok: true, message: `${officerName} を ${ship.name} の船長に任命しました。` }
   },
 
   unassignOfficer: (officerId) => {
@@ -558,13 +561,14 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
     const officer = state.officers.find((entry) => entry.id === officerId)
     if (!officer) return { ok: false, message: '航海士が見つかりません。' }
     const assigned = state.ships.some((ship) => ship.captainOfficerId === officerId)
-    if (!assigned) return { ok: false, message: `${officer.name} は船長に任命されていません。` }
+    const officerName = localizeOfficerName(officer.name)
+    if (!assigned) return { ok: false, message: `${officerName} は船長に任命されていません。` }
 
     set((current) => ({
       ships: current.ships.map((ship) => ship.captainOfficerId === officerId ? { ...ship, captainOfficerId: undefined } : ship),
     }))
 
-    return { ok: true, message: `${officer.name} の船長任命を解除しました。` }
+    return { ok: true, message: `${officerName} の船長任命を解除しました。` }
   },
 
   visitTavern: (service, amount = 0, tavernLevel = 1, targetShipId) => {
