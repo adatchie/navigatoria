@@ -19,6 +19,11 @@ interface TownScreenProps {
 }
 
 type TownSection = 'overview' | 'departure' | 'market' | 'guild' | 'tavern' | 'shipyard' | 'bank' | 'inventory'
+type HireDialogueStep = 'player_line' | 'officer_line' | 'system_message'
+type HireDialogueState = {
+  officer: Officer
+  step: HireDialogueStep
+}
 type CityHotspot = {
   section: TownSection
   label: string
@@ -54,6 +59,7 @@ const OUTFIT_OPTIONS = [
 const OUTFIT_BASE_COST = { rigging: 320, cargo: 280, gunnery: 360 }
 const OUTFIT_STEP = { rigging: 90, cargo: 70, gunnery: 120 }
 const OUTFIT_MAX_LEVEL = 3
+const PLAYER_PORTRAIT_URL = 'generated/portraits/player-diego.jpg'
 const OFFICER_STAT_AXES: { key: keyof OfficerStats; label: string }[] = [
   { key: 'navigation', label: '航海' },
   { key: 'trade', label: '交易' },
@@ -199,6 +205,20 @@ function OfficerPortrait({ officer }: { officer: Officer }) {
   )
 }
 
+function DialogueLineWindow({ portraitUrl, speaker, message, side = 'left' }: { portraitUrl: string; speaker: string; message: string; side?: 'left' | 'right' }) {
+  return (
+    <div style={side === 'right' ? { ...styles.dialogueLine, ...styles.dialogueLineRight } : styles.dialogueLine}>
+      <div style={styles.dialoguePortraitFrame}>
+        <img src={resolvePortraitUrl(portraitUrl)} alt={`${speaker} portrait`} style={styles.officerPortraitImage} />
+      </div>
+      <div style={styles.dialogueTextBox}>
+        <strong>{speaker}</strong>
+        <span>{message}</span>
+      </div>
+    </div>
+  )
+}
+
 export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const portId = useNavigationStore((s) => s.dockedPortId)
   const ports = useWorldStore((s) => s.ports)
@@ -248,6 +268,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const [tavernTargetShipId, setTavernTargetShipId] = useState<string | null>(null)
   const [shipyardTargetShipId, setShipyardTargetShipId] = useState<string | null>(null)
   const [marketTargetShipId, setMarketTargetShipId] = useState<string | null>(null)
+  const [hireDialogue, setHireDialogue] = useState<HireDialogueState | null>(null)
 
   const port = ports.find((item) => item.id === portId)
   const activeShip = ships.find((ship) => ship.instanceId === activeShipId)
@@ -338,6 +359,29 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const handleAction = (message: { message: string }) => {
     clearQuestNotice()
     setTradeMessageState({ portId: port.id, message: message.message })
+  }
+  const beginHireDialogue = (officer: Officer) => {
+    clearQuestNotice()
+    setTradeMessageState({ portId: port.id, message: null })
+    setHireDialogue({ officer, step: 'player_line' })
+  }
+  const advanceHireDialogue = () => {
+    if (!hireDialogue) return
+    if (hireDialogue.step === 'player_line') {
+      setHireDialogue({ officer: hireDialogue.officer, step: 'officer_line' })
+      return
+    }
+    if (hireDialogue.step === 'officer_line') {
+      const result = hireOfficer(hireDialogue.officer)
+      if (!result.ok) {
+        setHireDialogue(null)
+        handleAction(result)
+        return
+      }
+      setHireDialogue({ officer: hireDialogue.officer, step: 'system_message' })
+      return
+    }
+    setHireDialogue(null)
   }
 
   const fleetStats = ships.reduce(
@@ -775,7 +819,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                                     <strong>{officer.name} / {getOfficerSpecialtyLabel(officer.specialty)} Lv.{officer.level}</strong>
                                     <span style={styles.tradeSub}>{officer.description}</span>
                                   </div>
-                                  <button style={styles.primaryButton} disabled={hired || (player?.money ?? 0) < officer.hireCost} onClick={() => handleAction(hireOfficer(officer))}>{hired ? '雇用済み' : '雇用する'}</button>
+                                  <button style={styles.primaryButton} disabled={hired || (player?.money ?? 0) < officer.hireCost} onClick={() => beginHireDialogue(officer)}>{hired ? '雇用済み' : '雇用する'}</button>
                                 </div>
                                 <div style={styles.officerOfferMain}>
                                   <OfficerRadarChart stats={officer.stats} />
@@ -960,6 +1004,32 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
             )}
             </main>
         </div>
+        {hireDialogue && (
+          <div
+            style={styles.dialogueOverlay}
+            role="button"
+            tabIndex={0}
+            onClick={advanceHireDialogue}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') advanceHireDialogue()
+            }}
+          >
+            {hireDialogue.step === 'system_message' ? (
+              <div style={styles.systemMessageWindow}>
+                <strong>{hireDialogue.officer.name}が仲間になりました</strong>
+                <span>配置する船を選んでください</span>
+                <small>クリックで閉じる</small>
+              </div>
+            ) : (
+              <div style={styles.dialogueStack}>
+                <DialogueLineWindow portraitUrl={PLAYER_PORTRAIT_URL} speaker="ディエゴ" message="仲間にならないか？" />
+                {hireDialogue.step === 'officer_line' && (
+                  <DialogueLineWindow portraitUrl={hireDialogue.officer.portraitUrl ?? ''} speaker={hireDialogue.officer.name} message="いいぜ" side="right" />
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -1042,6 +1112,13 @@ const styles: Record<string, React.CSSProperties> = {
   officerStatRow: { display: 'grid', gridTemplateColumns: '42px 1fr', alignItems: 'center', gap: 8, color: '#b8c7dc', fontSize: 12 },
   officerCostBox: { display: 'flex', flexDirection: 'column', gap: 5, color: '#dbeafe', fontSize: 12, padding: 10, borderRadius: 12, background: 'rgba(15, 23, 42, 0.34)', border: '1px solid rgba(148, 163, 184, 0.12)' },
   assignedOfficerSummary: { display: 'grid', gridTemplateColumns: '104px minmax(0, 1fr)', gap: 10, alignItems: 'center', minWidth: 0 },
+  dialogueOverlay: { position: 'fixed', inset: 0, zIndex: 900, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '24px min(5vw, 56px)', background: 'rgba(4, 8, 15, 0.34)', cursor: 'pointer' },
+  dialogueStack: { width: 'min(920px, 100%)', display: 'flex', flexDirection: 'column', gap: 12 },
+  dialogueLine: { width: 'min(720px, 100%)', display: 'grid', gridTemplateColumns: '104px minmax(0, 1fr)', gap: 12, alignItems: 'stretch' },
+  dialogueLineRight: { alignSelf: 'flex-end', gridTemplateColumns: '104px minmax(0, 1fr)' },
+  dialoguePortraitFrame: { width: 104, aspectRatio: '1 / 1', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(244, 201, 130, 0.42)', background: 'rgba(15, 23, 42, 0.78)', boxShadow: '0 12px 28px rgba(0,0,0,0.34)' },
+  dialogueTextBox: { minHeight: 104, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8, padding: '16px 18px', borderRadius: 12, background: 'linear-gradient(180deg, rgba(10, 22, 38, 0.96), rgba(13, 28, 48, 0.98))', border: '1px solid rgba(191, 219, 254, 0.28)', color: '#eef6ff', boxShadow: '0 16px 44px rgba(0,0,0,0.38)', fontSize: 18, lineHeight: 1.5 },
+  systemMessageWindow: { width: 'min(640px, 100%)', display: 'flex', flexDirection: 'column', gap: 8, padding: '20px 22px', marginBottom: 8, borderRadius: 14, background: 'linear-gradient(180deg, rgba(13, 30, 52, 0.98), rgba(7, 17, 31, 0.98))', border: '1px solid rgba(250, 204, 21, 0.34)', color: '#f8fbff', boxShadow: '0 20px 60px rgba(0,0,0,0.42)', fontSize: 18, lineHeight: 1.5 },
   tradeMeta: { display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 },
   tradeSub: { color: '#93a8c4', fontSize: 12 },
   marketRowDense: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 10, alignItems: 'center', padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.035)' },
