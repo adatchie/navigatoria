@@ -22,10 +22,10 @@ interface OceanColorStage {
   sun: Color
 }
 
-const OCEAN_DAY_START_DEEP = new Color(0x006994)
-const OCEAN_DAY_END_DEEP = new Color(0x004466)
-const OCEAN_DAY_START_SHALLOW = new Color(0x40a4c8)
-const OCEAN_DAY_END_SHALLOW = new Color(0x2288aa)
+const OCEAN_DAY_START_DEEP = new Color(0x0c6f95)
+const OCEAN_DAY_END_DEEP = new Color(0x0b5d82)
+const OCEAN_DAY_START_SHALLOW = new Color(0x2f9fc0)
+const OCEAN_DAY_END_SHALLOW = new Color(0x247fa5)
 const OCEAN_DAY_SUN = new Color(0xfff5e0)
 const OCEAN_DUSK_START_DEEP = new Color(0x006994)
 const OCEAN_DUSK_END_DEEP = new Color(0x253a5a)
@@ -153,8 +153,8 @@ export function OceanScene({ size = 500, segments = 128 }: OceanSceneProps) {
   const { wind } = useNavigationStore()
   const hour = useGameStore((s) => s.timeState.hour)
 
-  const innerUniforms = useMemo(() => createUniforms(1, 1), [])
-  const outerUniforms = useMemo(() => createUniforms(0.22, 0.24), [])
+  const innerUniforms = useMemo(() => createUniforms(1, 0.28), [])
+  const outerUniforms = useMemo(() => createUniforms(0.22, 0.06), [])
   const innerColorBuffer = useMemo<OceanColorStage>(
     () => ({ deep: new Color(), shallow: new Color(), sun: new Color() }),
     [],

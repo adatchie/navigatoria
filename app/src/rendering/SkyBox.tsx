@@ -28,9 +28,9 @@ const SKY_DAWN_END: SkyColorStage = {
   ambient: new Color(0xb89a7a),
 }
 const SKY_DAY: SkyColorStage = {
-  top: new Color(0x2277cc),
-  bottom: new Color(0x88bbdd),
-  ambient: new Color(0x8ea4b8),
+  top: new Color(0x3f8fd4),
+  bottom: new Color(0xa9cfe4),
+  ambient: new Color(0xc2d1df),
 }
 const SKY_DUSK_END: SkyColorStage = {
   top: new Color(0x223653),
@@ -104,12 +104,15 @@ export function SkyBox() {
   const sunVisible = hour >= 5 && hour <= 20.5
   const nightVisible = !sunVisible
   const daylightStrength = smoothstep(5, 7.25, hour) * (1 - smoothstep(18, 20.5, hour))
-  const sunIntensity = 0.34 + daylightStrength * 0.58
+  const sunIntensity = 0.38 + daylightStrength * 0.72
+  const ambientIntensity = nightVisible ? 1.08 : 1.08
+  const fillIntensity = nightVisible ? 0.58 : 0.52
+  const hemisphereIntensity = nightVisible ? 0.72 : 0.74
 
   return (
     <>
       <color attach="background" args={[colors.top.getHex()]} />
-      <ambientLight color={colors.ambient} intensity={nightVisible ? 0.98 : 0.68} />
+      <ambientLight color={colors.ambient} intensity={ambientIntensity} />
 
       {sunVisible && (
         <directionalLight
@@ -120,10 +123,11 @@ export function SkyBox() {
         />
       )}
 
-      <directionalLight position={[-80, 120, -40]} color={0xdbeafe} intensity={nightVisible ? 0.5 : 0.28} />
+      <directionalLight position={[-80, 120, -40]} color={0xdbeafe} intensity={fillIntensity} />
+      <directionalLight position={[60, 90, 80]} color={0xeaf4ff} intensity={nightVisible ? 0.24 : 0.36} />
       {nightVisible && <directionalLight position={[100, 150, 50]} color={0xc8d7ff} intensity={0.58} />}
 
-      <hemisphereLight color={colors.top} groundColor={colors.bottom} intensity={nightVisible ? 0.66 : 0.48} />
+      <hemisphereLight color={colors.top} groundColor={colors.bottom} intensity={hemisphereIntensity} />
       <fog attach="fog" args={[colors.bottom, nightVisible ? 240 : 150, nightVisible ? 760 : 620]} />
     </>
   )
