@@ -28,10 +28,13 @@ const FIELD_SCALE_X = 1.12
 const FIELD_SCALE_Z = 0.82
 const CANNON_RANGE = 22
 const CANNON_ARC_DEGREES = 48
+const CANNON_ARC_RADIANS = (CANNON_ARC_DEGREES * Math.PI) / 180
+const CANNON_FIRE_INTERVAL_MS = 1000
 const BOARDING_RANGE = 4.8
 const ACTION_DURATION_MS = 8000
 const ACTION_TICK_MS = 80
 const PROJECTILE_DURATION = 0.13
+const CANNON_FIRE_INTERVAL_PROGRESS = CANNON_FIRE_INTERVAL_MS / ACTION_DURATION_MS
 const BOARDING_TICK_PROGRESS = 1000 / ACTION_DURATION_MS
 
 export function BattleScreen() {
@@ -154,8 +157,8 @@ export function BattleScreen() {
     const confirmedOrders = orders.filter((order) => order.confirmed)
     const allOrders = [...confirmedOrders, ...aiOrders]
     const courses = buildMovementCourses(ships, allOrders, wind)
-    const events = buildCombatEvents(ships, courses)
     const boarding = buildBoardingEvents(ships, courses, allOrders)
+    const events = buildCombatEvents(ships, courses, boarding)
     const startedAt = performance.now()
 
     if (actionTimerRef.current !== null) window.clearInterval(actionTimerRef.current)
@@ -455,10 +458,10 @@ function HeadingIndicator3D(props: { heading: number; color: string }) {
 }
 
 function BroadsideArc3D(props: { side: 'left' | 'right'; color: string }) {
-  const sideSign = props.side === 'left' ? -1 : 1
+  const centerAngle = props.side === 'left' ? Math.PI : 0
   return (
-    <mesh position={[0, 0.09, 0]} rotation={[-Math.PI / 2, 0, sideSign * Math.PI / 2]}>
-      <ringGeometry args={[3.4, CANNON_RANGE * 0.52, 48, 1, -Math.PI * 0.24, Math.PI * 0.48]} />
+    <mesh position={[0, 0.09, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <ringGeometry args={[3.4, CANNON_RANGE * 0.52, 48, 1, centerAngle - CANNON_ARC_RADIANS, CANNON_ARC_RADIANS * 2]} />
       <meshBasicMaterial color={props.color} transparent opacity={0.18} depthWrite={false} />
     </mesh>
   )
@@ -532,6 +535,8 @@ function CombatEventEffects(props: { events: CombatEvent[]; progress: number }) 
         const projectileY = 1.4 + Math.sin(travel * Math.PI) * 2.4
         const flashVisible = local < 0.22
         const impactVisible = local > 0.72
+        const impactOpacity = Math.max(0, 1.25 - (local - 0.72) * 1.9)
+        const damageNumberY = 4.8 + Math.min(1, Math.max(0, local - 0.72) / 0.63) * 2.1
         const color = event.attackerSide === 'player' ? '#fde68a' : '#fecaca'
 
         return (
@@ -564,6 +569,17 @@ function CombatEventEffects(props: { events: CombatEvent[]; progress: number }) 
                   <ringGeometry args={[1.2, event.critical ? 4.8 : 3.2, 24]} />
                   <meshBasicMaterial color={event.hit ? '#fca5a5' : '#7dd3fc'} transparent opacity={Math.max(0, 0.7 - (local - 0.72) * 1.8)} depthWrite={false} />
                 </mesh>
+                <Html position={[0, damageNumberY, 0]} center distanceFactor={38} style={{ ...styles.damageNumberStack, opacity: impactOpacity }}>
+                  {event.hit ? (
+                    <>
+                      {event.critical && <span style={styles.damageCriticalLabel}>CRITICAL</span>}
+                      <strong style={event.critical ? styles.damageNumberCritical : styles.damageNumber}>耐久 -{event.damage}</strong>
+                      {event.crewLoss > 0 && <span style={styles.damageNumberCrew}>船員 -{event.crewLoss}</span>}
+                    </>
+                  ) : (
+                    <strong style={styles.damageNumberMiss}>MISS</strong>
+                  )}
+                </Html>
               </group>
             )}
           </group>
@@ -772,41 +788,52 @@ function clampTargetToReachable(ship: TacticalShipState, targetPosition: Positio
   })
 }
 
-function buildCombatEvents(ships: TacticalShipState[], courses: MovementCourse[]): CombatEvent[] {
+function buildCombatEvents(ships: TacticalShipState[], courses: MovementCourse[], boardingEvents: BoardingEvent[]): CombatEvent[] {
   const events: CombatEvent[] = []
   const sides = ['player', 'enemy'] as const
   let eventIndex = 0
+  let simulatedShips = ships.map((ship) => ({ ...ship }))
+  const fireChecks = Math.ceil(ACTION_DURATION_MS / CANNON_FIRE_INTERVAL_MS)
 
-  for (const side of sides) {
-    const attackers = ships.filter((ship) => ship.side === side && ship.status === 'active')
-    const targets = ships.filter((ship) => ship.side !== side && ship.status === 'active')
-    for (const attacker of attackers) {
-      for (const target of targets) {
-        const capture = findFirstBroadsideCapture(attacker.id, target.id, ships, courses)
-        if (!capture) continue
-        const hitChance = capture.critical ? 0.86 : 0.72
-        const hit = Math.random() < hitChance
-        const baseDamage = Math.max(3, Math.round(4 + attacker.cannonSlots * 2.5))
-        const damage = hit ? Math.round(baseDamage * (capture.critical ? 1.7 : 1)) : 0
-        const crewLoss = hit ? (capture.critical ? Math.max(1, Math.round(damage * 0.28)) : Math.max(0, Math.round(damage * 0.08))) : 0
-        events.push({
-          id: `${attacker.id}-${target.id}-${eventIndex}`,
-          fireAt: capture.progress,
-          attackerId: attacker.id,
-          targetId: target.id,
-          attackerName: attacker.name,
-          targetName: target.name,
-          attackerSide: attacker.side,
-          startPosition: capture.attacker.position,
-          endPosition: capture.target.position,
-          hit,
-          critical: capture.critical,
-          damage,
-          crewLoss,
-        })
-        eventIndex += 1
+  for (let fireCheck = 0; fireCheck < fireChecks; fireCheck += 1) {
+    const progress = fireCheck * CANNON_FIRE_INTERVAL_PROGRESS
+    const snapshot = interpolateMovementCourses(simulatedShips, courses, progress, boardingEvents)
+    const tickEvents: CombatEvent[] = []
+
+    for (const side of sides) {
+      const attackers = snapshot.filter((ship) => ship.side === side && ship.status === 'active')
+      const targets = snapshot.filter((ship) => ship.side !== side && ship.status === 'active')
+      for (const attacker of attackers) {
+        for (const target of targets) {
+          if (!isTargetInBroadside(attacker, target)) continue
+          const critical = isSternShot(attacker, target)
+          const hitChance = critical ? 0.86 : 0.72
+          const hit = Math.random() < hitChance
+          const baseDamage = Math.max(3, Math.round(4 + attacker.cannonSlots * 2.5))
+          const damage = hit ? Math.round(baseDamage * (critical ? 1.7 : 1)) : 0
+          const crewLoss = hit ? (critical ? Math.max(1, Math.round(damage * 0.28)) : Math.max(0, Math.round(damage * 0.08))) : 0
+          tickEvents.push({
+            id: `${attacker.id}-${target.id}-${fireCheck}-${eventIndex}`,
+            fireAt: progress,
+            attackerId: attacker.id,
+            targetId: target.id,
+            attackerName: attacker.name,
+            targetName: target.name,
+            attackerSide: attacker.side,
+            startPosition: attacker.position,
+            endPosition: target.position,
+            hit,
+            critical,
+            damage,
+            crewLoss,
+          })
+          eventIndex += 1
+        }
       }
     }
+
+    events.push(...tickEvents)
+    simulatedShips = applyCombatEventsToShips(snapshot, tickEvents, progress)
   }
 
   return events.sort((a, b) => a.fireAt - b.fireAt)
@@ -850,30 +877,6 @@ function buildBoardingEvents(ships: TacticalShipState[], courses: MovementCourse
   }
 
   return events.sort((a, b) => a.startAt - b.startAt)
-}
-
-function findFirstBroadsideCapture(
-  attackerId: string,
-  targetId: string,
-  ships: TacticalShipState[],
-  courses: MovementCourse[],
-): { progress: number; attacker: TacticalShipState; target: TacticalShipState; critical: boolean } | null {
-  for (let step = 1; step <= 40; step += 1) {
-    const progress = step / 40
-    const snapshot = interpolateMovementCourses(ships, courses, progress)
-    const attacker = snapshot.find((ship) => ship.id === attackerId)
-    const target = snapshot.find((ship) => ship.id === targetId)
-    if (!attacker || !target || attacker.status !== 'active' || target.status !== 'active') continue
-    if (!isTargetInBroadside(attacker, target)) continue
-    return {
-      progress,
-      attacker,
-      target,
-      critical: isSternShot(attacker, target),
-    }
-  }
-
-  return null
 }
 
 function findFirstBoardingContact(
@@ -1064,6 +1067,12 @@ const styles: Record<string, CSSProperties> = {
   headingText: { marginTop: 4, marginBottom: 4, fontSize: 10, color: '#bfdbfe' },
   courseHeadingLabel: { pointerEvents: 'none', color: '#fde68a', fontSize: 11, fontWeight: 800, textShadow: '0 2px 8px #000' },
   boardingLabel: { pointerEvents: 'none', color: '#fef3c7', fontSize: 13, fontWeight: 900, textShadow: '0 2px 10px #7c2d12' },
+  damageNumberStack: { pointerEvents: 'none', display: 'grid', justifyItems: 'center', gap: 2, minWidth: 92, textAlign: 'center', transition: 'opacity 80ms linear' },
+  damageNumber: { color: '#fee2e2', fontSize: 24, fontWeight: 950, lineHeight: 1, WebkitTextStroke: '1px rgba(69, 10, 10, 0.9)', textShadow: '0 2px 8px rgba(69, 10, 10, 0.95), 0 0 12px rgba(248, 113, 113, 0.55)' },
+  damageNumberCritical: { color: '#fef08a', fontSize: 34, fontWeight: 950, lineHeight: 1, WebkitTextStroke: '1px rgba(113, 63, 18, 0.95)', textShadow: '0 3px 10px rgba(69, 26, 3, 1), 0 0 16px rgba(250, 204, 21, 0.82)' },
+  damageCriticalLabel: { color: '#fef3c7', fontSize: 10, fontWeight: 950, letterSpacing: '0.08em', textShadow: '0 2px 8px rgba(127, 29, 29, 1)' },
+  damageNumberCrew: { color: '#bae6fd', fontSize: 15, fontWeight: 900, WebkitTextStroke: '0.6px rgba(7, 89, 133, 0.85)', textShadow: '0 2px 8px rgba(8, 47, 73, 0.95)' },
+  damageNumberMiss: { color: '#dbeafe', fontSize: 22, fontWeight: 950, letterSpacing: '0.08em', WebkitTextStroke: '1px rgba(15, 23, 42, 0.95)', textShadow: '0 2px 8px rgba(15, 23, 42, 1)' },
   logPanel: { position: 'absolute', left: 18, bottom: 18, width: 420, maxHeight: 190, overflow: 'auto', zIndex: 5, padding: 13, borderRadius: 16, background: 'rgba(5, 13, 27, 0.64)', border: '1px solid rgba(148, 163, 184, 0.22)', color: '#cbd5e1', fontSize: 12, lineHeight: 1.45, backdropFilter: 'blur(10px)' },
   commandPanel: { position: 'absolute', right: 18, bottom: 18, zIndex: 5, width: 560, padding: 15, borderRadius: 18, background: 'rgba(4, 12, 24, 0.72)', border: '1px solid rgba(125, 211, 252, 0.22)', backdropFilter: 'blur(12px)' },
   actionOverlay: { position: 'absolute', top: 92, left: '50%', transform: 'translateX(-50%)', zIndex: 8, width: 320, padding: '12px 14px', borderRadius: 16, background: 'rgba(3, 7, 18, 0.72)', border: '1px solid rgba(251, 191, 36, 0.55)', color: '#fde68a', display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center', backdropFilter: 'blur(10px)' },
