@@ -223,9 +223,9 @@ function OfficerPortrait({ officer }: { officer: Officer }) {
   )
 }
 
-function DialogueLineWindow({ portraitUrl, speaker, message, side = 'left' }: { portraitUrl: string; speaker: string; message: string; side?: 'left' | 'right' }) {
+function DialogueLineWindow({ portraitUrl, speaker, message }: { portraitUrl: string; speaker: string; message: string }) {
   return (
-    <div style={side === 'right' ? { ...styles.dialogueLine, ...styles.dialogueLineRight } : styles.dialogueLine}>
+    <div style={styles.dialogueLine}>
       <div style={styles.dialoguePortraitFrame}>
         <img src={resolvePortraitUrl(portraitUrl)} alt={`${speaker} portrait`} style={styles.officerPortraitImage} />
       </div>
@@ -1045,7 +1045,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                 <div style={styles.dialogueStack}>
                   <DialogueLineWindow portraitUrl={PLAYER_PORTRAIT_URL} speaker="ディエゴ" message="仲間にならないか？" />
                   {hireDialogue.step === 'officer_line' && (
-                    <DialogueLineWindow portraitUrl={hireDialogue.officer.portraitUrl ?? ''} speaker={formatOfficerName(hireDialogue.officer)} message="いいぜ" side="right" />
+                    <DialogueLineWindow portraitUrl={hireDialogue.officer.portraitUrl ?? ''} speaker={formatOfficerName(hireDialogue.officer)} message="いいぜ" />
                   )}
                 </div>
               )}
@@ -1137,9 +1137,8 @@ const styles: Record<string, React.CSSProperties> = {
   assignedOfficerSummary: { display: 'grid', gridTemplateColumns: '104px minmax(0, 1fr)', gap: 10, alignItems: 'center', minWidth: 0 },
   dialogueOverlay: { position: 'fixed', inset: 0, zIndex: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px min(5vw, 56px)', background: 'rgba(2, 6, 23, 0.58)', backdropFilter: 'blur(2px)', cursor: 'pointer' },
   dialogueStage: { width: 'min(940px, 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '18px 18px 14px', borderRadius: 20, background: 'linear-gradient(180deg, rgba(4, 12, 24, 0.42), rgba(7, 16, 31, 0.28))', border: '1px solid rgba(191, 219, 254, 0.16)', boxShadow: '0 28px 90px rgba(0,0,0,0.48)' },
-  dialogueStack: { width: 'min(920px, 100%)', display: 'flex', flexDirection: 'column', gap: 12 },
-  dialogueLine: { width: 'min(720px, 100%)', display: 'grid', gridTemplateColumns: '104px minmax(0, 1fr)', gap: 12, alignItems: 'stretch' },
-  dialogueLineRight: { alignSelf: 'flex-end', gridTemplateColumns: '104px minmax(0, 1fr)' },
+  dialogueStack: { width: 'min(920px, 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 },
+  dialogueLine: { width: 'min(720px, 100%)', display: 'grid', gridTemplateColumns: '104px minmax(0, 1fr)', gap: 12, alignItems: 'center' },
   dialoguePortraitFrame: { width: 104, aspectRatio: '1 / 1', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(244, 201, 130, 0.42)', background: 'rgba(15, 23, 42, 0.78)', boxShadow: '0 12px 28px rgba(0,0,0,0.34)' },
   dialogueTextBox: { minHeight: 104, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8, padding: '16px 18px', borderRadius: 12, background: 'linear-gradient(180deg, rgba(10, 22, 38, 0.96), rgba(13, 28, 48, 0.98))', border: '1px solid rgba(191, 219, 254, 0.28)', color: '#eef6ff', boxShadow: '0 16px 44px rgba(0,0,0,0.38)', fontSize: 18, lineHeight: 1.5 },
   systemMessageWindow: { width: 'min(640px, 100%)', display: 'flex', flexDirection: 'column', gap: 8, padding: '20px 22px', borderRadius: 14, background: 'linear-gradient(180deg, rgba(13, 30, 52, 0.98), rgba(7, 17, 31, 0.98))', border: '1px solid rgba(250, 204, 21, 0.34)', color: '#f8fbff', boxShadow: '0 20px 60px rgba(0,0,0,0.42)', fontSize: 18, lineHeight: 1.5 },
