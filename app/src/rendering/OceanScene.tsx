@@ -73,17 +73,20 @@ function applyOceanColors(hour: number, target: OceanColorStage) {
   target.sun.copy(OCEAN_NIGHT.sun)
 }
 
-function createUniforms() {
+function createUniforms(detailStrength: number, foamStrength: number) {
   return {
     uTime: { value: 0 },
     uWaveHeight: { value: 1.2 },
     uWaveFrequency: { value: 0.08 },
     uWindDirection: { value: new Vector2(1, 0) },
+    uDetailStrength: { value: detailStrength },
     uDeepColor: { value: new Color(0x006994) },
     uShallowColor: { value: new Color(0x40a4c8) },
     uSunDirection: { value: new Vector3(0.5, 0.8, 0.3) },
     uSunColor: { value: new Color(0xfff5e0) },
     uFresnelPower: { value: 2.5 },
+    uFoamStrength: { value: foamStrength },
+    uWindIntensity: { value: 0.2 },
     uLodNear: { value: LOD_NEAR_DISTANCE },
     uLodFar: { value: LOD_FAR_DISTANCE },
   }
@@ -118,7 +121,10 @@ function syncOceanMaterial(
   }
 
   if (windSpeedChanged) {
-    mat.uniforms.uWaveHeight!.value = 0.3 + (wind.speed / 40) * 2.0
+    const windIntensity = Math.min(1, Math.max(0, wind.speed / 36))
+    mat.uniforms.uWaveHeight!.value = 0.42 + windIntensity * 2.18
+    mat.uniforms.uWaveFrequency!.value = 0.045 + windIntensity * 0.045
+    mat.uniforms.uWindIntensity!.value = windIntensity
     trackers.lastWindSpeed = wind.speed
   }
 
@@ -147,8 +153,8 @@ export function OceanScene({ size = 500, segments = 128 }: OceanSceneProps) {
   const { wind } = useNavigationStore()
   const hour = useGameStore((s) => s.timeState.hour)
 
-  const innerUniforms = useMemo(() => createUniforms(), [])
-  const outerUniforms = useMemo(() => createUniforms(), [])
+  const innerUniforms = useMemo(() => createUniforms(1, 1), [])
+  const outerUniforms = useMemo(() => createUniforms(0.22, 0.24), [])
   const innerColorBuffer = useMemo<OceanColorStage>(
     () => ({ deep: new Color(), shallow: new Color(), sun: new Color() }),
     [],
