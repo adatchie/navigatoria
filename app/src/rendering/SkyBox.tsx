@@ -13,29 +13,29 @@ interface SkyColorStage {
 }
 
 const SKY_NIGHT: SkyColorStage = {
-  top: new Color(0x14233c),
-  bottom: new Color(0x243653),
-  ambient: new Color(0x5c6f91),
+  top: new Color(0x223653),
+  bottom: new Color(0x415775),
+  ambient: new Color(0x9fb2d0),
 }
 const SKY_DAWN_START: SkyColorStage = {
-  top: new Color(0x14233c),
-  bottom: new Color(0x243653),
-  ambient: new Color(0x5c6f91),
+  top: new Color(0x223653),
+  bottom: new Color(0x415775),
+  ambient: new Color(0x9fb2d0),
 }
 const SKY_DAWN_END: SkyColorStage = {
-  top: new Color(0x4488cc),
-  bottom: new Color(0xff8844),
-  ambient: new Color(0x886644),
+  top: new Color(0x5c9bd1),
+  bottom: new Color(0xf4a261),
+  ambient: new Color(0xb89a7a),
 }
 const SKY_DAY: SkyColorStage = {
   top: new Color(0x2277cc),
   bottom: new Color(0x88bbdd),
-  ambient: new Color(0x667788),
+  ambient: new Color(0x8ea4b8),
 }
 const SKY_DUSK_END: SkyColorStage = {
-  top: new Color(0x14233c),
-  bottom: new Color(0x243653),
-  ambient: new Color(0x5c6f91),
+  top: new Color(0x223653),
+  bottom: new Color(0x415775),
+  ambient: new Color(0x9fb2d0),
 }
 const SKY_DUSK_MID_BOTTOM = new Color(0xff4422)
 const SKY_UPDATE_STEP = 12
@@ -44,30 +44,35 @@ function quantizeHour(hour: number): number {
   return Math.round(hour * SKY_UPDATE_STEP) / SKY_UPDATE_STEP
 }
 
+function smoothstep(edge0: number, edge1: number, value: number): number {
+  const t = Math.max(0, Math.min(1, (value - edge0) / (edge1 - edge0)))
+  return t * t * (3 - 2 * t)
+}
+
 function applySkyColors(hour: number, target: SkyColorStage) {
-  if (hour >= 21 || hour < 5) {
+  if (hour >= 21.5 || hour < 4.5) {
     target.top.copy(SKY_NIGHT.top)
     target.bottom.copy(SKY_NIGHT.bottom)
     target.ambient.copy(SKY_NIGHT.ambient)
     return
   }
 
-  if (hour >= 5 && hour < 7) {
-    const dawnProgress = (hour - 5) / 2
+  if (hour >= 4.5 && hour < 7.25) {
+    const dawnProgress = smoothstep(4.5, 7.25, hour)
     target.top.copy(SKY_DAWN_START.top).lerp(SKY_DAWN_END.top, dawnProgress)
     target.bottom.copy(SKY_DAWN_START.bottom).lerp(SKY_DAWN_END.bottom, dawnProgress)
     target.ambient.copy(SKY_DAWN_START.ambient).lerp(SKY_DAWN_END.ambient, dawnProgress)
     return
   }
 
-  if (hour >= 7 && hour < 17) {
+  if (hour >= 7.25 && hour < 17.5) {
     target.top.copy(SKY_DAY.top)
     target.bottom.copy(SKY_DAY.bottom)
     target.ambient.copy(SKY_DAY.ambient)
     return
   }
 
-  const duskProgress = (hour - 17) / 4
+  const duskProgress = smoothstep(17.5, 21.5, hour)
   target.top.copy(SKY_DAY.top).lerp(SKY_DUSK_END.top, duskProgress)
   target.bottom
     .copy(SKY_DAY.bottom)
@@ -93,30 +98,33 @@ export function SkyBox() {
     const sunAngle = ((hour - 6) / 12) * Math.PI
     const x = Math.cos(sunAngle) * 200
     const y = Math.sin(sunAngle) * 200
-    return [x, Math.max(y, -50), -100] as [number, number, number]
+    return [x, Math.max(y, 28), -100] as [number, number, number]
   }, [hour])
 
-  const sunVisible = hour >= 5.5 && hour <= 20.5
+  const sunVisible = hour >= 5 && hour <= 20.5
   const nightVisible = !sunVisible
+  const daylightStrength = smoothstep(5, 7.25, hour) * (1 - smoothstep(18, 20.5, hour))
+  const sunIntensity = 0.34 + daylightStrength * 0.58
 
   return (
     <>
       <color attach="background" args={[colors.top.getHex()]} />
-      <ambientLight color={colors.ambient} intensity={nightVisible ? 0.72 : 0.48} />
+      <ambientLight color={colors.ambient} intensity={nightVisible ? 0.98 : 0.68} />
 
       {sunVisible && (
         <directionalLight
           position={sunPosition}
           color={hour < 7 || hour > 17 ? 0xff8844 : 0xffffff}
-          intensity={hour < 7 || hour > 17 ? 0.6 : 1.2}
+          intensity={sunIntensity}
           castShadow={false}
         />
       )}
 
-      {nightVisible && <directionalLight position={[100, 150, 50]} color={0xb8c7ff} intensity={0.46} />}
+      <directionalLight position={[-80, 120, -40]} color={0xdbeafe} intensity={nightVisible ? 0.5 : 0.28} />
+      {nightVisible && <directionalLight position={[100, 150, 50]} color={0xc8d7ff} intensity={0.58} />}
 
-      <hemisphereLight color={colors.top} groundColor={colors.bottom} intensity={nightVisible ? 0.48 : 0.34} />
-      <fog attach="fog" args={[colors.bottom, nightVisible ? 150 : 100, nightVisible ? 520 : 400]} />
+      <hemisphereLight color={colors.top} groundColor={colors.bottom} intensity={nightVisible ? 0.66 : 0.48} />
+      <fog attach="fog" args={[colors.bottom, nightVisible ? 240 : 150, nightVisible ? 760 : 620]} />
     </>
   )
 }

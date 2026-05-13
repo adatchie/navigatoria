@@ -11,6 +11,7 @@ import { OceanScene } from '@/rendering/OceanScene.tsx'
 import { SkyBox } from '@/rendering/SkyBox.tsx'
 import { FleetPlaceholderRenderer, FleetShipRenderer } from '@/rendering/ShipRenderer.tsx'
 import { NpcFleetRenderer } from '@/rendering/NpcFleetRenderer.tsx'
+import { WakeRenderer } from '@/rendering/WakeRenderer.tsx'
 import { LandRenderer } from '@/rendering/LandRenderer.tsx'
 import { TerrainReliefRenderer } from '@/rendering/TerrainReliefRenderer.tsx'
 import { useUIStore } from '@/stores/useUIStore.ts'
@@ -118,6 +119,7 @@ export function GameCanvas() {
       <OceanFollower>
         <OceanScene size={600} segments={96} />
       </OceanFollower>
+      <WakeRenderer />
 
       {/* 大陸・海岸線 */}
       <LandRenderer />

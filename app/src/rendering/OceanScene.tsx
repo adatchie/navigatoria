@@ -28,15 +28,15 @@ const OCEAN_DAY_START_SHALLOW = new Color(0x40a4c8)
 const OCEAN_DAY_END_SHALLOW = new Color(0x2288aa)
 const OCEAN_DAY_SUN = new Color(0xfff5e0)
 const OCEAN_DUSK_START_DEEP = new Color(0x006994)
-const OCEAN_DUSK_END_DEEP = new Color(0x1a0a2e)
+const OCEAN_DUSK_END_DEEP = new Color(0x253a5a)
 const OCEAN_DUSK_START_SHALLOW = new Color(0x40a4c8)
 const OCEAN_DUSK_END_SHALLOW = new Color(0x8b3a62)
 const OCEAN_DUSK_START_SUN = new Color(0xff8844)
-const OCEAN_DUSK_END_SUN = new Color(0x441122)
+const OCEAN_DUSK_END_SUN = new Color(0x8a6f7a)
 const OCEAN_NIGHT: OceanColorStage = {
-  deep: new Color(0x16304a),
-  shallow: new Color(0x2d4f70),
-  sun: new Color(0x9fb4e8),
+  deep: new Color(0x244760),
+  shallow: new Color(0x4c7191),
+  sun: new Color(0xbfd1ff),
 }
 const COLOR_STEP = 12
 const SUN_STEP = 24
@@ -122,8 +122,8 @@ function syncOceanMaterial(
 
   if (windSpeedChanged) {
     const windIntensity = Math.min(1, Math.max(0, wind.speed / 36))
-    mat.uniforms.uWaveHeight!.value = 0.42 + windIntensity * 2.18
-    mat.uniforms.uWaveFrequency!.value = 0.045 + windIntensity * 0.045
+    mat.uniforms.uWaveHeight!.value = 0.18 + windIntensity * 0.95
+    mat.uniforms.uWaveFrequency!.value = 0.04 + windIntensity * 0.04
     mat.uniforms.uWindIntensity!.value = windIntensity
     trackers.lastWindSpeed = wind.speed
   }
@@ -200,8 +200,6 @@ export function OceanScene({ size = 500, segments = 128 }: OceanSceneProps) {
           vertexShader={oceanVertexShader}
           fragmentShader={oceanFragmentShader}
           uniforms={outerUniforms}
-          transparent
-          depthWrite={false}
           side={DoubleSide}
         />
       </mesh>
@@ -212,8 +210,6 @@ export function OceanScene({ size = 500, segments = 128 }: OceanSceneProps) {
           vertexShader={oceanVertexShader}
           fragmentShader={oceanFragmentShader}
           uniforms={innerUniforms}
-          transparent
-          depthWrite={false}
           side={DoubleSide}
         />
       </mesh>

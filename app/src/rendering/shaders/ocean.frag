@@ -37,8 +37,8 @@ void main() {
   float specPower = mix(72.0, 360.0, vWaveDetail);
   float spec = pow(max(dot(normal, halfDir), 0.0), specPower);
   float glint = pow(max(dot(reflect(-sunDir, normal), viewDir), 0.0), mix(180.0, 680.0, vWaveDetail));
-  float sparkle = smoothstep(0.78, 0.97, sparkleNoise(vWorldPosition.xz)) * vWaveDetail;
-  vec3 specular = uSunColor * (spec * mix(0.22, 0.82, vWaveDetail) + glint * sparkle * 1.35);
+  float sparkle = smoothstep(0.84, 0.98, sparkleNoise(vWorldPosition.xz)) * vWaveDetail;
+  vec3 specular = uSunColor * (spec * mix(0.16, 0.54, vWaveDetail) + glint * sparkle * 0.42);
 
   float diffuse = max(dot(normal, sunDir), 0.0) * 0.32 + 0.42;
   vec3 finalColor = baseColor * diffuse + specular;
@@ -46,5 +46,5 @@ void main() {
   float foam = smoothstep(0.32, 0.88, vFoam) * uFoamStrength * mix(0.32, 1.0, uWindIntensity);
   finalColor = mix(finalColor, vec3(0.92, 0.98, 1.0), foam * 0.48);
 
-  gl_FragColor = vec4(finalColor, mix(0.9, 0.96, vWaveDetail));
+  gl_FragColor = vec4(finalColor, 1.0);
 }
