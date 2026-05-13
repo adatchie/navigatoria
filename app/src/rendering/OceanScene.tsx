@@ -76,8 +76,8 @@ function applyOceanColors(hour: number, target: OceanColorStage) {
 function createUniforms(detailStrength: number, foamStrength: number) {
   return {
     uTime: { value: 0 },
-    uWaveHeight: { value: 1.2 },
-    uWaveFrequency: { value: 0.08 },
+    uWaveHeight: { value: 0.08 },
+    uWaveFrequency: { value: 0.04 },
     uWindDirection: { value: new Vector2(1, 0) },
     uDetailStrength: { value: detailStrength },
     uDeepColor: { value: new Color(0x006994) },
@@ -122,8 +122,8 @@ function syncOceanMaterial(
 
   if (windSpeedChanged) {
     const windIntensity = Math.min(1, Math.max(0, wind.speed / 36))
-    mat.uniforms.uWaveHeight!.value = 0.18 + windIntensity * 0.95
-    mat.uniforms.uWaveFrequency!.value = 0.04 + windIntensity * 0.04
+    mat.uniforms.uWaveHeight!.value = 0.035 + windIntensity * 0.22
+    mat.uniforms.uWaveFrequency!.value = 0.032 + windIntensity * 0.026
     mat.uniforms.uWindIntensity!.value = windIntensity
     trackers.lastWindSpeed = wind.speed
   }

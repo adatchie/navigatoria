@@ -3,7 +3,6 @@ uniform vec3 uDeepColor;
 uniform vec3 uShallowColor;
 uniform vec3 uSunDirection;
 uniform vec3 uSunColor;
-uniform float uTime;
 uniform float uFresnelPower;
 uniform float uFoamStrength;
 uniform float uWindIntensity;
@@ -14,12 +13,6 @@ varying vec2 vUv;
 varying float vWaveDetail;
 varying float vFoam;
 varying float vWaveHeight;
-
-float sparkleNoise(vec2 p) {
-  float waveA = sin(p.x * 3.7 + p.y * 1.9 + uTime * 1.5);
-  float waveB = sin(p.x * -1.6 + p.y * 4.8 - uTime * 1.1);
-  return waveA * waveB * 0.5 + 0.5;
-}
 
 void main() {
   vec3 normal = normalize(vNormal);
@@ -34,11 +27,9 @@ void main() {
 
   vec3 sunDir = normalize(uSunDirection);
   vec3 halfDir = normalize(sunDir + viewDir);
-  float specPower = mix(72.0, 360.0, vWaveDetail);
+  float specPower = mix(48.0, 140.0, vWaveDetail);
   float spec = pow(max(dot(normal, halfDir), 0.0), specPower);
-  float glint = pow(max(dot(reflect(-sunDir, normal), viewDir), 0.0), mix(180.0, 680.0, vWaveDetail));
-  float sparkle = smoothstep(0.84, 0.98, sparkleNoise(vWorldPosition.xz)) * vWaveDetail;
-  vec3 specular = uSunColor * (spec * mix(0.16, 0.54, vWaveDetail) + glint * sparkle * 0.42);
+  vec3 specular = uSunColor * spec * mix(0.08, 0.22, vWaveDetail);
 
   float diffuse = max(dot(normal, sunDir), 0.0) * 0.32 + 0.42;
   vec3 finalColor = baseColor * diffuse + specular;

@@ -38,7 +38,7 @@ vec3 displaceOcean(vec3 basePos, float detail) {
   float layerWave = mix(0.36, 1.0, uDetailStrength);
 
   vec3 pos = basePos;
-  pos += gerstnerWave(basePos.xy, uTime * 0.75, windDir, uWaveFrequency, uWaveHeight * layerWave, 0.42);
+  pos += gerstnerWave(basePos.xy, uTime * 0.75, windDir, uWaveFrequency, uWaveHeight * layerWave, 0.24);
 
   if (layerDetail > 0.04) {
     pos += gerstnerWave(
@@ -47,7 +47,7 @@ vec3 displaceOcean(vec3 basePos, float detail) {
       normalize(windDir + crossDir * 0.55),
       uWaveFrequency * mix(1.15, 1.72, layerDetail),
       uWaveHeight * 0.46 * layerDetail,
-      0.32 * layerDetail
+      0.18 * layerDetail
     );
   }
 
@@ -58,7 +58,7 @@ vec3 displaceOcean(vec3 basePos, float detail) {
       normalize(crossDir - windDir * 0.28),
       uWaveFrequency * 4.8,
       uWaveHeight * 0.08 * layerDetail,
-      0.16 * layerDetail
+      0.08 * layerDetail
     );
   }
 
