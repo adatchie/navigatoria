@@ -12,7 +12,7 @@ import {
 } from 'three'
 import { isPointOnLand } from '@/data/master/landmasses.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
-import { worldToScene } from '@/rendering/worldTransform.ts'
+import { sceneToWorld, worldToScene } from '@/rendering/worldTransform.ts'
 
 interface ReliefMeshData {
   geometry: BufferGeometry
@@ -28,6 +28,8 @@ const BASE_Y = 1.92
 const MAX_HEIGHT = 13.5
 const COAST_FADE_WORLD_DISTANCE = 42
 const NEAR_SEA_SAMPLE_DIRECTIONS = 8
+const CAMERA_FADE_SAMPLE_RADIUS_WORLD = 130
+const CAMERA_FADE_HEIGHT_MARGIN = 5.5
 
 const reliefMaterial = new MeshStandardMaterial({
   color: 0xffffff,
@@ -38,10 +40,10 @@ const reliefMaterial = new MeshStandardMaterial({
   metalness: 0,
   envMapIntensity: 0,
   side: DoubleSide,
-  transparent: true,
-  opacity: 0.62,
+  transparent: false,
+  opacity: 1,
   depthTest: true,
-  depthWrite: false,
+  depthWrite: true,
   polygonOffset: true,
   polygonOffsetFactor: -6,
   polygonOffsetUnits: -6,
@@ -119,6 +121,41 @@ function getReliefHeight(worldX: number, worldY: number): number {
   return height * coastFade
 }
 
+function shouldFadeReliefForCamera(sceneX: number, sceneY: number, sceneZ: number): boolean {
+  const { x: worldX, y: worldY } = sceneToWorld(sceneX, sceneZ)
+  const samples: [number, number][] = [
+    [0, 0],
+    [CAMERA_FADE_SAMPLE_RADIUS_WORLD, 0],
+    [-CAMERA_FADE_SAMPLE_RADIUS_WORLD, 0],
+    [0, CAMERA_FADE_SAMPLE_RADIUS_WORLD],
+    [0, -CAMERA_FADE_SAMPLE_RADIUS_WORLD],
+  ]
+
+  return samples.some(([dx, dy]) => {
+    const height = getReliefHeight(worldX + dx, worldY + dy)
+    if (height <= 0) return false
+    return sceneY - (BASE_Y + height) < CAMERA_FADE_HEIGHT_MARGIN
+  })
+}
+
+function syncReliefMaterialVisibility(material: MeshStandardMaterial, shouldFade: boolean): void {
+  const targetOpacity = shouldFade ? 0.42 : 1
+  const targetTransparent = shouldFade
+
+  if (
+    material.transparent === targetTransparent &&
+    material.depthWrite === !targetTransparent &&
+    Math.abs(material.opacity - targetOpacity) < 0.001
+  ) {
+    return
+  }
+
+  material.transparent = targetTransparent
+  material.opacity = targetOpacity
+  material.depthWrite = !targetTransparent
+  material.needsUpdate = true
+}
+
 function buildReliefGeometry(centerX: number, centerY: number): BufferGeometry {
   const step = RELIEF_WORLD_SIZE / RELIEF_SEGMENTS
   const half = RELIEF_WORLD_SIZE / 2
@@ -179,8 +216,14 @@ export function TerrainReliefRenderer() {
   const [meshData, setMeshData] = useState<ReliefMeshData | null>(null)
   const elapsedRef = useRef(0)
   const lastCenterRef = useRef<{ x: number; y: number } | null>(null)
+  const material = useMemo(() => reliefMaterial.clone(), [])
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
+    syncReliefMaterialVisibility(
+      material,
+      shouldFadeReliefForCamera(state.camera.position.x, state.camera.position.y, state.camera.position.z),
+    )
+
     elapsedRef.current += delta
     if (elapsedRef.current < RELIEF_UPDATE_INTERVAL) return
     elapsedRef.current = 0
@@ -209,8 +252,6 @@ export function TerrainReliefRenderer() {
   useEffect(() => () => {
     meshData?.geometry.dispose()
   }, [meshData])
-
-  const material = useMemo(() => reliefMaterial.clone(), [])
 
   useEffect(() => () => {
     material.dispose()
