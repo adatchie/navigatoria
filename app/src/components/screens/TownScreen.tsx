@@ -10,6 +10,7 @@ import { VOYAGE_CONFIG } from '@/config/gameConfig.ts'
 import { formatOfficerStats, getAssignedOfficer } from '@/game/officers/officerEffects.ts'
 import { generateTavernOfficerOffers, getOfficerSpecialtyLabel, localizeOfficerName } from '@/game/officers/officerGenerator.ts'
 import type { Officer, OfficerStats } from '@/types/character.ts'
+import type { Port } from '@/types/port.ts'
 import type { Quest, QuestRank, QuestReward, TradeQuestCategory } from '@/types/quest.ts'
 import { uiText } from '@/i18n/uiText.ts'
 
@@ -101,9 +102,9 @@ function formatQuestRank(rank?: QuestRank): string {
 }
 
 function formatQuestCategory(category?: TradeQuestCategory): string {
-  if (category === 'trade_procurement') return '買い出し'
-  if (category === 'trade_sales') return '売り込み'
-  return '輸送'
+  if (category === 'trade_procurement') return '仕入'
+  if (category === 'trade_sales') return '売却'
+  return '納品'
 }
 
 function formatQuestRequirement(value?: number): string {
@@ -128,15 +129,46 @@ function getQuestReportPortId(quest: Quest | null): string | undefined {
   return quest?.metadata?.reportPortId ?? quest?.metadata?.destinationPortId ?? quest?.giverPort
 }
 
+function getPortName(ports: Port[], portId?: string): string {
+  if (!portId) return '-'
+  return ports.find((port) => port.id === portId)?.name ?? portId
+}
+
+function formatTradeQuestRoute(quest: Quest, ports: Port[]): string {
+  const sourceName = getPortName(ports, quest.metadata?.sourcePortId)
+  const destinationName = getPortName(ports, quest.metadata?.destinationPortId ?? getQuestReportPortId(quest))
+  if (quest.metadata?.category === 'trade_procurement') {
+    return `仕入先 ${sourceName} / 納品先 ${destinationName}`
+  }
+  if (quest.metadata?.category === 'trade_sales') {
+    return `売却先 ${destinationName}`
+  }
+  return `仕入 ${sourceName} / 納品先 ${destinationName}`
+}
+
+function formatTradeQuestInstruction(quest: Quest, ports: Port[], goodName?: string): string {
+  const sourceName = getPortName(ports, quest.metadata?.sourcePortId)
+  const destinationName = getPortName(ports, quest.metadata?.destinationPortId ?? getQuestReportPortId(quest))
+  const quantity = quest.metadata?.quantity ?? 0
+  const itemName = goodName ?? quest.metadata?.goodId ?? '指定品'
+  if (quest.metadata?.category === 'trade_procurement') {
+    return `${sourceName} で ${itemName} x${quantity} を買い、${destinationName} へ持ち帰る`
+  }
+  if (quest.metadata?.category === 'trade_sales') {
+    return `${destinationName} で ${itemName} x${quantity} を売却する`
+  }
+  return `${sourceName} で ${itemName} x${quantity} を買い、${destinationName} へ届ける`
+}
+
 function getQuestActionLabel(category?: TradeQuestCategory): string {
-  if (category === 'trade_procurement') return '買い付け品を納品'
-  return '積荷を納品'
+  if (category === 'trade_procurement') return '仕入品を納品'
+  return '納品する'
 }
 
 function formatObjectiveLabel(type: string): string {
   if (type === 'buy_item') return '買い付け'
   if (type === 'sell_item') return '売却'
-  if (type === 'deliver_cargo') return '納品'
+  if (type === 'deliver_item' || type === 'deliver_cargo') return '納品'
   if (type === 'visit_port') return '目的港到着'
   return type
 }
@@ -417,14 +449,14 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const fleetMorale = ships.length > 0 ? fleetStats.morale / ships.length : undefined
   const questCategory = activeQuest?.metadata?.category
   const questGood = activeQuest?.metadata?.goodId ? getTradeGood(activeQuest.metadata.goodId) : null
-  const questDestination = activeQuest?.metadata?.destinationPortId ? ports.find((item) => item.id === activeQuest.metadata?.destinationPortId) : null
   const questReportPortId = getQuestReportPortId(activeQuest)
-  const questReportPort = questReportPortId ? ports.find((item) => item.id === questReportPortId) : null
   const isQuestDelivered = Boolean(activeQuest?.metadata?.delivered || activeQuest?.status === 'ready_to_turn_in')
   const canDeliverQuest = Boolean(activeQuest && (questCategory === 'trade_delivery' || questCategory === 'trade_procurement') && questReportPortId === port.id && questGood && !isQuestDelivered)
   const canReportQuest = Boolean(activeQuest && isQuestDelivered && questReportPortId === port.id)
   const rewardSummary = (activeQuest?.rewards ?? []).map(formatReward).join(' / ')
   const activeQuestDaysRemaining = getDaysRemaining(activeQuest, day)
+  const activeQuestRoute = activeQuest ? formatTradeQuestRoute(activeQuest, ports) : ''
+  const activeQuestInstruction = activeQuest ? formatTradeQuestInstruction(activeQuest, ports, questGood?.name) : ''
   const availableSections = ([
     'overview',
     'departure',
@@ -516,9 +548,12 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
           {activeQuest && (
             <>
               <div style={styles.bannerFacts}>
-                <span>{questDestination?.name ?? '-'} {uiText.town.labels.routeArrow} {questReportPort?.name ?? '-'}</span>
+                <span>{activeQuestRoute}</span>
                 <span>{questGood?.name ?? '-'} x {activeQuest.metadata?.quantity ?? 0}</span>
                 <span>{rewardSummary}</span>
+              </div>
+              <div style={styles.bannerFacts}>
+                <span>{activeQuestInstruction}</span>
               </div>
               <div style={styles.bannerFacts}>
                 {activeQuest.objectives.map((objective) => <span key={`${activeQuest.id}-${objective.type}`}>{objective.current}/{objective.count} {formatObjectiveLabel(objective.type)}</span>)}
@@ -620,11 +655,19 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                   <div style={styles.list}>
                     {availableQuests.map((quest) => {
                       const daysRemaining = getDaysRemaining(quest, day)
+                      const boardQuestGood = quest.metadata?.goodId ? getTradeGood(quest.metadata.goodId) : null
+                      const routeSummary = formatTradeQuestRoute(quest, ports)
+                      const questInstruction = formatTradeQuestInstruction(quest, ports, boardQuestGood?.name)
                       return (
                         <div key={quest.id} style={styles.compactActionRow}>
                           <div style={styles.tradeMeta}>
-                            <strong>{quest.title}</strong>
-                            <span style={styles.tradeSub}>{formatQuestCategory(quest.metadata?.category)} / {formatQuestRank(quest.rank)} / 名声 {formatQuestRequirement(quest.requiredFame)} / 必要Lv {formatQuestRequirement(quest.requiredLevel)} / 残り {daysRemaining ?? '-'} 日</span>
+                            <div style={styles.questTitleRow}>
+                              <span style={styles.questCategoryBadge}>{formatQuestCategory(quest.metadata?.category)}</span>
+                              <strong>{quest.title}</strong>
+                            </div>
+                            <span style={styles.tradeSub}>{routeSummary}</span>
+                            <span style={styles.tradeSub}>{questInstruction}</span>
+                            <span style={styles.tradeSub}>{formatQuestRank(quest.rank)} / 名声 {formatQuestRequirement(quest.requiredFame)} / 必要Lv {formatQuestRequirement(quest.requiredLevel)} / 残り {daysRemaining ?? '-'} 日</span>
                             <span style={styles.tradeSub}>{quest.rewards.map(formatReward).join(' / ')}</span>
                           </div>
                           <button style={styles.primaryButton} disabled={Boolean(activeQuest)} onClick={() => handleAction(acceptQuest(quest.id, port.id))}>受注する</button>
@@ -1145,6 +1188,8 @@ const styles: Record<string, React.CSSProperties> = {
   dialogueAdvanceHint: { color: '#b7c9e3', fontSize: 12, letterSpacing: '0.08em' },
   tradeMeta: { display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 },
   tradeSub: { color: '#93a8c4', fontSize: 12 },
+  questTitleRow: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  questCategoryBadge: { padding: '3px 8px', borderRadius: 999, background: 'rgba(245, 158, 11, 0.2)', border: '1px solid rgba(245, 158, 11, 0.35)', color: '#fde68a', fontSize: 11, lineHeight: 1.3 },
   marketRowDense: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 10, alignItems: 'center', padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.035)' },
   tradeControlsDense: { display: 'flex', alignItems: 'center', gap: 8 },
   quantityInput: { width: 60, padding: '7px 8px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.06)', color: '#fff' },

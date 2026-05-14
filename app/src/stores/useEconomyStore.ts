@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { calculateBuyQuote, calculateSellQuote, type TradeQuote } from '@/game/trade/PriceEngine.ts'
+import { getTradeCatalog } from '@/game/trade/tradeCatalog.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { useGameStore } from '@/stores/useGameStore.ts'
@@ -100,34 +101,6 @@ function buildMarketItem(port: Port, good: TradeGood): MarketItemState {
     restockRate,
     trend: isLocal ? 'falling' : 'stable',
   }
-}
-
-function getTradeCatalog(port: Port, goods: TradeGood[]): TradeGood[] {
-  const seen = new Set<string>()
-  const catalog: TradeGood[] = []
-  const commonByCulture: Record<string, string[]> = {
-    west_europe: ['wheat', 'fish', 'salt', 'wine'],
-    north_europe: ['fish', 'herring', 'wool', 'timber'],
-    islamic: ['dates', 'cotton', 'coffee', 'salt'],
-    indian: ['cotton', 'pepper', 'indigo'],
-    southeast_asia: ['fish', 'tin_ingot'],
-    east_asia: ['fish', 'paper', 'tea'],
-    africa: ['fish', 'hide', 'timber'],
-    new_world: ['fish', 'sugar', 'hide'],
-  }
-
-  const addGoods = (items: TradeGood[]) => {
-    for (const item of items) {
-      if (seen.has(item.id)) continue
-      seen.add(item.id)
-      catalog.push(item)
-    }
-  }
-
-  addGoods(goods.filter((good) => good.origins.includes(port.id) || port.specialProducts.includes(good.id)))
-  addGoods((commonByCulture[port.culture] ?? []).map((goodId) => goods.find((good) => good.id === goodId)).filter((good): good is TradeGood => Boolean(good)))
-
-  return catalog
 }
 
 function recalculateItemPrice(item: MarketItemState, port: Port, good: TradeGood): MarketItemState {
