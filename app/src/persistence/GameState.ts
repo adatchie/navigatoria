@@ -125,7 +125,15 @@ export function restoreGameState(snapshot: GameSnapshot): void {
   usePlayerStore.setState(playerState)
   useWorldStore.setState(worldState)
   useEconomyStore.setState(snapshot.economy)
-  useQuestStore.setState(snapshot.quest)
+  useQuestStore.setState({
+    ...snapshot.quest,
+    activeQuests: snapshot.quest.activeQuests?.length
+      ? snapshot.quest.activeQuests
+      : snapshot.quest.activeQuest
+        ? [snapshot.quest.activeQuest]
+        : [],
+    activeQuest: snapshot.quest.activeQuest ?? snapshot.quest.activeQuests?.[0] ?? null,
+  })
   useEncounterStore.setState(snapshot.encounter)
   if (snapshot.npcFleet) useNpcFleetStore.setState(snapshot.npcFleet)
 }

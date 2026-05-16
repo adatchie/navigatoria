@@ -11,6 +11,7 @@ import type { Quest, QuestCategory, QuestReward } from '@/types/quest.ts'
 
 interface QuestStoreState {
   availableByPort: Record<string, Quest[]>
+  activeQuests: Quest[]
   activeQuest: Quest | null
   completedQuestIds: string[]
   failedQuestIds: string[]
@@ -19,6 +20,7 @@ interface QuestStoreState {
 
   ensurePortQuests: (portId: string, day: number) => void
   acceptQuest: (questId: string, portId: string) => { ok: boolean; message: string }
+  selectActiveQuest: (questId: string) => void
   deliverTradeQuestCargo: () => { ok: boolean; message: string }
   turnInQuest: () => { ok: boolean; message: string }
   completeCombatQuestForFleet: (fleetId: string) => { ok: boolean; message: string }
@@ -27,6 +29,8 @@ interface QuestStoreState {
   failExpiredQuests: (currentDay: number) => void
   clearQuestNotice: () => void
 }
+
+export const MAX_ACTIVE_QUESTS = 3
 
 function updateObjective(quest: Quest, targetType: 'deliver_item' | 'visit_port' | 'buy_item' | 'sell_item', current: number): Quest {
   return {
@@ -60,6 +64,21 @@ function getQuestCategory(quest: Quest): QuestCategory | undefined {
 
 function appendUnique(items: string[], next: string): string[] {
   return items.includes(next) ? items : [...items, next]
+}
+
+function appendUniqueMany(items: string[], nextItems: string[]): string[] {
+  return nextItems.reduce((current, item) => appendUnique(current, item), items)
+}
+
+function getActiveQuests(state: Pick<QuestStoreState, 'activeQuest' | 'activeQuests'>): Quest[] {
+  if (state.activeQuests?.length > 0) return state.activeQuests
+  return state.activeQuest ? [state.activeQuest] : []
+}
+
+function getSelectedActiveQuest(state: Pick<QuestStoreState, 'activeQuest' | 'activeQuests'>): Quest | null {
+  const quests = getActiveQuests(state)
+  if (state.activeQuest && quests.some((quest) => quest.id === state.activeQuest?.id)) return state.activeQuest
+  return quests[0] ?? null
 }
 
 function applyQuestRewards(rewards: QuestReward[], playerNationality: string): string[] {
@@ -101,6 +120,7 @@ function getQuestShipSpeedKnots(): number | undefined {
 
 export const useQuestStore = create<QuestStoreState>()((set, get) => ({
   availableByPort: {},
+  activeQuests: [],
   activeQuest: null,
   completedQuestIds: [],
   failedQuestIds: [],
@@ -130,8 +150,9 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
       day: currentDay,
       combatLevel: player.stats.combatLevel,
     })
+    const activeQuestIds = new Set(getActiveQuests(get()).map((quest) => quest.id))
     const quests = [...tradeQuests, ...combatQuests]
-      .filter((quest) => !get().completedQuestIds.includes(quest.id) && !get().failedQuestIds.includes(quest.id))
+      .filter((quest) => !activeQuestIds.has(quest.id) && !get().completedQuestIds.includes(quest.id) && !get().failedQuestIds.includes(quest.id))
 
     set((state) => ({
       availableByPort: { ...state.availableByPort, [portId]: quests },
@@ -140,7 +161,8 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
   },
 
   acceptQuest: (questId, portId) => {
-    if (get().activeQuest) return { ok: false, message: '進行中のクエストがあります。' }
+    const activeQuests = getActiveQuests(get())
+    if (activeQuests.length >= MAX_ACTIVE_QUESTS) return { ok: false, message: `同時に請け負えるクエストは最大 ${MAX_ACTIVE_QUESTS} 件です。` }
 
     const quest = get().availableByPort[portId]?.find((entry) => entry.id === questId)
     const playerState = usePlayerStore.getState()
@@ -172,6 +194,7 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
     }
 
     set((state) => ({
+      activeQuests: [...getActiveQuests(state), nextQuest],
       activeQuest: nextQuest,
       lastQuestNotice: `${nextQuest.title} を受注しました。期限は ${formatDay(nextQuest.deadlineDay)} です。`,
       availableByPort: {
@@ -187,8 +210,15 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
     return { ok: true, message: `${nextQuest.title} を受注しました。` }
   },
 
+  selectActiveQuest: (questId) => {
+    set((state) => {
+      const quest = getActiveQuests(state).find((entry) => entry.id === questId)
+      return quest ? { activeQuest: quest } : state
+    })
+  },
+
   deliverTradeQuestCargo: () => {
-    const quest = get().activeQuest
+    const quest = getSelectedActiveQuest(get())
     const dockedPortId = useNavigationStore.getState().dockedPortId
     const playerState = usePlayerStore.getState()
     const activeShip = playerState.ships.find((ship) => ship.instanceId === playerState.activeShipId)
@@ -234,7 +264,7 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
     }))
 
     set((state) => {
-      const currentQuest = state.activeQuest
+      const currentQuest = getSelectedActiveQuest(state)
       if (!currentQuest) return state
 
       let nextQuest = updateObjective(currentQuest, 'deliver_item', quantity)
@@ -248,6 +278,7 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
       }
 
       return {
+        activeQuests: getActiveQuests(state).map((entry) => entry.id === nextQuest.id ? nextQuest : entry),
         activeQuest: nextQuest,
         lastQuestNotice: '依頼品を納品しました。報告して報酬を受け取れます。',
       }
@@ -257,7 +288,7 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
   },
 
   turnInQuest: () => {
-    const quest = get().activeQuest
+    const quest = getSelectedActiveQuest(get())
     const dockedPortId = useNavigationStore.getState().dockedPortId
     const player = usePlayerStore.getState().player
     if (!quest || !player) return { ok: false, message: '報告できるクエストがありません。' }
@@ -286,23 +317,24 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
 
     const bonusNotes = applyQuestRewards(quest.rewards, player.nationality)
 
-    set((state) => ({
-      activeQuest: null,
-      completedQuestIds: appendUnique(state.completedQuestIds, quest.id),
-      lastQuestNotice: `${quest.title} を報告しました。報酬 ${rewardMoney} d を獲得。${bonusNotes.length > 0 ? ` 追加: ${bonusNotes.join(', ')}` : ''}`,
-    }))
+    set((state) => {
+      const remainingQuests = getActiveQuests(state).filter((entry) => entry.id !== quest.id)
+      return {
+        activeQuests: remainingQuests,
+        activeQuest: remainingQuests[0] ?? null,
+        completedQuestIds: appendUnique(state.completedQuestIds, quest.id),
+        lastQuestNotice: `${quest.title} を報告しました。報酬 ${rewardMoney} d を獲得。${bonusNotes.length > 0 ? ` 追加: ${bonusNotes.join(', ')}` : ''}`,
+      }
+    })
 
     return { ok: true, message: `${quest.title} を報告しました。報酬 ${rewardMoney} d を獲得。` }
   },
 
   completeCombatQuestForFleet: (fleetId) => {
-    const quest = get().activeQuest
+    const quest = getActiveQuests(get()).find((entry) => getQuestCategory(entry) === 'combat_bounty' && entry.metadata?.combatTargetFleetId === fleetId)
     const player = usePlayerStore.getState().player
-    if (!quest || !player || getQuestCategory(quest) !== 'combat_bounty') {
+    if (!quest || !player) {
       return { ok: false, message: '対象の討伐クエストはありません。' }
-    }
-    if (quest.metadata?.combatTargetFleetId !== fleetId) {
-      return { ok: false, message: '討伐対象が違います。' }
     }
 
     const rewardMoney = quest.rewards.filter((reward) => reward.type === 'money').reduce((sum, reward) => sum + (reward.amount ?? 0), 0)
@@ -324,11 +356,17 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
     const bonusNotes = applyQuestRewards(quest.rewards, player.nationality)
     useNpcFleetStore.getState().removeQuestFleet(fleetId)
 
-    set((state) => ({
-      activeQuest: null,
-      completedQuestIds: appendUnique(state.completedQuestIds, quest.id),
-      lastQuestNotice: `${quest.title} を達成しました。報酬 ${rewardMoney} d と戦闘経験 ${rewardExp} を獲得。${bonusNotes.length > 0 ? ` 追加: ${bonusNotes.join(', ')}` : ''}`,
-    }))
+    set((state) => {
+      const remainingQuests = getActiveQuests(state).filter((entry) => entry.id !== quest.id)
+      return {
+        activeQuests: remainingQuests,
+        activeQuest: state.activeQuest?.id === quest.id
+          ? remainingQuests[0] ?? null
+          : getSelectedActiveQuest(state),
+        completedQuestIds: appendUnique(state.completedQuestIds, quest.id),
+        lastQuestNotice: `${quest.title} を達成しました。報酬 ${rewardMoney} d と戦闘経験 ${rewardExp} を獲得。${bonusNotes.length > 0 ? ` 追加: ${bonusNotes.join(', ')}` : ''}`,
+      }
+    })
 
     return { ok: true, message: `${quest.title} を達成しました。報酬 ${rewardMoney} d を獲得。` }
   },
@@ -336,19 +374,25 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
   recordPurchasedGoods: (portId, goodId, quantity) => {
     if (quantity <= 0) return
     set((state) => {
-      const quest = state.activeQuest
-      if (!quest || getQuestCategory(quest) !== 'trade_procurement') return state
-      if (quest.metadata?.sourcePortId !== portId || quest.metadata.goodId !== goodId) return state
+      let completedNotice = false
+      const nextQuests = getActiveQuests(state).map((quest) => {
+        if (getQuestCategory(quest) !== 'trade_procurement') return quest
+        if (quest.metadata?.sourcePortId !== portId || quest.metadata.goodId !== goodId) return quest
 
-      const nextCurrent = Math.min((quest.metadata.quantity ?? 0), (quest.objectives.find((objective) => objective.type === 'buy_item')?.current ?? 0) + quantity)
-      const nextQuest = updateObjective(quest, 'buy_item', nextCurrent)
-      return {
-        activeQuest: {
+        const nextCurrent = Math.min((quest.metadata.quantity ?? 0), (quest.objectives.find((objective) => objective.type === 'buy_item')?.current ?? 0) + quantity)
+        const nextQuest = updateObjective(quest, 'buy_item', nextCurrent)
+        if (nextCurrent >= (quest.metadata.quantity ?? 0)) completedNotice = true
+        return {
           ...nextQuest,
           metadata: { ...nextQuest.metadata, purchased: nextCurrent >= (quest.metadata.quantity ?? 0) },
-          status: nextCurrent >= (quest.metadata.quantity ?? 0) ? 'active' : nextQuest.status,
-        },
-        lastQuestNotice: nextCurrent >= (quest.metadata.quantity ?? 0) ? '買い付け完了です。指定された港へ運んで納品してください。' : state.lastQuestNotice,
+          status: nextCurrent >= (quest.metadata.quantity ?? 0) ? 'active' as const : nextQuest.status,
+        }
+      })
+      const selectedQuest = state.activeQuest ? nextQuests.find((quest) => quest.id === state.activeQuest?.id) ?? nextQuests[0] ?? null : nextQuests[0] ?? null
+      return {
+        activeQuests: nextQuests,
+        activeQuest: selectedQuest,
+        lastQuestNotice: completedNotice ? '買い付け完了です。指定された港へ運んで納品してください。' : state.lastQuestNotice,
       }
     })
   },
@@ -356,49 +400,62 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
   recordSoldGoods: (portId, goodId, quantity) => {
     if (quantity <= 0) return
     set((state) => {
-      const quest = state.activeQuest
-      if (!quest || getQuestCategory(quest) !== 'trade_sales') return state
-      if (quest.metadata?.destinationPortId !== portId || quest.metadata.goodId !== goodId) return state
+      let completedNotice = false
+      const nextQuests = getActiveQuests(state).map((quest) => {
+        if (getQuestCategory(quest) !== 'trade_sales') return quest
+        if (quest.metadata?.destinationPortId !== portId || quest.metadata.goodId !== goodId) return quest
 
-      const currentSold = quest.metadata.soldQuantity ?? 0
-      const nextSold = Math.min((quest.metadata.quantity ?? 0), currentSold + quantity)
-      let nextQuest = updateObjective(quest, 'sell_item', nextSold)
-      if (nextSold >= (quest.metadata.quantity ?? 0)) {
-        nextQuest = updateObjective(nextQuest, 'visit_port', 1)
-        nextQuest = {
+        const currentSold = quest.metadata.soldQuantity ?? 0
+        const nextSold = Math.min((quest.metadata.quantity ?? 0), currentSold + quantity)
+        let nextQuest = updateObjective(quest, 'sell_item', nextSold)
+        if (nextSold >= (quest.metadata.quantity ?? 0)) {
+          completedNotice = true
+          nextQuest = updateObjective(nextQuest, 'visit_port', 1)
+          return {
+            ...nextQuest,
+            status: 'ready_to_turn_in' as const,
+            metadata: { ...nextQuest.metadata, soldQuantity: nextSold },
+          }
+        }
+
+        return {
           ...nextQuest,
-          status: 'ready_to_turn_in',
           metadata: { ...nextQuest.metadata, soldQuantity: nextSold },
         }
-        return {
-          activeQuest: nextQuest,
-          lastQuestNotice: '指定数量の売り込みが完了しました。ギルドへ報告できます。',
-        }
-      }
+      })
+      const selectedQuest = state.activeQuest ? nextQuests.find((quest) => quest.id === state.activeQuest?.id) ?? nextQuests[0] ?? null : nextQuests[0] ?? null
 
       return {
-        activeQuest: {
-          ...nextQuest,
-          metadata: { ...nextQuest.metadata, soldQuantity: nextSold },
-        },
+        activeQuests: nextQuests,
+        activeQuest: selectedQuest,
+        lastQuestNotice: completedNotice ? '指定数量の売り込みが完了しました。ギルドへ報告できます。' : state.lastQuestNotice,
       }
     })
   },
 
   failExpiredQuests: (currentDay) => {
     const day = Math.floor(currentDay)
-    const quest = get().activeQuest
-    if (!quest || quest.status === 'failed' || quest.status === 'completed') return
-    if (quest.deadlineDay == null || day <= quest.deadlineDay) return
+    const activeQuests = getActiveQuests(get())
+    const expiredQuests = activeQuests.filter((quest) => quest.status !== 'failed' && quest.status !== 'completed' && quest.deadlineDay != null && day > quest.deadlineDay)
+    if (expiredQuests.length === 0) return
 
-    const questFleetId = quest.metadata?.combatTargetFleet?.id
-    if (questFleetId) useNpcFleetStore.getState().removeQuestFleet(questFleetId)
+    for (const quest of expiredQuests) {
+      const questFleetId = quest.metadata?.combatTargetFleet?.id
+      if (questFleetId) useNpcFleetStore.getState().removeQuestFleet(questFleetId)
+    }
 
-    set((state) => ({
-      activeQuest: null,
-      failedQuestIds: appendUnique(state.failedQuestIds, quest.id),
-      lastQuestNotice: `${quest.title} は期限切れで失敗しました。期限は ${formatDay(quest.deadlineDay)} でした。`,
-    }))
+    set((state) => {
+      const expiredIds = new Set(expiredQuests.map((quest) => quest.id))
+      const remainingQuests = getActiveQuests(state).filter((quest) => !expiredIds.has(quest.id))
+      return {
+        activeQuests: remainingQuests,
+        activeQuest: remainingQuests.find((quest) => quest.id === state.activeQuest?.id) ?? remainingQuests[0] ?? null,
+        failedQuestIds: appendUniqueMany(state.failedQuestIds, expiredQuests.map((quest) => quest.id)),
+        lastQuestNotice: expiredQuests.length === 1
+          ? `${expiredQuests[0]!.title} は期限切れで失敗しました。期限は ${formatDay(expiredQuests[0]!.deadlineDay)} でした。`
+          : `${expiredQuests.length} 件のクエストが期限切れで失敗しました。`,
+      }
+    })
   },
 
   clearQuestNotice: () => set({ lastQuestNotice: null }),

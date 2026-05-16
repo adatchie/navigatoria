@@ -1,11 +1,15 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { useEncounterStore } from '@/stores/useEncounterStore.ts'
+import { MAX_ACTIVE_QUESTS, useQuestStore } from '@/stores/useQuestStore.ts'
+import { useDataStore } from '@/stores/useDataStore.ts'
 import { getNearestPort } from '@/game/world/queries.ts'
 import { uiText } from '@/i18n/uiText.ts'
+import type { Quest } from '@/types/quest.ts'
+import type { Port } from '@/types/port.ts'
 
 function ratio(current: number, max: number): number {
   return Math.max(0, Math.min(1, current / Math.max(1, max)))
@@ -18,8 +22,10 @@ function barColor(value: number): string {
 }
 
 export function NavigationHud() {
+  const [showQuestLog, setShowQuestLog] = useState(false)
   const navigation = useNavigationStore()
   const ports = useWorldStore((s) => s.ports)
+  const getTradeGood = useDataStore((s) => s.getTradeGood)
   const player = usePlayerStore((s) => s.player)
   const ships = usePlayerStore((s) => s.ships)
   const activeShipId = usePlayerStore((s) => s.activeShipId)
@@ -28,7 +34,11 @@ export function NavigationHud() {
   const encounter = useEncounterStore((s) => s.activeEncounter)
   const encounterNotice = useEncounterStore((s) => s.lastEncounterNotice)
   const clearEncounterNotice = useEncounterStore((s) => s.clearEncounterNotice)
+  const activeQuests = useQuestStore((s) => s.activeQuests)
+  const activeQuest = useQuestStore((s) => s.activeQuest)
   const setPhase = useGameStore((s) => s.setPhase)
+  const currentDay = Math.floor(useGameStore((s) => s.timeState.totalDays))
+  const acceptedQuests = activeQuests.length > 0 ? activeQuests : activeQuest ? [activeQuest] : []
 
   const nearest = useMemo(() => getNearestPort(navigation.position, ports), [navigation.position, ports])
   const dockedPort = ports.find((port) => port.id === navigation.dockedPortId)
@@ -99,10 +109,102 @@ export function NavigationHud() {
           <button style={styles.noticeButton} onClick={clearEncounterNotice}>{uiText.nav.dismiss}</button>
         </div>
       )}
+      <button style={styles.questButton} onClick={() => setShowQuestLog(true)}>クエスト {acceptedQuests.length}/{MAX_ACTIVE_QUESTS}</button>
       {dockedPort && <button style={styles.portButton} onClick={() => setPhase('port')}>{uiText.nav.enterPort} {dockedPort.name}</button>}
       <div style={styles.hint}>
         {player ? `${player.name} / ` : ''}
         {navigation.mode === 'docked' ? uiText.nav.clickMarker : uiText.nav.clickSea}
+      </div>
+      {showQuestLog && (
+        <QuestLogWindow
+          quests={acceptedQuests}
+          ports={ports}
+          currentDay={currentDay}
+          getGoodName={(goodId) => getTradeGood(goodId)?.name ?? goodId}
+          onClose={() => setShowQuestLog(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+function getPortName(ports: Port[], portId?: string): string {
+  if (!portId) return '-'
+  return ports.find((port) => port.id === portId)?.name ?? portId
+}
+
+function getQuestCategoryLabel(quest: Quest): string {
+  if (quest.metadata?.category === 'combat_bounty') return '討伐'
+  if (quest.metadata?.category === 'trade_procurement') return '仕入'
+  if (quest.metadata?.category === 'trade_sales') return '売却'
+  return '納品'
+}
+
+function getQuestReportPortId(quest: Quest): string | undefined {
+  return quest.metadata?.reportPortId ?? quest.metadata?.destinationPortId ?? quest.giverPort
+}
+
+function getQuestRouteText(quest: Quest, ports: Port[]): string {
+  if (quest.metadata?.category === 'combat_bounty') {
+    return `${getPortName(ports, quest.metadata.combatTargetAppearancePortId)}港付近 / ${getPortName(ports, quest.metadata.combatTargetPatrolPortId)}方面`
+  }
+  const sourceName = getPortName(ports, quest.metadata?.sourcePortId)
+  const destinationName = getPortName(ports, quest.metadata?.destinationPortId ?? getQuestReportPortId(quest))
+  if (quest.metadata?.category === 'trade_procurement') return `仕入先 ${sourceName} / 納品先 ${destinationName}`
+  return `仕入 ${sourceName} / 納品先 ${destinationName}`
+}
+
+function getQuestInstructionText(quest: Quest, ports: Port[], getGoodName: (goodId: string) => string): string {
+  if (quest.metadata?.category === 'combat_bounty') {
+    return `${quest.metadata.combatTargetName ?? '討伐対象'} の艦隊を撃破`
+  }
+  const quantity = quest.metadata?.quantity ?? 0
+  const itemName = quest.metadata?.goodId ? getGoodName(quest.metadata.goodId) : '指定品'
+  const sourceName = getPortName(ports, quest.metadata?.sourcePortId)
+  const destinationName = getPortName(ports, quest.metadata?.destinationPortId ?? getQuestReportPortId(quest))
+  if (quest.metadata?.category === 'trade_procurement') return `${sourceName} で ${itemName} x${quantity} を買い、${destinationName} へ持ち帰る`
+  return `${sourceName} で ${itemName} x${quantity} を買い、${destinationName} へ届ける`
+}
+
+function QuestLogWindow(props: {
+  quests: Quest[]
+  ports: Port[]
+  currentDay: number
+  getGoodName: (goodId: string) => string
+  onClose: () => void
+}) {
+  return (
+    <div style={styles.questLogOverlay}>
+      <div style={styles.questLogWindow}>
+        <div style={styles.questLogHeader}>
+          <div>
+            <span style={styles.questLogEyebrow}>Accepted quests</span>
+            <strong>請負中クエスト</strong>
+          </div>
+          <button style={styles.questLogCloseButton} onClick={props.onClose}>閉じる</button>
+        </div>
+        {props.quests.length === 0 && <div style={styles.questLogEmpty}>請け負っているクエストはありません。</div>}
+        <div style={styles.questLogList}>
+          {props.quests.map((quest) => {
+            const daysRemaining = quest.deadlineDay == null ? null : quest.deadlineDay - props.currentDay
+            return (
+              <div key={quest.id} style={styles.questLogCard}>
+                <div style={styles.questLogTitleRow}>
+                  <span style={styles.questLogBadge}>{getQuestCategoryLabel(quest)}</span>
+                  <strong>{quest.title}</strong>
+                  <span style={styles.questLogDays}>残り {daysRemaining ?? '-'} 日</span>
+                </div>
+                <div style={styles.questLogRoute}>{getQuestRouteText(quest, props.ports)}</div>
+                <div style={styles.questLogInstruction}>{getQuestInstructionText(quest, props.ports, props.getGoodName)}</div>
+                <div style={styles.questLogObjectives}>
+                  {quest.objectives.map((objective) => (
+                    <span key={`${quest.id}-${objective.type}`}>{objective.current}/{objective.count} {objective.description}</span>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
@@ -243,6 +345,18 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     fontSize: 11,
   },
+  questButton: {
+    width: '100%',
+    marginTop: 8,
+    padding: '8px 10px',
+    borderRadius: 10,
+    border: '1px solid rgba(250, 204, 21, 0.3)',
+    background: 'rgba(120, 53, 15, 0.28)',
+    color: '#fde68a',
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: 700,
+  },
   portButton: {
     width: '100%',
     marginTop: 8,
@@ -259,6 +373,99 @@ const styles: Record<string, React.CSSProperties> = {
     paddingTop: 8,
     borderTop: '1px solid rgba(255,255,255,0.06)',
     color: '#b8c9de',
+    fontSize: 10,
+  },
+  questLogOverlay: {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 180,
+    display: 'grid',
+    placeItems: 'center',
+    background: 'rgba(2, 6, 23, 0.38)',
+  },
+  questLogWindow: {
+    width: 'min(720px, calc(100vw - 40px))',
+    maxHeight: 'min(680px, calc(100vh - 56px))',
+    overflow: 'auto',
+    padding: 16,
+    borderRadius: 16,
+    background: 'rgba(9, 18, 34, 0.96)',
+    border: '1px solid rgba(191, 219, 254, 0.24)',
+    boxShadow: '0 24px 80px rgba(0, 0, 0, 0.42)',
+  },
+  questLogHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 12,
+  },
+  questLogEyebrow: {
+    display: 'block',
+    marginBottom: 3,
+    color: '#93c5fd',
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: '0.12em',
+  },
+  questLogCloseButton: {
+    padding: '7px 10px',
+    borderRadius: 10,
+    border: '1px solid rgba(148, 163, 184, 0.28)',
+    background: 'rgba(15, 23, 42, 0.72)',
+    color: '#dbeafe',
+    cursor: 'pointer',
+  },
+  questLogEmpty: {
+    padding: 14,
+    borderRadius: 12,
+    background: 'rgba(255, 255, 255, 0.04)',
+    color: '#93a4bb',
+  },
+  questLogList: {
+    display: 'grid',
+    gap: 10,
+  },
+  questLogCard: {
+    padding: 12,
+    borderRadius: 12,
+    background: 'rgba(15, 23, 42, 0.72)',
+    border: '1px solid rgba(148, 163, 184, 0.16)',
+  },
+  questLogTitleRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  questLogBadge: {
+    padding: '3px 8px',
+    borderRadius: 999,
+    background: 'rgba(245, 158, 11, 0.18)',
+    border: '1px solid rgba(245, 158, 11, 0.32)',
+    color: '#fde68a',
+    fontSize: 10,
+  },
+  questLogDays: {
+    marginLeft: 'auto',
+    color: '#bfdbfe',
+    fontWeight: 700,
+  },
+  questLogRoute: {
+    color: '#b8c7dd',
+    lineHeight: 1.45,
+  },
+  questLogInstruction: {
+    marginTop: 4,
+    color: '#e5eefb',
+    lineHeight: 1.45,
+  },
+  questLogObjectives: {
+    display: 'grid',
+    gap: 4,
+    marginTop: 8,
+    color: '#93a4bb',
     fontSize: 10,
   },
 }

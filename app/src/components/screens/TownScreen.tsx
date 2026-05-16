@@ -5,7 +5,7 @@ import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { useEconomyStore } from '@/stores/useEconomyStore.ts'
-import { useQuestStore } from '@/stores/useQuestStore.ts'
+import { MAX_ACTIVE_QUESTS, useQuestStore } from '@/stores/useQuestStore.ts'
 import { VOYAGE_CONFIG } from '@/config/gameConfig.ts'
 import { formatOfficerStats, getAssignedOfficer } from '@/game/officers/officerEffects.ts'
 import { generateTavernOfficerOffers, getOfficerSpecialtyLabel, localizeOfficerName } from '@/game/officers/officerGenerator.ts'
@@ -317,8 +317,10 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const outfitShip = usePlayerStore((s) => s.outfitShip)
   const ensurePortQuests = useQuestStore((s) => s.ensurePortQuests)
   const availableByPort = useQuestStore((s) => s.availableByPort)
+  const activeQuests = useQuestStore((s) => s.activeQuests)
   const activeQuest = useQuestStore((s) => s.activeQuest)
   const acceptQuest = useQuestStore((s) => s.acceptQuest)
+  const selectActiveQuest = useQuestStore((s) => s.selectActiveQuest)
   const deliverTradeQuestCargo = useQuestStore((s) => s.deliverTradeQuestCargo)
   const turnInQuest = useQuestStore((s) => s.turnInQuest)
   const lastQuestNotice = useQuestStore((s) => s.lastQuestNotice)
@@ -461,19 +463,21 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
     { durability: 0, maxDurability: 0, crew: 0, maxCrew: 0, cargo: 0, maxCargo: 0, morale: 0 },
   )
   const fleetMorale = ships.length > 0 ? fleetStats.morale / ships.length : undefined
-  const questCategory = activeQuest?.metadata?.category
-  const questGood = activeQuest?.metadata?.goodId ? getTradeGood(activeQuest.metadata.goodId) : null
-  const questReportPortId = getQuestReportPortId(activeQuest)
-  const isQuestDelivered = Boolean(activeQuest?.metadata?.delivered || activeQuest?.status === 'ready_to_turn_in')
-  const canDeliverQuest = Boolean(activeQuest && (questCategory === 'trade_delivery' || questCategory === 'trade_procurement') && questReportPortId === port.id && questGood && !isQuestDelivered)
-  const canReportQuest = Boolean(activeQuest && isQuestDelivered && questReportPortId === port.id)
-  const rewardSummary = (activeQuest?.rewards ?? []).map(formatReward).join(' / ')
-  const activeQuestDaysRemaining = getDaysRemaining(activeQuest, day)
-  const activeQuestRoute = activeQuest ? formatTradeQuestRoute(activeQuest, ports) : ''
-  const activeQuestInstruction = activeQuest ? formatTradeQuestInstruction(activeQuest, ports, questGood?.name) : ''
-  const activeQuestSubject = questCategory === 'combat_bounty'
-    ? `${activeQuest?.metadata?.combatTargetName ?? '討伐対象'} / 報告不要`
-    : `${questGood?.name ?? '-'} x ${activeQuest?.metadata?.quantity ?? 0}`
+  const acceptedQuests = activeQuests.length > 0 ? activeQuests : activeQuest ? [activeQuest] : []
+  const selectedQuest = activeQuest && acceptedQuests.some((quest) => quest.id === activeQuest.id) ? activeQuest : acceptedQuests[0] ?? null
+  const selectedQuestCategory = selectedQuest?.metadata?.category
+  const questGood = selectedQuest?.metadata?.goodId ? getTradeGood(selectedQuest.metadata.goodId) : null
+  const questReportPortId = getQuestReportPortId(selectedQuest)
+  const isQuestDelivered = Boolean(selectedQuest?.metadata?.delivered || selectedQuest?.status === 'ready_to_turn_in')
+  const canDeliverQuest = Boolean(selectedQuest && (selectedQuestCategory === 'trade_delivery' || selectedQuestCategory === 'trade_procurement') && questReportPortId === port.id && questGood && !isQuestDelivered)
+  const canReportQuest = Boolean(selectedQuest && isQuestDelivered && questReportPortId === port.id)
+  const rewardSummary = (selectedQuest?.rewards ?? []).map(formatReward).join(' / ')
+  const activeQuestDaysRemaining = getDaysRemaining(selectedQuest, day)
+  const activeQuestRoute = selectedQuest ? formatTradeQuestRoute(selectedQuest, ports) : ''
+  const activeQuestInstruction = selectedQuest ? formatTradeQuestInstruction(selectedQuest, ports, questGood?.name) : ''
+  const activeQuestSubject = selectedQuestCategory === 'combat_bounty'
+    ? `${selectedQuest?.metadata?.combatTargetName ?? '討伐対象'} / 報告不要`
+    : `${questGood?.name ?? '-'} x ${selectedQuest?.metadata?.quantity ?? 0}`
   const availableSections = ([
     'overview',
     'departure',
@@ -557,12 +561,32 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
           <div style={styles.questBannerHeader}>
             <div>
               <p style={styles.bannerLabel}>{uiText.town.labels.activeQuest}</p>
-              <strong>{activeQuest?.title ?? uiText.town.labels.noActiveQuest}</strong>
+              <strong>{selectedQuest?.title ?? uiText.town.labels.noActiveQuest}</strong>
             </div>
-            {activeQuest && <span style={styles.bannerMeta}>{formatQuestCategory(questCategory)} / {formatQuestRank(activeQuest.rank)} / {activeQuestDaysRemaining ?? '-'} {uiText.town.labels.daysLeft}</span>}
+            {selectedQuest && <span style={styles.bannerMeta}>{formatQuestCategory(selectedQuestCategory)} / {formatQuestRank(selectedQuest.rank)} / {activeQuestDaysRemaining ?? '-'} {uiText.town.labels.daysLeft}</span>}
           </div>
-          {!activeQuest && <p style={styles.bannerText}>ギルド依頼を受けると、ここに進行状況がまとまって表示されます。</p>}
-          {activeQuest && (
+          {acceptedQuests.length > 0 && (
+            <div style={styles.activeQuestTabs}>
+              {acceptedQuests.map((quest, index) => {
+                const daysRemaining = getDaysRemaining(quest, day)
+                const selected = selectedQuest?.id === quest.id
+                return (
+                  <button
+                    key={quest.id}
+                    type="button"
+                    style={selected ? styles.activeQuestTabSelected : styles.activeQuestTab}
+                    onClick={() => selectActiveQuest(quest.id)}
+                  >
+                    <span>{index + 1}. {formatQuestCategory(quest.metadata?.category)}</span>
+                    <strong>{quest.title}</strong>
+                    <small>残り {daysRemaining ?? '-'} 日</small>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          {!selectedQuest && <p style={styles.bannerText}>ギルド依頼を受けると、ここに進行状況がまとまって表示されます。</p>}
+          {selectedQuest && (
             <>
               <div style={styles.bannerFacts}>
                 <span>{activeQuestRoute}</span>
@@ -573,13 +597,13 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                 <span>{activeQuestInstruction}</span>
               </div>
               <div style={styles.bannerFacts}>
-                {activeQuest.objectives.map((objective) => <span key={`${activeQuest.id}-${objective.type}`}>{objective.current}/{objective.count} {formatObjectiveLabel(objective.type)}</span>)}
+                {selectedQuest.objectives.map((objective) => <span key={`${selectedQuest.id}-${objective.type}`}>{objective.current}/{objective.count} {formatObjectiveLabel(objective.type)}</span>)}
               </div>
               <div style={styles.bannerActions}>
-                {(questCategory === 'trade_delivery' || questCategory === 'trade_procurement') && (
-                  <button style={styles.secondaryButton} disabled={!canDeliverQuest} onClick={() => handleAction(deliverTradeQuestCargo())}>{getQuestActionLabel(questCategory)}</button>
+                {(selectedQuestCategory === 'trade_delivery' || selectedQuestCategory === 'trade_procurement') && (
+                  <button style={styles.secondaryButton} disabled={!canDeliverQuest} onClick={() => handleAction(deliverTradeQuestCargo())}>{getQuestActionLabel(selectedQuestCategory)}</button>
                 )}
-                {questCategory !== 'combat_bounty' && (
+                {selectedQuestCategory !== 'combat_bounty' && (
                   <button style={styles.primaryButton} disabled={!canReportQuest} onClick={() => handleAction(turnInQuest())}>{uiText.town.labels.reportComplete}</button>
                 )}
               </div>
@@ -689,7 +713,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                             <span style={styles.tradeSub}>{formatQuestRank(quest.rank)} / 名声 {formatQuestRequirement(quest.requiredFame)} / 必要Lv {formatQuestRequirement(quest.requiredLevel)} / 残り {daysRemaining ?? '-'} 日</span>
                             <span style={styles.tradeSub}>{quest.rewards.map(formatReward).join(' / ')}</span>
                           </div>
-                          <button style={styles.primaryButton} disabled={Boolean(activeQuest)} onClick={() => handleAction(acceptQuest(quest.id, port.id))}>受注する</button>
+                          <button style={styles.primaryButton} disabled={acceptedQuests.length >= MAX_ACTIVE_QUESTS} onClick={() => handleAction(acceptQuest(quest.id, port.id))}>受注する</button>
                         </div>
                       )
                     })}
@@ -1136,6 +1160,9 @@ const styles: Record<string, React.CSSProperties> = {
   bannerLabel: { margin: 0, color: '#8cbaf0', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.14em' },
   bannerMeta: { color: '#c8ddf6', fontSize: 12 },
   bannerText: { margin: '8px 0 0', color: '#d9e6f7' },
+  activeQuestTabs: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, marginTop: 12 },
+  activeQuestTab: { minHeight: 72, padding: 10, borderRadius: 10, border: '1px solid rgba(148, 163, 184, 0.18)', background: 'rgba(15, 23, 42, 0.45)', color: '#cbd5e1', textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 3 },
+  activeQuestTabSelected: { minHeight: 72, padding: 10, borderRadius: 10, border: '1px solid rgba(96, 165, 250, 0.55)', background: 'rgba(37, 99, 235, 0.22)', color: '#eff6ff', textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 3 },
   bannerFacts: { display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8, color: '#9bb7d9', fontSize: 12 },
   bannerActions: { display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 12 },
   notice: { marginBottom: 16, padding: '10px 12px', borderRadius: 12, background: 'rgba(37, 99, 235, 0.16)', color: '#dbeafe' },
