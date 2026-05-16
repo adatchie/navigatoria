@@ -409,6 +409,15 @@ function buildVictoryOutcome(encounter: EncounterState, state: EncounterCombatSt
   }
 }
 
+function resolveNpcFleetVictoryRewards(encounter: EncounterState, message: string): string {
+  if (!encounter.npcFleetId) return message
+
+  const currentDay = Math.floor(useGameStore.getState().timeState.totalDays)
+  useNpcFleetStore.getState().suppressFleet(encounter.npcFleetId, currentDay + NPC_FLEET_SUPPRESSION_DAYS)
+  const questResult = useQuestStore.getState().completeCombatQuestForFleet(encounter.npcFleetId)
+  return questResult.ok ? `${message} ${questResult.message}` : message
+}
+
 function buildDefeatOutcome(encounter: EncounterState): EncounterOutcome {
   const player = usePlayerStore.getState().player
   const moneyLoss = Math.min(player?.money ?? 0, 150 + encounter.threat * 45)
@@ -653,9 +662,14 @@ export const useEncounterStore = create<EncounterStoreState>()((set, get) => ({
 
     const nextState = performCombatRound(encounter, combatState, action)
     if (nextState.phase === 'resolved' && nextState.result) {
-      applyEncounterOutcome(nextState.result, nextState)
-      set({ combatState: nextState, lastEncounterNotice: nextState.result.message })
-      return { ok: true, message: nextState.result.message }
+      const victory = nextState.enemyDurability <= 0 || nextState.enemyCrew <= 0
+      const result = victory
+        ? { ...nextState.result, message: resolveNpcFleetVictoryRewards(encounter, nextState.result.message) }
+        : nextState.result
+      const resolvedState = { ...nextState, result }
+      applyEncounterOutcome(result, resolvedState)
+      set({ combatState: resolvedState, lastEncounterNotice: result.message })
+      return { ok: true, message: result.message }
     }
 
     set({ combatState: nextState })
@@ -697,12 +711,7 @@ export const useEncounterStore = create<EncounterStoreState>()((set, get) => ({
       : buildDefeatOutcome(encounter)
     let message = baseOutcome.message
 
-    if (resolution.victory && encounter.npcFleetId) {
-      const currentDay = Math.floor(useGameStore.getState().timeState.totalDays)
-      useNpcFleetStore.getState().suppressFleet(encounter.npcFleetId, currentDay + NPC_FLEET_SUPPRESSION_DAYS)
-      const questResult = useQuestStore.getState().completeCombatQuestForFleet(encounter.npcFleetId)
-      if (questResult.ok) message = `${message} ${questResult.message}`
-    }
+    if (resolution.victory) message = resolveNpcFleetVictoryRewards(encounter, message)
 
     const outcome = { ...baseOutcome, message }
     applyEncounterOutcome(outcome)
