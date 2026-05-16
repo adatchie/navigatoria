@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useThree } from '@react-three/fiber'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
@@ -43,6 +43,8 @@ const BANK_AMOUNTS = [1000, 5000]
 const CREW_HIRE_AMOUNTS = [1, 5, 10]
 const SUPPLY_STEP = 12
 const EMERGENCY_REPAIR_REQUEST = 12
+const SHIP_PREVIEW_POSITION: [number, number, number] = [0, -0.62, 0]
+const SHIP_PREVIEW_SCALE = 0.56
 const SECTION_LABELS: Record<TownSection, string> = {
   overview: uiText.town.sections.overview,
   departure: uiText.town.sections.departure,
@@ -296,16 +298,28 @@ function ShipGaugeRow({ label, current, max }: { label: string; current: number;
   )
 }
 
+function ShipPreviewCamera() {
+  const { camera } = useThree()
+
+  useEffect(() => {
+    camera.lookAt(0, -0.18, 0)
+    camera.updateProjectionMatrix()
+  }, [camera])
+
+  return null
+}
+
 function ShipModelPreview() {
   return (
     <div style={styles.shipModelViewport}>
-      <Canvas camera={{ position: [4.4, 2.5, 5.2], fov: 42 }} dpr={[1, 1.5]}>
+      <Canvas camera={{ position: [5.8, 2.9, 7.2], fov: 42, near: 0.1, far: 100 }} dpr={[1, 1.5]}>
         <color attach="background" args={['#071323']} />
+        <ShipPreviewCamera />
         <ambientLight intensity={0.82} />
         <directionalLight position={[4, 7, 5]} intensity={2.1} />
         <directionalLight position={[-5, 3, -4]} intensity={0.65} color="#7dd3fc" />
-        <Suspense fallback={<ShipRenderer heading={34} scale={0.86} />}>
-          <ShipModelRenderer heading={34} scale={0.86} />
+        <Suspense fallback={<ShipRenderer position={SHIP_PREVIEW_POSITION} heading={34} scale={SHIP_PREVIEW_SCALE} />}>
+          <ShipModelRenderer position={SHIP_PREVIEW_POSITION} heading={34} scale={SHIP_PREVIEW_SCALE} />
         </Suspense>
       </Canvas>
     </div>
