@@ -161,6 +161,7 @@ function buildReliefGeometry(centerX: number, centerY: number): BufferGeometry {
   const half = RELIEF_WORLD_SIZE / 2
   const heights: number[] = []
   const scenePositions: [number, number, number][] = []
+  const topTriangles: [number, number, number][] = []
 
   for (let row = 0; row <= RELIEF_SEGMENTS; row += 1) {
     for (let col = 0; col <= RELIEF_SEGMENTS; col += 1) {
@@ -178,19 +179,54 @@ function buildReliefGeometry(centerX: number, centerY: number): BufferGeometry {
   const colors: number[] = []
   const vertex = (row: number, col: number) => row * (RELIEF_SEGMENTS + 1) + col
 
-  function pushVertex(index: number) {
-    const [x, y, z] = scenePositions[index]!
+  function getVertexColor(index: number, intensity = 1): [number, number, number] {
     const height = heights[index]!
     const shade = Math.min(1, height / MAX_HEIGHT)
-    positions.push(x, y, z)
-    colors.push(0.39 + shade * 0.09, 0.52 + shade * 0.08, 0.32 + shade * 0.06)
+    return [
+      (0.39 + shade * 0.09) * intensity,
+      (0.52 + shade * 0.08) * intensity,
+      (0.32 + shade * 0.06) * intensity,
+    ]
+  }
+
+  function pushVertex(index: number, yOverride?: number, intensity = 1) {
+    const [x, topY, z] = scenePositions[index]!
+    const [r, g, b] = getVertexColor(index, intensity)
+    positions.push(x, yOverride ?? topY, z)
+    colors.push(r, g, b)
+  }
+
+  function pushBaseVertex(index: number, intensity = 0.7) {
+    const [x, , z] = scenePositions[index]!
+    const [r, g, b] = getVertexColor(index, intensity)
+    positions.push(x, BASE_Y, z)
+    colors.push(r, g, b)
   }
 
   function pushTriangle(a: number, b: number, c: number) {
     if (heights[a]! <= 0 || heights[b]! <= 0 || heights[c]! <= 0) return
+    topTriangles.push([a, b, c])
+  }
+
+  function pushTopTriangle(a: number, b: number, c: number) {
     pushVertex(a)
     pushVertex(b)
     pushVertex(c)
+  }
+
+  function pushSideWall(a: number, b: number) {
+    pushVertex(a, undefined, 0.82)
+    pushBaseVertex(a, 0.58)
+    pushBaseVertex(b, 0.58)
+    pushVertex(a, undefined, 0.82)
+    pushBaseVertex(b, 0.58)
+    pushVertex(b, undefined, 0.82)
+  }
+
+  function pushBottomCap(a: number, b: number, c: number) {
+    pushBaseVertex(c, 0.5)
+    pushBaseVertex(b, 0.5)
+    pushBaseVertex(a, 0.5)
   }
 
   for (let row = 0; row < RELIEF_SEGMENTS; row += 1) {
@@ -203,6 +239,28 @@ function buildReliefGeometry(centerX: number, centerY: number): BufferGeometry {
       pushTriangle(a, c, b)
       pushTriangle(b, c, d)
     }
+  }
+
+  const edgeCounts = new Map<string, number>()
+  const edgeKey = (a: number, b: number) => a < b ? `${a}:${b}` : `${b}:${a}`
+  for (const [a, b, c] of topTriangles) {
+    for (const [from, to] of [[a, b], [b, c], [c, a]] as [number, number][]) {
+      const key = edgeKey(from, to)
+      edgeCounts.set(key, (edgeCounts.get(key) ?? 0) + 1)
+    }
+  }
+
+  for (const [a, b, c] of topTriangles) {
+    pushTopTriangle(a, b, c)
+  }
+
+  for (const [a, b, c] of topTriangles) {
+    for (const [from, to] of [[a, b], [b, c], [c, a]] as [number, number][]) {
+      if (edgeCounts.get(edgeKey(from, to)) === 1) {
+        pushSideWall(from, to)
+      }
+    }
+    pushBottomCap(a, b, c)
   }
 
   const geometry = new BufferGeometry()
