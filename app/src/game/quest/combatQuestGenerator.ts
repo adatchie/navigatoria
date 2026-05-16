@@ -15,54 +15,79 @@ interface GeneratedCombatTarget {
   description: string
 }
 
-const GENERATED_TARGETS: GeneratedCombatTarget[] = [
+interface GeneratedCombatProfile {
+  nationality: Nationality
+  role: NpcFleetRole
+  shipTypeId: string
+  description: string
+}
+
+const GENERATED_EPITHETS = [
+  '豪胆',
+  '赤髭',
+  '鋭眼',
+  '冷静',
+  '俊敏',
+  '黒衣',
+  '寡黙',
+  '老練',
+  '若鷹',
+  '鉄腕',
+  '陽気',
+  '短気',
+]
+
+const GENERATED_GIVEN_NAMES = [
+  'マルコ',
+  'ルカ',
+  'トマス',
+  'ピエール',
+  'ハンス',
+  'イヴァン',
+  'ニコロ',
+  'ミゲル',
+  'ジャン',
+  'アンドレ',
+  'ヤン',
+  'ロレンソ',
+]
+
+const GENERATED_TARGET_PROFILES: GeneratedCombatProfile[] = [
   {
-    slug: 'diogo_de_silveira',
-    commander: 'ディオゴ・デ・シルヴェイラ',
     nationality: 'portugal',
     role: 'naval',
     shipTypeId: 'pinnace',
-    description: 'ポルトガル系船長の小艦隊。沿岸で臨検と拿捕を繰り返している。',
+    description: '恐れを知らない船長が率いる小艦隊。沿岸で臨検と拿捕を繰り返している。',
   },
   {
-    slug: 'simao_de_andrade',
-    commander: 'シモン・デ・アンドラーデ',
     nationality: 'portugal',
     role: 'privateer',
     shipTypeId: 'pinnace',
-    description: '強引な交易と私掠で知られるポルトガル船長の船隊。',
+    description: '素性の曖昧な私掠船長の船隊。強引な交易と奇襲を得意とする。',
   },
   {
-    slug: 'alonso_de_ojeda',
-    commander: 'アロンソ・デ・オヘダ',
     nationality: 'spain',
     role: 'naval',
     shipTypeId: 'caravela_latina',
-    description: 'スペイン王権の名を掲げる武装小艦隊。',
+    description: '遠目の帆影を逃さない哨戒船長の武装小艦隊。',
   },
   {
-    slug: 'guillaume_le_testu',
-    commander: 'ギヨーム・ル・テステュ',
     nationality: 'france',
     role: 'privateer',
     shipTypeId: 'pinnace',
-    description: '海図と奇襲に長けたフランス私掠船長の船隊。',
+    description: '冷静な判断で逃げ道を塞ぐ私掠船長の船隊。',
   },
   {
-    slug: 'william_winter',
-    commander: 'ウィリアム・ウィンター',
     nationality: 'england',
     role: 'naval',
     shipTypeId: 'armed_merchantman',
-    description: 'イングランド海軍士官の指揮する警備艦隊。',
+    description: '軽快な操船で商船を追い回す警備艦隊。',
   },
   {
-    slug: 'salih_reis',
-    commander: 'サーリフ・レイス',
     nationality: 'ottoman',
     role: 'corsair',
     shipTypeId: 'galley',
-    description: 'オスマン系コルセアの実戦的な小艦隊。',
+    description: '周辺航路で恐れられるコルセアの実戦的な小艦隊。',
   },
 ]
 
@@ -88,6 +113,24 @@ function pickPatrolPort(appearancePort: Port, ports: Port[], seed: number): Port
     .sort((a, b) => distanceKm(appearancePort, a) - distanceKm(appearancePort, b))
     .slice(0, 4)
   return candidates[seed % candidates.length] ?? null
+}
+
+function createGeneratedTarget(seed: number, index: number): GeneratedCombatTarget {
+  const epithetIndex = (seed + index * 5) % GENERATED_EPITHETS.length
+  const nameIndex = (Math.floor(seed / 7) + index * 3) % GENERATED_GIVEN_NAMES.length
+  const profileIndex = (Math.floor(seed / 13) + index) % GENERATED_TARGET_PROFILES.length
+  const epithet = GENERATED_EPITHETS[epithetIndex]!
+  const givenName = GENERATED_GIVEN_NAMES[nameIndex]!
+  const profile = GENERATED_TARGET_PROFILES[profileIndex]!
+
+  return {
+    slug: `generated_${epithetIndex}_${nameIndex}_${profileIndex}`,
+    commander: `${epithet}の${givenName}`,
+    nationality: profile.nationality,
+    role: profile.role,
+    shipTypeId: profile.shipTypeId,
+    description: profile.description,
+  }
 }
 
 function getRank(seed: number, combatLevel: number): QuestRank {
@@ -195,7 +238,7 @@ function buildCombatQuest(params: {
     : pickPatrolPort(appearancePort, ports, seed + 17)
   if (!patrolPort || appearancePort.id === patrolPort.id) return null
 
-  const target = GENERATED_TARGETS[(seed + index) % GENERATED_TARGETS.length]!
+  const target = createGeneratedTarget(seed, index)
   const questId = existingFleet
     ? `combat_famous_${existingFleet.id}_${port.id}_${day}_${index}`
     : `combat_bounty_${port.id}_${day}_${index}`
@@ -258,10 +301,13 @@ export function generateCombatQuestsForPort(params: {
   const shouldOfferFamous = combatLevel >= 6 && seed % 3 === 0
   const famousFleet = shouldOfferFamous ? pickFamousFleet(port, ports, seed + 29) : null
 
-  const first = buildCombatQuest({ port, ports, day, combatLevel, index: 0, existingFleet: famousFleet ?? undefined })
+  const first = buildCombatQuest({ port, ports, day, combatLevel, index: 0 })
   if (first) quests.push(first)
 
-  if (combatLevel >= 4) {
+  if (famousFleet) {
+    const second = buildCombatQuest({ port, ports, day, combatLevel, index: 1, existingFleet: famousFleet })
+    if (second) quests.push(second)
+  } else if (combatLevel >= 4) {
     const second = buildCombatQuest({ port, ports, day, combatLevel, index: 1 })
     if (second) quests.push(second)
   }
