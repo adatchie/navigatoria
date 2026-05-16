@@ -119,6 +119,11 @@ const genders = [
   ['female', '女性'],
 ]
 
+const faceTones = [
+  ['beauty', '美形'],
+  ['rough', '粗め'],
+]
+
 const defaultRows = [
   '航海士,ポルトガル,リスボン,30代,慎重な熟練航海士',
   '酒場女,ヴェネツィア,ヴェネツィア,20代,噂好きで顔が広い酒場女',
@@ -126,6 +131,43 @@ const defaultRows = [
 ].join('\n')
 
 const coreStylePhrase = 'エッチングっぽい陰影がついた繊細な日本のゲームイラスト的な線画、褪せた色味の水彩で陰影をつけた塗り'
+const styleLockPromptBlocks = [
+  'primary art direction: line-art-first 2D hand-drawn Japanese console tactical RPG face portrait, delicate thin ink linework, sharp etched hatching and cross-hatching, faded transparent watercolor wash, muted parchment background, illustrated character design, not a rendered portrait',
+  `core visual phrase: ${coreStylePhrase}`,
+]
+const usagePromptBlocks = [
+  'must read as a UI-ready Japanese game conversation face graphic, head-and-shoulders character portrait, square 1024x1024 composition',
+  'profession readable at first glance through clothing, posture, expression, and one subtle prop',
+]
+const linePriorityPromptBlocks = [
+  'linework must dominate over color and shading; keep contours thin and controlled, not thick',
+  'add dense fine ink lines to hair, eyelids, nose bridge, lips, collar, and cloth folds; leave skin areas relatively open with minimal paint',
+]
+const shadingPromptBlocks = [
+  'shading is created mainly by fine hatching and cross-hatching, not by realistic lighting or painted volume',
+  'avoid photographic skin, pores, strong 3D rendering, dramatic light, glossy highlights, or cinematic realism',
+]
+const colorPromptBlocks = [
+  'color is desaturated pale watercolor, transparent and absorbed into paper',
+  'use only light layered shadow colors; never let paint obscure the ink linework',
+]
+const styleFinalSealBlocks = [
+  'expressive eyes and simplified facial structure arranged into a memorable game portrait',
+  'simple parchment-toned or muted wash background, no dramatic lighting',
+  'linework first; painting only supports the line structure, never replaces it',
+  'thin restrained ink contours must remain visible throughout the portrait',
+  'square 1024x1024 composition, UI-ready face icon, no readable text',
+]
+const styleAnchoringBlocks = [
+  'thin restrained ink contours must remain visible throughout the portrait',
+  'linework first; painting only supports the line structure, never replaces it',
+  'square 1024x1024 composition, UI-ready face icon, no readable text',
+  'simple parchment-toned or muted wash background, no dramatic lighting',
+]
+const faceAppealPromptBlocks = [
+  'face should have organized Japanese game-illustration features, memorable slightly emphasized eyes, elegant eyelid lines, simplified nose, mouth, and jaw',
+  'restrained expression, cool or cute controlled distortion; not chibi, comedic, childish, or symbol-like',
+]
 const workspaceStorageKey = 'navigatoriaPortraitManagerWorkspaceV1'
 
 const candidateSeeds = [
@@ -234,6 +276,7 @@ const elements = {
   hairColorInput: $('hairColorInput'),
   eyeColorInput: $('eyeColorInput'),
   genderInput: $('genderInput'),
+  faceToneInput: $('faceToneInput'),
   settingInput: $('settingInput'),
   moodInput: $('moodInput'),
   addSingleButton: $('addSingleButton'),
@@ -322,6 +365,7 @@ function normalizeBrief(input = {}) {
     hairColor: valueFor(hairColors, input.hairColor, 'random'),
     eyeColor: valueFor(eyeColors, input.eyeColor, 'random'),
     gender: valueFor(genders, input.gender, 'unspecified'),
+    faceTone: valueFor(faceTones, input.faceTone, 'beauty'),
     setting: String(input.setting ?? '').trim(),
     mood: String(input.mood ?? '').trim(),
   }
@@ -346,6 +390,7 @@ function briefKey(brief) {
     brief.age,
     brief.period,
     brief.gender,
+    brief.faceTone,
     brief.faceAngle,
     brief.viewAngle,
     brief.expression,
@@ -402,6 +447,19 @@ function faceAnglePrompt(brief) {
       return 'face angle: right-facing profile portrait, visible nose bridge and jaw silhouette'
     default:
       return 'face angle: natural three-quarter portrait, not a passport photo'
+  }
+}
+
+function faceFinishPrompt(brief) {
+  switch (resolvedOption(brief, 'faceTone', faceTones)) {
+    case 'rough':
+      return [
+        'face handling: intentionally rough-faced character, weather-beaten and unpolished, asymmetry allowed, heavier eyelids and brow, coarser jawline, and less polished symmetry',
+        'rough appeal: coarse but readable character design, no handsome model finish, no courtly polish, no sanitized hero look',
+        'rough failure mode to avoid: turning into a beauty portrait, a fashion-model face, or a clean heroic protagonist',
+      ]
+    default:
+      return faceAppealPromptBlocks
   }
 }
 
@@ -721,7 +779,17 @@ function roleIdentityGuidance(brief) {
 }
 
 function genderHandlingGuidance(brief) {
+  const roughTone = resolvedOption(brief, 'faceTone', faceTones) === 'rough'
+
   if (brief.gender === 'male') {
+    if (roughTone) {
+      return [
+        'male character handling: adult male with controlled Japanese game-illustration stylization, but intentionally rough and weather-beaten; allow coarse features, uneven brows, tired eyelids, rough stubble, and a less polished jawline',
+        'male appeal: coarse but readable, no handsome model finish, no courtly polish, no sanitized hero look',
+        'male failure mode to avoid: turning into a beauty portrait, fashion-model face, or clean heroic protagonist',
+      ]
+    }
+
     return [
       'male character handling: adult male with controlled Japanese game-illustration stylization, memorable slightly emphasized eyes, clean facial silhouette, modest jaw and nose, restrained expression, facial hair follows the explicit facial hair variation only',
       'male appeal: make him cooler and more characterful than a realistic portrait through elegant eye shape, clear brows, simplified planes, and subtle attractive distortion; do not make him comedic, chibi, cartoonish, or childlike',
@@ -730,6 +798,14 @@ function genderHandlingGuidance(brief) {
   }
 
   if (brief.gender === 'female' || brief.role === 'barmaid') {
+    if (roughTone) {
+      return [
+        'female character handling: adult woman with controlled Japanese game-illustration stylization, but intentionally weathered or rough-faced; allow tired eyelids, practical expression, asymmetry, and a less polished silhouette',
+        'female appeal: coarse but readable, no pin-up styling, no courtly polish, no glamorous makeup',
+        'female failure mode to avoid: turning into a polished beauty portrait or fantasy tavern girl',
+      ]
+    }
+
     return [
       'female character handling: adult woman with controlled Japanese game-illustration stylization, memorable slightly emphasized eyes, composed expression, historically plausible hair covering or cap when appropriate, and practical clothing cues rather than glamour',
       'female appeal: make her cuter and more characterful than a realistic portrait through elegant eye shape, clean silhouette, simplified planes, and subtle attractive distortion; do not make her comedic, chibi, cartoonish, or childlike',
@@ -742,19 +818,14 @@ function genderHandlingGuidance(brief) {
   ]
 }
 
-function styleGuidance() {
+function styleGuidance(brief) {
   return [
-    `最重要の画風指定: ${coreStylePhrase}`,
-    '用途指定: 会話ウィンドウ用の顔グラフィック、ジョブや職業が一目で伝わる日本のゲームキャラクター肖像',
-    '画面上の第一印象: 2D手描きの日本のコンソールRPG設定画・会話用顔グラとして見えること',
-    '線画優先: 線画が塗りと陰影より強く見える、細く繊細で抑制されたインク線、輪郭線は太くしない',
-    '描線密度: 髪・まぶた・鼻筋・唇・襟・布の皺には細い線を多めに入れ、肌の面は塗り込みすぎず余白を残す',
-    '陰影: 光源再現ではなく、細いハッチングとクロスハッチングの線の重なりで頬・鼻梁・目元・首・襟を軽く立体化する',
-    '塗り: 彩度を落とした淡い水彩、薄い影色を少量重ねる、紙に染み込むような透明感、線画を塗りで潰さない',
-    '顔: 日本のゲームイラストとして整理された目鼻立ち、印象に残る目、静かな表情、端正なキャラクターデザイン',
-    '目力と誇張: 目はリアルな比率より少しだけ大きく印象的に、瞳とまぶたの線に情報量を置く。鼻・口・顎は整理して、かっこいい/かわいいイラストならではの魅力を出す',
-    '誇張の上限: コミカル、デフォルメ強め、ちびキャラ、子供っぽさ、巨大なアニメ目、漫画的な記号顔にはしない',
-    'イラスト化: 肌の質感、毛穴、強い立体レンダリング、複雑な反射光、写真のような質感描写は入れない',
+    ...styleLockPromptBlocks,
+    ...usagePromptBlocks,
+    ...linePriorityPromptBlocks,
+    ...shadingPromptBlocks,
+    ...colorPromptBlocks,
+    ...faceFinishPrompt(brief),
     '服飾の描写: 16世紀の衣服構造を細い線で読み取れるように描き、布の質感は淡い水彩と線影で出す',
     '失敗判定: 実在人物の肖像、重い立体レンダー、西洋肖像画、古い銅版画そのもの、洋ゲー風、映画的レンダー、厚塗りコンセプトアートに見える場合は誤り',
   ]
@@ -764,6 +835,22 @@ function styleProfile() {
   return {
     core: coreStylePhrase,
     targetRead: '2D hand-drawn Japanese console tactical RPG conversation portrait, delicate line art first, faded watercolor shadows',
+    promptBlocks: {
+      styleLock: [...styleLockPromptBlocks],
+      usage: [...usagePromptBlocks],
+      linePriority: [...linePriorityPromptBlocks],
+      shading: [...shadingPromptBlocks],
+      color: [...colorPromptBlocks],
+      faceAppeal: [...faceAppealPromptBlocks],
+      faceTone: {
+        beauty: [...faceAppealPromptBlocks],
+        rough: [
+          'face handling: intentionally rough-faced character, weather-beaten and unpolished, asymmetry allowed, heavier eyelids and brow, coarser jawline, and less polished symmetry',
+          'rough appeal: coarse but readable character design, no handsome model finish, no courtly polish, no sanitized hero look',
+          'rough failure mode to avoid: turning into a beauty portrait, a fashion-model face, or a clean heroic protagonist',
+        ],
+      },
+    },
     successfulPromptPattern: [
       'line-art-first 2D hand-drawn head-and-shoulders portrait',
       'profession shown by 16th-century clothing and one subtle prop',
@@ -803,9 +890,7 @@ function buildPrompt(brief) {
   const age = labelFor(ages, brief.age)
   const gender = labelFor(genders, brief.gender)
   return [
-    `primary art direction: ${coreStylePhrase}`,
-    'original 2D hand-drawn Japanese console tactical RPG face portrait of a 16th-century Renaissance maritime character',
-    'must read as line-art-first Japanese game character portrait art and character design, not as a rendered portrait',
+    ...styleGuidance(brief),
     role,
     nationality,
     gender !== '未指定' ? gender : '',
@@ -825,12 +910,10 @@ function buildPrompt(brief) {
     ...costumeGuidance(brief),
     ...roleIdentityGuidance(brief),
     ...genderHandlingGuidance(brief),
-    ...styleGuidance(),
     'self-check before final image: if shading, skin texture, lighting, or painted volume dominates the linework, redraw it flatter and more illustrated with delicate Japanese game linework and faded watercolor shadows',
     'self-check for appeal: the face should have memorable eye power and controlled cool or cute illustration distortion, but must not become comedic, chibi, childish, or symbol-like',
-    'expressive eyes and simplified facial structure arranged into a memorable game portrait',
-    'simple parchment-toned or muted wash background, no dramatic lighting',
-    'square 1024x1024 composition, UI-ready face icon, no readable text',
+    ...styleFinalSealBlocks,
+    ...styleAnchoringBlocks,
   ].filter(Boolean).join(', ')
 }
 
@@ -912,6 +995,7 @@ function parseRows(text = elements.rowsInput.value) {
         facialHair: columns[12],
         hairColor: columns[13],
         eyeColor: columns[14],
+        faceTone: columns[15],
       })
     })
 }
@@ -961,6 +1045,7 @@ function matchesSearch(brief) {
     labelFor(hairColors, brief.hairColor),
     labelFor(eyeColors, brief.eyeColor),
     labelFor(genders, brief.gender),
+    labelFor(faceTones, brief.faceTone),
     brief.setting,
     brief.mood,
   ].join(' ').toLowerCase().includes(needle)
@@ -1063,6 +1148,7 @@ function createCandidateCard(brief) {
     editableSelect(brief, 'hairColor', hairColors),
     editableSelect(brief, 'eyeColor', eyeColors),
     editableSelect(brief, 'gender', genders),
+    editableSelect(brief, 'faceTone', faceTones),
   )
 
   const setting = editableTextarea(brief, 'setting', '設定')
@@ -1088,6 +1174,7 @@ function editableSelect(brief, key, options) {
     hairColor: '髪色',
     eyeColor: '瞳',
     gender: '性別',
+    faceTone: '仕上げ',
   }[key] || key
   const select = document.createElement('select')
   fillOptions(select, options)
@@ -1551,6 +1638,7 @@ function addSingle() {
     hairColor: elements.hairColorInput.value,
     eyeColor: elements.eyeColorInput.value,
     gender: elements.genderInput.value,
+    faceTone: elements.faceToneInput.value,
     setting: elements.settingInput.value,
     mood: elements.moodInput.value,
   }])
@@ -1719,6 +1807,7 @@ fillOptions(elements.facialHairInput, facialHairs)
 fillOptions(elements.hairColorInput, hairColors)
 fillOptions(elements.eyeColorInput, eyeColors)
 fillOptions(elements.genderInput, genders)
+fillOptions(elements.faceToneInput, faceTones)
 elements.candidateCountInput.max = String(candidateSeeds.length)
 elements.candidateCountInput.value = String(candidateSeeds.length)
 elements.roleInput.value = 'navigator'
@@ -1731,7 +1820,8 @@ elements.headwearInput.value = 'random'
 elements.facialHairInput.value = 'random'
 elements.hairColorInput.value = 'random'
 elements.eyeColorInput.value = 'random'
-elements.rowsInput.placeholder = '役職,国籍,街,年齢,設定,表情・雰囲気,服飾年代,顔向き,性別,視点,表情,帽子,髭,髪色,瞳'
+elements.faceToneInput.value = 'beauty'
+elements.rowsInput.placeholder = '役職,国籍,街,年齢,設定,表情・雰囲気,服飾年代,顔向き,性別,視点,表情,帽子,髭,髪色,瞳,仕上げ'
 elements.rowsInput.value = defaultRows
 loadWorkspace()
 if (!state.candidates.length && !state.items.length) {

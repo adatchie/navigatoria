@@ -131,24 +131,26 @@ maritime clothing.
 ## Style Direction
 
 Portrait prompts prioritize original Japanese console tactical RPG
-character art. The core style phrase is inserted at the top of each
-prompt and repeated inside the detailed style guardrails:
+character art. The prompt builder now splits the prompt into fixed
+style blocks and per-character blocks. The fixed blocks are inserted at
+the top of every prompt, then the prompt adds character identity,
+historical costume guidance, role cues, and a final self-check.
+
+The core style phrase remains part of the fixed style lock:
 
 ```text
 エッチングっぽい陰影がついた繊細な日本のゲームイラスト的な線画、褪せた色味の水彩で陰影をつけた塗り
 ```
 
-The prompt does not use living artist names. Instead, it locks the
-desired result through concrete illustration rules: line-art-first 2D
-hand-drawn Japanese console RPG portrait, thin restrained ink linework,
-hatching and cross-hatching on the face and costume, faded transparent
-watercolor shadows, pale paper-like skin areas, and simplified
-character-design facial structure. It also adds controlled attractive
-stylization: slightly emphasized memorable eyes, elegant eyelid lines,
-cleaner facial silhouettes, and subtle cool/cute distortion that stays
-short of comedy, chibi proportions, childish faces, or oversized anime
-eyes. The failure check rejects outputs where shading, skin texture,
-lighting, or painted volume dominates the linework.
+The fixed blocks lock: line-art-first 2D hand-drawn Japanese console
+RPG portrait, UI-ready conversation face graphic, thin restrained ink
+linework, sharp hatching and cross-hatching, faded transparent
+watercolor, open paper-like skin areas, and simplified character-design
+facial structure. The character-specific blocks only supply identity,
+period clothing, role cue, pose, expression, hair, eyes, headwear, and
+small prop placement. The final self-check repeats the line and
+watercolor priority so later generated portraits are less likely to
+drift toward realistic rendering.
 
 Each generation request also stores a separate `styleProfile` object
 beside the final prompt. That keeps the target style, required visual
