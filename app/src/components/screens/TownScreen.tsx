@@ -472,7 +472,6 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const canDeliverQuest = Boolean(selectedQuest && (selectedQuestCategory === 'trade_delivery' || selectedQuestCategory === 'trade_procurement') && questReportPortId === port.id && questGood && !isQuestDelivered)
   const canReportQuest = Boolean(selectedQuest && isQuestDelivered && questReportPortId === port.id)
   const rewardSummary = (selectedQuest?.rewards ?? []).map(formatReward).join(' / ')
-  const activeQuestDaysRemaining = getDaysRemaining(selectedQuest, day)
   const activeQuestRoute = selectedQuest ? formatTradeQuestRoute(selectedQuest, ports) : ''
   const activeQuestInstruction = selectedQuest ? formatTradeQuestInstruction(selectedQuest, ports, questGood?.name) : ''
   const activeQuestSubject = selectedQuestCategory === 'combat_bounty'
@@ -558,13 +557,6 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
         </div>
 
         <section style={styles.questBanner}>
-          <div style={styles.questBannerHeader}>
-            <div>
-              <p style={styles.bannerLabel}>{uiText.town.labels.activeQuest}</p>
-              <strong>{selectedQuest?.title ?? uiText.town.labels.noActiveQuest}</strong>
-            </div>
-            {selectedQuest && <span style={styles.bannerMeta}>{formatQuestCategory(selectedQuestCategory)} / {formatQuestRank(selectedQuest.rank)} / {activeQuestDaysRemaining ?? '-'} {uiText.town.labels.daysLeft}</span>}
-          </div>
           {acceptedQuests.length > 0 && (
             <div style={styles.activeQuestTabs}>
               {acceptedQuests.map((quest, index) => {
@@ -1156,11 +1148,8 @@ const styles: Record<string, React.CSSProperties> = {
   statCard: { padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: 4 },
   statLabel: { color: '#89a6c9', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em' },
   questBanner: { padding: 16, borderRadius: 18, background: 'linear-gradient(135deg, rgba(27,64,115,0.32), rgba(10,34,63,0.4))', border: '1px solid rgba(102, 167, 235, 0.2)', marginBottom: 16 },
-  questBannerHeader: { display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' },
-  bannerLabel: { margin: 0, color: '#8cbaf0', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.14em' },
-  bannerMeta: { color: '#c8ddf6', fontSize: 12 },
-  bannerText: { margin: '8px 0 0', color: '#d9e6f7' },
-  activeQuestTabs: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, marginTop: 12 },
+  bannerText: { margin: 0, color: '#d9e6f7' },
+  activeQuestTabs: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 },
   activeQuestTab: { minHeight: 72, padding: 10, borderRadius: 10, border: '1px solid rgba(148, 163, 184, 0.18)', background: 'rgba(15, 23, 42, 0.45)', color: '#cbd5e1', textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 3 },
   activeQuestTabSelected: { minHeight: 72, padding: 10, borderRadius: 10, border: '1px solid rgba(96, 165, 250, 0.55)', background: 'rgba(37, 99, 235, 0.22)', color: '#eff6ff', textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 3 },
   bannerFacts: { display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8, color: '#9bb7d9', fontSize: 12 },
