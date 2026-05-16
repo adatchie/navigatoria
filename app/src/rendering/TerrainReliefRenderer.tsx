@@ -3,12 +3,18 @@
 // ============================================================
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import {
   BufferAttribute,
   BufferGeometry,
   DoubleSide,
+  LinearFilter,
+  LinearMipmapLinearFilter,
   MeshStandardMaterial,
+  MirroredRepeatWrapping,
+  SRGBColorSpace,
+  Texture,
+  TextureLoader,
 } from 'three'
 import { isPointOnLand } from '@/data/master/landmasses.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
@@ -30,6 +36,9 @@ const COAST_FADE_WORLD_DISTANCE = 42
 const NEAR_SEA_SAMPLE_DIRECTIONS = 8
 const CAMERA_FADE_SAMPLE_RADIUS_WORLD = 130
 const CAMERA_FADE_HEIGHT_MARGIN = 5.5
+const RELIEF_TEXTURE_URL = `${import.meta.env.BASE_URL}textures/terrain/land-relief-wild.png?v=20260516`
+const RELIEF_TEXTURE_WORLD_SCALE = 1350
+const RELIEF_TEXTURE_WARP_WORLD = 48
 
 const reliefMaterial = new MeshStandardMaterial({
   color: 0xffffff,
@@ -160,6 +169,7 @@ function buildReliefGeometry(centerX: number, centerY: number): BufferGeometry {
   const step = RELIEF_WORLD_SIZE / RELIEF_SEGMENTS
   const half = RELIEF_WORLD_SIZE / 2
   const heights: number[] = []
+  const worldPositions: [number, number][] = []
   const scenePositions: [number, number, number][] = []
   const topTriangles: [number, number, number][] = []
 
@@ -171,22 +181,34 @@ function buildReliefGeometry(centerX: number, centerY: number): BufferGeometry {
       const [sceneX, , sceneZ] = worldToScene({ x: worldX, y: worldY })
 
       heights.push(height)
+      worldPositions.push([worldX, worldY])
       scenePositions.push([sceneX, BASE_Y + height, sceneZ])
     }
   }
 
   const positions: number[] = []
   const colors: number[] = []
+  const uvs: number[] = []
   const vertex = (row: number, col: number) => row * (RELIEF_SEGMENTS + 1) + col
 
   function getVertexColor(index: number, intensity = 1): [number, number, number] {
     const height = heights[index]!
     const shade = Math.min(1, height / MAX_HEIGHT)
     return [
-      (0.39 + shade * 0.09) * intensity,
-      (0.52 + shade * 0.08) * intensity,
-      (0.32 + shade * 0.06) * intensity,
+      (0.82 + shade * 0.16) * intensity,
+      (0.88 + shade * 0.12) * intensity,
+      (0.76 + shade * 0.1) * intensity,
     ]
+  }
+
+  function pushUv(index: number) {
+    const [worldX, worldY] = worldPositions[index]!
+    const warpX = (fractalNoise(worldX * 0.0043 + 17.1, worldY * 0.0043 - 9.6) - 0.5) * RELIEF_TEXTURE_WARP_WORLD
+    const warpY = (fractalNoise(worldX * 0.0047 - 31.4, worldY * 0.0047 + 22.8) - 0.5) * RELIEF_TEXTURE_WARP_WORLD
+    uvs.push(
+      (worldX + warpX) / RELIEF_TEXTURE_WORLD_SCALE,
+      (worldY + warpY) / RELIEF_TEXTURE_WORLD_SCALE,
+    )
   }
 
   function pushVertex(index: number, yOverride?: number, intensity = 1) {
@@ -194,6 +216,7 @@ function buildReliefGeometry(centerX: number, centerY: number): BufferGeometry {
     const [r, g, b] = getVertexColor(index, intensity)
     positions.push(x, yOverride ?? topY, z)
     colors.push(r, g, b)
+    pushUv(index)
   }
 
   function pushBaseVertex(index: number, intensity = 0.7) {
@@ -201,6 +224,7 @@ function buildReliefGeometry(centerX: number, centerY: number): BufferGeometry {
     const [r, g, b] = getVertexColor(index, intensity)
     positions.push(x, BASE_Y, z)
     colors.push(r, g, b)
+    pushUv(index)
   }
 
   function pushTriangle(a: number, b: number, c: number) {
@@ -266,15 +290,50 @@ function buildReliefGeometry(centerX: number, centerY: number): BufferGeometry {
   const geometry = new BufferGeometry()
   geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3))
   geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3))
+  geometry.setAttribute('uv', new BufferAttribute(new Float32Array(uvs), 2))
   geometry.computeVertexNormals()
   return geometry
 }
 
 export function TerrainReliefRenderer() {
   const [meshData, setMeshData] = useState<ReliefMeshData | null>(null)
+  const [reliefTexture, setReliefTexture] = useState<Texture | null>(null)
   const elapsedRef = useRef(0)
   const lastCenterRef = useRef<{ x: number; y: number } | null>(null)
-  const material = useMemo(() => reliefMaterial.clone(), [])
+  const material = useMemo(() => {
+    const nextMaterial = reliefMaterial.clone()
+    nextMaterial.map = reliefTexture
+    return nextMaterial
+  }, [reliefTexture])
+  const maxAnisotropy = useThree((state) => state.gl.capabilities.getMaxAnisotropy())
+
+  useEffect(() => {
+    let cancelled = false
+    let loadedTexture: Texture | null = null
+    const loader = new TextureLoader()
+
+    loader.load(RELIEF_TEXTURE_URL, (texture) => {
+      if (cancelled) {
+        texture.dispose()
+        return
+      }
+
+      texture.wrapS = MirroredRepeatWrapping
+      texture.wrapT = MirroredRepeatWrapping
+      texture.minFilter = LinearMipmapLinearFilter
+      texture.magFilter = LinearFilter
+      texture.anisotropy = maxAnisotropy
+      texture.colorSpace = SRGBColorSpace
+      texture.needsUpdate = true
+      loadedTexture = texture
+      setReliefTexture(texture)
+    })
+
+    return () => {
+      cancelled = true
+      loadedTexture?.dispose()
+    }
+  }, [maxAnisotropy])
 
   useFrame((state, delta) => {
     syncReliefMaterialVisibility(
