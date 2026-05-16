@@ -25,6 +25,7 @@ const QUEST_CATEGORY_BUFFER_DAYS: Record<TradeQuestCategory, number> = {
   trade_procurement: 2,
   trade_sales: 1,
 }
+const QUEST_DEADLINE_MULTIPLIER = 1.5
 
 function hashSeed(input: string): number {
   let hash = 0
@@ -102,7 +103,7 @@ function getRewardMultiplier(rank: QuestRank, category: TradeQuestCategory): num
 function getDeadlineOffset(rank: QuestRank, category: TradeQuestCategory, distanceKm: number, shipSpeedKnots?: number): number {
   const travelDays = getTravelDays(distanceKm, shipSpeedKnots)
   const deadline = travelDays + QUEST_RANK_BUFFER_DAYS[rank] + QUEST_CATEGORY_BUFFER_DAYS[category]
-  return Math.max(QUEST_MIN_DEADLINE_DAYS[rank], deadline)
+  return Math.ceil(Math.max(QUEST_MIN_DEADLINE_DAYS[rank], deadline) * QUEST_DEADLINE_MULTIPLIER)
 }
 
 function isHighDifficultyQuest(rank: QuestRank, quantity: number, distanceKm: number): boolean {
