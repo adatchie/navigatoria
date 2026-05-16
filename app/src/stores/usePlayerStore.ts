@@ -58,6 +58,7 @@ interface PlayerStoreState {
   unassignOfficer: (officerId: string) => PortActionResult
   visitTavern: (service: TavernService, amount?: number, tavernLevel?: number, targetShipId?: string) => PortActionResult
   repairShip: (mode?: RepairMode, amount?: number, facilityLevel?: number, targetShipId?: string) => PortActionResult
+  repairFleet: (mode?: RepairMode, amount?: number, facilityLevel?: number) => PortActionResult
   outfitShip: (option: 'rigging' | 'cargo' | 'gunnery', targetShipId?: string) => PortActionResult
   resolveVoyageEvent: (currentDay: number, weatherType: WeatherType) => void
   logEncounterEvent: (message: string) => void
@@ -88,6 +89,74 @@ function getShipSupplies(ship: ShipInstance): ShipSupplies {
 
 function getShipMorale(ship: ShipInstance): number {
   return clamp(ship.morale ?? DEFAULT_MORALE, 0, 100)
+}
+
+interface ShipRepairPlan {
+  repaired: number
+  totalCost: number
+  moraleBonus: number
+  nextAttrition: number
+  nextDamage: number
+  label: string
+}
+
+function planShipRepair(ship: ShipInstance, officers: Officer[], mode: RepairMode, amount: number | undefined, facilityLevel: number): ShipRepairPlan | null {
+  const level = clamp(facilityLevel, 1, 5)
+  const missing = ship.maxDurability - ship.currentDurability
+  if (missing <= 0) return null
+
+  const supplies = getShipSupplies(ship)
+  const requested = amount && amount > 0 ? Math.min(amount, missing) : missing
+
+  let repaired = requested
+  let costPerPoint: number = VOYAGE_CONFIG.STANDARD_REPAIR_COST_PER_POINT
+  let moraleBonus = 0
+  let nextAttrition = supplies.attritionProgress
+  let nextDamage = supplies.damageProgress
+  let label = '修理'
+
+  if (mode === 'emergency') {
+    repaired = Math.min(missing, Math.max(4, Math.floor(requested * (VOYAGE_CONFIG.EMERGENCY_REPAIR_EFFICIENCY + level * 0.03))))
+    costPerPoint = Math.max(2, VOYAGE_CONFIG.EMERGENCY_REPAIR_COST_PER_POINT - Math.floor(level / 2))
+    moraleBonus = -2
+    label = '応急修理'
+  } else if (mode === 'overhaul') {
+    repaired = missing
+    costPerPoint = Math.max(VOYAGE_CONFIG.STANDARD_REPAIR_COST_PER_POINT, VOYAGE_CONFIG.OVERHAUL_COST_PER_POINT - Math.floor(level / 2))
+    moraleBonus = 8 + level
+    nextAttrition = Math.max(0, supplies.attritionProgress - 1.2 * level)
+    nextDamage = 0
+    label = 'オーバーホール'
+  } else {
+    costPerPoint = Math.max(2, VOYAGE_CONFIG.STANDARD_REPAIR_COST_PER_POINT - Math.floor(level / 2))
+    moraleBonus = level >= 3 ? 2 : 0
+  }
+
+  const officerEffects = getOfficerShipEffects(ship, officers)
+  repaired = Math.min(missing, Math.max(1, Math.floor(repaired * officerEffects.repairFactor)))
+
+  return {
+    repaired,
+    totalCost: repaired * costPerPoint,
+    moraleBonus,
+    nextAttrition,
+    nextDamage,
+    label,
+  }
+}
+
+function applyShipRepair(ship: ShipInstance, plan: ShipRepairPlan): ShipInstance {
+  const supplies = getShipSupplies(ship)
+  return {
+    ...ship,
+    currentDurability: Math.min(ship.maxDurability, ship.currentDurability + plan.repaired),
+    morale: clamp(getShipMorale(ship) + plan.moraleBonus, 0, 100),
+    supplies: {
+      ...supplies,
+      attritionProgress: plan.nextAttrition,
+      damageProgress: plan.nextDamage,
+    },
+  }
 }
 
 function getFleetSupplyTotals(ships: ShipInstance[]): ShipSupplies {
@@ -633,71 +702,53 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
     return { ok: true, message: `酒場で ${hireable} 人の船員を集めました。` }
   },
 
-    repairShip: (mode = 'standard', amount, facilityLevel = 1, targetShipId) => {
-      const state = get()
-      const player = state.player
-      const targetId = targetShipId ?? state.activeShipId
-      const ship = state.ships.find((entry) => entry.instanceId === targetId)
+  repairShip: (mode = 'standard', amount, facilityLevel = 1, targetShipId) => {
+    const state = get()
+    const player = state.player
+    const targetId = targetShipId ?? state.activeShipId
+    const ship = state.ships.find((entry) => entry.instanceId === targetId)
     if (!player || !ship) return { ok: false, message: '修理対象の船が見つかりません。' }
 
-    const level = clamp(facilityLevel, 1, 5)
-    const missing = ship.maxDurability - ship.currentDurability
-    if (missing <= 0) return { ok: false, message: '修理の必要はありません。' }
+    const repairPlan = planShipRepair(ship, state.officers, mode, amount, facilityLevel)
+    if (!repairPlan) return { ok: false, message: '修理の必要はありません。' }
+    if (player.money < repairPlan.totalCost) return { ok: false, message: '所持金が足りません。' }
 
-    const supplies = getShipSupplies(ship)
-    const requested = amount && amount > 0 ? Math.min(amount, missing) : missing
+    set((current) => ({
+      player: current.player ? { ...current.player, money: current.player.money - repairPlan.totalCost } : current.player,
+      ships: current.ships.map((entry) => entry.instanceId !== targetId ? entry : applyShipRepair(entry, repairPlan)),
+    }))
 
-    let repaired: number = requested
-    let costPerPoint: number = VOYAGE_CONFIG.STANDARD_REPAIR_COST_PER_POINT
-    let moraleBonus: number = 0
-    let nextAttrition: number = supplies.attritionProgress
-    let nextDamage: number = supplies.damageProgress
-    let label = '修理'
+    return { ok: true, message: `${repairPlan.label}で耐久を ${repairPlan.repaired} 回復しました。` }
+  },
 
-    if (mode === 'emergency') {
-      repaired = Math.min(missing, Math.max(4, Math.floor(requested * (VOYAGE_CONFIG.EMERGENCY_REPAIR_EFFICIENCY + level * 0.03))))
-      costPerPoint = Math.max(2, VOYAGE_CONFIG.EMERGENCY_REPAIR_COST_PER_POINT - Math.floor(level / 2))
-      moraleBonus = -2
-      label = '応急修理'
-    } else if (mode === 'overhaul') {
-      repaired = missing
-      costPerPoint = Math.max(VOYAGE_CONFIG.STANDARD_REPAIR_COST_PER_POINT, VOYAGE_CONFIG.OVERHAUL_COST_PER_POINT - Math.floor(level / 2))
-      moraleBonus = 8 + level
-      nextAttrition = Math.max(0, supplies.attritionProgress - 1.2 * level)
-      nextDamage = 0
-      label = 'オーバーホール'
-    } else {
-      costPerPoint = Math.max(2, VOYAGE_CONFIG.STANDARD_REPAIR_COST_PER_POINT - Math.floor(level / 2))
-      moraleBonus = level >= 3 ? 2 : 0
-      label = '修理'
-    }
+  repairFleet: (mode = 'overhaul', amount, facilityLevel = 1) => {
+    const state = get()
+    const player = state.player
+    if (!player) return { ok: false, message: '修理する艦隊が見つかりません。' }
 
-    const officerEffects = getOfficerShipEffects(ship, state.officers)
-    repaired = Math.min(missing, Math.max(1, Math.floor(repaired * officerEffects.repairFactor)))
+    const repairEntries = state.ships
+      .map((ship) => ({ ship, plan: planShipRepair(ship, state.officers, mode, amount, facilityLevel) }))
+      .filter((entry): entry is { ship: ShipInstance; plan: ShipRepairPlan } => Boolean(entry.plan))
 
-    const totalCost = repaired * costPerPoint
+    if (repairEntries.length === 0) return { ok: false, message: '修理の必要はありません。' }
+
+    const totalCost = repairEntries.reduce((sum, entry) => sum + entry.plan.totalCost, 0)
     if (player.money < totalCost) return { ok: false, message: '所持金が足りません。' }
+
+    const plansByShipId = new Map(repairEntries.map((entry) => [entry.ship.instanceId, entry.plan]))
+    const totalRepaired = repairEntries.reduce((sum, entry) => sum + entry.plan.repaired, 0)
+    const label = mode === 'emergency' ? '応急修理' : mode === 'overhaul' ? 'オーバーホール' : '修理'
 
     set((current) => ({
       player: current.player ? { ...current.player, money: current.player.money - totalCost } : current.player,
-      ships: current.ships.map((entry) => {
-        if (entry.instanceId !== targetId) return entry
-        const entrySupplies = getShipSupplies(entry)
-        return {
-          ...entry,
-          currentDurability: Math.min(entry.maxDurability, entry.currentDurability + repaired),
-          morale: clamp(getShipMorale(entry) + moraleBonus, 0, 100),
-          supplies: {
-            ...entrySupplies,
-            attritionProgress: nextAttrition,
-            damageProgress: nextDamage,
-          },
-        }
+      ships: current.ships.map((ship) => {
+        const plan = plansByShipId.get(ship.instanceId)
+        return plan ? applyShipRepair(ship, plan) : ship
       }),
     }))
 
-      return { ok: true, message: `${label}で耐久を ${repaired} 回復しました。` }
-    },
+    return { ok: true, message: `${label}で ${repairEntries.length} 隻の耐久を合計 ${totalRepaired} 回復しました。` }
+  },
 
     outfitShip: (option = 'rigging', targetShipId) => {
       const state = get()

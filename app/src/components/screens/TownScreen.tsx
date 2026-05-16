@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Canvas } from '@react-three/fiber'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
@@ -7,11 +8,13 @@ import { useDataStore } from '@/stores/useDataStore.ts'
 import { useEconomyStore } from '@/stores/useEconomyStore.ts'
 import { MAX_ACTIVE_QUESTS, useQuestStore } from '@/stores/useQuestStore.ts'
 import { VOYAGE_CONFIG } from '@/config/gameConfig.ts'
-import { formatOfficerStats, getAssignedOfficer } from '@/game/officers/officerEffects.ts'
+import { formatOfficerStats, getAssignedOfficer, getOfficerShipEffects } from '@/game/officers/officerEffects.ts'
 import { generateTavernOfficerOffers, getOfficerSpecialtyLabel, localizeOfficerName } from '@/game/officers/officerGenerator.ts'
+import { ShipModelRenderer, ShipRenderer } from '@/rendering/ShipRenderer.tsx'
 import type { Officer, OfficerStats } from '@/types/character.ts'
 import type { Port } from '@/types/port.ts'
 import type { Quest, QuestCategory, QuestRank, QuestReward, TradeQuestCategory } from '@/types/quest.ts'
+import type { ShipInstance, ShipType } from '@/types/ship.ts'
 import { uiText } from '@/i18n/uiText.ts'
 
 interface TownScreenProps {
@@ -38,8 +41,8 @@ type CityHotspot = {
 const INVEST_AMOUNTS = [1000, 5000]
 const BANK_AMOUNTS = [1000, 5000]
 const CREW_HIRE_AMOUNTS = [1, 5, 10]
-const REPAIR_AMOUNTS = [10, 30]
 const SUPPLY_STEP = 12
+const EMERGENCY_REPAIR_REQUEST = 12
 const SECTION_LABELS: Record<TownSection, string> = {
   overview: uiText.town.sections.overview,
   departure: uiText.town.sections.departure,
@@ -198,6 +201,26 @@ function formatMorale(morale?: number): string {
   return `${morale.toFixed(0)} 低い`
 }
 
+function getGaugeRatio(current?: number, max?: number): number {
+  return Math.max(0, Math.min(1, (current ?? 0) / Math.max(1, max ?? 1)))
+}
+
+function getGaugeTone(ratio: number): string {
+  if (ratio < 0.3) return '#ef4444'
+  if (ratio < 0.6) return '#f59e0b'
+  return '#60a5fa'
+}
+
+function estimateEmergencyRepairGain(missingDurability: number, facilityLevel: number, repairFactor = 1): number {
+  if (missingDurability <= 0) return 0
+  const requested = Math.min(missingDurability, EMERGENCY_REPAIR_REQUEST)
+  const baseGain = Math.min(
+    missingDurability,
+    Math.max(4, Math.floor(requested * (VOYAGE_CONFIG.EMERGENCY_REPAIR_EFFICIENCY + facilityLevel * 0.03))),
+  )
+  return Math.min(missingDurability, Math.max(1, Math.floor(baseGain * repairFactor)))
+}
+
 function getShipyardRequirement(category: string): number {
   if (category === 'small_sail') return 1
   if (category === 'medium_sail' || category === 'galley') return 2
@@ -260,6 +283,57 @@ function OfficerRadarChart({ stats }: { stats: OfficerStats }) {
   )
 }
 
+function ShipGaugeRow({ label, current, max }: { label: string; current: number; max: number }) {
+  const ratio = getGaugeRatio(current, max)
+  return (
+    <div style={styles.shipGaugeRow}>
+      <span style={styles.shipGaugeLabel}>{label}</span>
+      <div style={styles.shipGaugeTrack}>
+        <div style={{ ...styles.shipGaugeFill, width: `${Math.round(ratio * 100)}%`, background: getGaugeTone(ratio) }} />
+      </div>
+      <strong style={styles.shipGaugeValue}>{current}/{max}</strong>
+    </div>
+  )
+}
+
+function ShipModelPreview() {
+  return (
+    <div style={styles.shipModelViewport}>
+      <Canvas camera={{ position: [4.4, 2.5, 5.2], fov: 42 }} dpr={[1, 1.5]}>
+        <color attach="background" args={['#071323']} />
+        <ambientLight intensity={0.82} />
+        <directionalLight position={[4, 7, 5]} intensity={2.1} />
+        <directionalLight position={[-5, 3, -4]} intensity={0.65} color="#7dd3fc" />
+        <Suspense fallback={<ShipRenderer heading={34} scale={0.86} />}>
+          <ShipModelRenderer heading={34} scale={0.86} />
+        </Suspense>
+      </Canvas>
+    </div>
+  )
+}
+
+function SelectedShipConditionPanel({ ship, shipType, roleLabel }: { ship?: ShipInstance; shipType?: ShipType; roleLabel: string }) {
+  if (!ship) {
+    return <div style={styles.selectedShipPanel}><div style={styles.emptyState}>船が選択されていません。</div></div>
+  }
+  return (
+    <div style={styles.selectedShipPanel}>
+      <ShipModelPreview />
+      <div style={styles.selectedShipInfo}>
+        <div style={styles.selectedShipTitleRow}>
+          <span style={styles.featureBadge}>{roleLabel}</span>
+          <div style={styles.tradeMeta}>
+            <strong>{shipType?.name ?? ship.name}</strong>
+            <span style={styles.tradeSub}>速力 {shipType?.speed ?? '-'} / 旋回 {shipType?.turnRate ?? '-'} / 砲門 {shipType?.cannonSlots ?? '-'}</span>
+          </div>
+        </div>
+        <ShipGaugeRow label="耐久" current={ship.currentDurability} max={ship.maxDurability} />
+        <ShipGaugeRow label="船員" current={ship.currentCrew} max={ship.maxCrew} />
+      </div>
+    </div>
+  )
+}
+
 function OfficerPortrait({ officer }: { officer: Officer }) {
   const officerName = formatOfficerName(officer)
   return (
@@ -312,6 +386,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const assignOfficerToShip = usePlayerStore((s) => s.assignOfficerToShip)
   const unassignOfficer = usePlayerStore((s) => s.unassignOfficer)
   const repairShip = usePlayerStore((s) => s.repairShip)
+  const repairFleet = usePlayerStore((s) => s.repairFleet)
   const purchaseShip = usePlayerStore((s) => s.purchaseShip)
   const sellInventoryItem = usePlayerStore((s) => s.sellInventoryItem)
   const outfitShip = usePlayerStore((s) => s.outfitShip)
@@ -376,28 +451,28 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
     ensurePortQuests(port.id, day)
   }, [day, ensurePortQuests, port?.id])
 
-  const marketRows = useMemo(
-    () => (market?.items ?? []).map((item) => {
+  const marketRows = (market?.items ?? [])
+    .map((item) => {
       const good = getTradeGood(item.goodId)
       if (!good) return null
       const quantity = quantities[item.goodId] ?? 1
       const quote = portId ? getBuyQuote(portId, item.goodId, quantity, marketTargetShip?.instanceId) : null
       const limit = portId ? getPurchaseLimit(portId, item.goodId) : 0
       return { item, good, quantity, quote, limit }
-    }).filter((row): row is NonNullable<typeof row> => Boolean(row)).sort((a, b) => a.quote!.unitPrice - b.quote!.unitPrice),
-    [getBuyQuote, getPurchaseLimit, getTradeGood, market?.items, marketTargetShip?.instanceId, portId, quantities],
-  )
+    })
+    .filter((row): row is NonNullable<typeof row> => Boolean(row))
+    .sort((a, b) => a.quote!.unitPrice - b.quote!.unitPrice)
 
-  const cargoRows = useMemo(
-    () => (marketTargetShip?.cargo ?? []).map((slot) => {
+  const cargoRows = (marketTargetShip?.cargo ?? [])
+    .map((slot) => {
       const good = getTradeGood(slot.goodId)
       if (!good) return null
       const quantity = quantities[slot.goodId] ?? 1
       const quote = portId ? getSellQuote(portId, slot.goodId, quantity, marketTargetShip?.instanceId) : null
       return { slot, good, quantity, quote }
-    }).filter((row): row is NonNullable<typeof row> => Boolean(row)).sort((a, b) => b.quote!.unitPrice - a.quote!.unitPrice),
-    [getSellQuote, getTradeGood, marketTargetShip?.cargo, marketTargetShip?.instanceId, portId, quantities],
-  )
+    })
+    .filter((row): row is NonNullable<typeof row> => Boolean(row))
+    .sort((a, b) => b.quote!.unitPrice - a.quote!.unitPrice)
 
   const inventoryRows = useMemo(() => {
     const entries = player?.inventory ?? []
@@ -489,13 +564,20 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   ] as const).filter((section): section is TownSection => section !== null)
   const visibleSection = availableSections.includes(activeSection) ? activeSection : 'overview'
   const notice = (tradeMessageState.portId === port.id ? tradeMessageState.message : null) ?? lastQuestNotice
+  const repairTargetShipType = repairTargetShip ? getShip(repairTargetShip.typeId) : undefined
+  const tavernTargetShipType = tavernTargetShip ? getShip(tavernTargetShip.typeId) : undefined
   const missingDurability = Math.max(0, (repairTargetShip?.maxDurability ?? 0) - (repairTargetShip?.currentDurability ?? 0))
-  const emergencyPreview = Math.min(missingDurability, 12)
-  const emergencyRepairGain = missingDurability > 0 ? Math.min(missingDurability, Math.max(4, Math.floor(emergencyPreview * (VOYAGE_CONFIG.EMERGENCY_REPAIR_EFFICIENCY + shipyardLevel * 0.03)))) : 0
-  const emergencyRepairCost = emergencyRepairGain * Math.max(2, VOYAGE_CONFIG.EMERGENCY_REPAIR_COST_PER_POINT - Math.floor(shipyardLevel / 2))
-  const standardRepairUnitCost = Math.max(2, VOYAGE_CONFIG.STANDARD_REPAIR_COST_PER_POINT - Math.floor(shipyardLevel / 2))
-  const standardRepairPreview = REPAIR_AMOUNTS.map((amount) => ({ amount, cost: Math.min(amount, missingDurability) * standardRepairUnitCost }))
-  const overhaulCost = missingDurability * Math.max(VOYAGE_CONFIG.STANDARD_REPAIR_COST_PER_POINT, VOYAGE_CONFIG.OVERHAUL_COST_PER_POINT - Math.floor(shipyardLevel / 2))
+  const fleetMissingDurability = ships.reduce((sum, ship) => sum + Math.max(0, ship.maxDurability - ship.currentDurability), 0)
+  const damagedShipCount = ships.filter((ship) => ship.currentDurability < ship.maxDurability).length
+  const repairTargetRepairFactor = getOfficerShipEffects(repairTargetShip, officers).repairFactor
+  const emergencyRepairGain = estimateEmergencyRepairGain(missingDurability, shipyardLevel, repairTargetRepairFactor)
+  const emergencyRepairCostPerPoint = Math.max(2, VOYAGE_CONFIG.EMERGENCY_REPAIR_COST_PER_POINT - Math.floor(shipyardLevel / 2))
+  const overhaulCostPerPoint = Math.max(VOYAGE_CONFIG.STANDARD_REPAIR_COST_PER_POINT, VOYAGE_CONFIG.OVERHAUL_COST_PER_POINT - Math.floor(shipyardLevel / 2))
+  const emergencyRepairCost = emergencyRepairGain * emergencyRepairCostPerPoint
+  const overhaulCost = missingDurability * overhaulCostPerPoint
+  const fleetEmergencyRepairGain = ships.reduce((sum, ship) => sum + estimateEmergencyRepairGain(Math.max(0, ship.maxDurability - ship.currentDurability), shipyardLevel, getOfficerShipEffects(ship, officers).repairFactor), 0)
+  const fleetEmergencyRepairCost = fleetEmergencyRepairGain * emergencyRepairCostPerPoint
+  const fleetOverhaulCost = fleetMissingDurability * overhaulCostPerPoint
   const tavernMealCost = Math.max(20, Math.ceil(Math.max(1, tavernTargetShip?.currentCrew ?? 1) * VOYAGE_CONFIG.TAVERN_MEAL_COST_PER_CREW * (1 - tavernLevel * 0.04)))
   const tavernRoundsCost = Math.max(60, Math.ceil(VOYAGE_CONFIG.TAVERN_ROUND_BASE_COST * (1 + (tavernTargetShip?.maxCrew ?? 1) * 0.04) * (1 - tavernLevel * 0.03)))
   const tavernRecruitUnitCost = Math.max(10, 18 - tavernLevel * VOYAGE_CONFIG.TAVERN_RECRUIT_DISCOUNT_PER_LEVEL)
@@ -724,12 +806,17 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                       <span style={shipyardFacility ? styles.featureBadge : styles.featureBadgeMuted}>{shipyardFacility ? uiText.town.labels.shipyard : uiText.town.labels.workshop}</span>
                       <div>
                         <strong>{shipyardFacility ? `${uiText.town.labels.shipyard} Lv.${shipyardLevel}` : uiText.town.labels.emergencyWorkshop}</strong>
-                        <div style={styles.featureText}>{shipyardFacility ? '通常修理とオーバーホールが利用できます。' : 'この港では応急修理のみ可能です。'}</div>
+                        <div style={styles.featureText}>{shipyardFacility ? '応急修理とオーバーホールが利用できます。' : 'この港では応急修理のみ可能です。'}</div>
                       </div>
                     </div>
+                    <SelectedShipConditionPanel
+                      ship={repairTargetShip}
+                      shipType={repairTargetShipType}
+                      roleLabel={repairTargetShip?.instanceId === activeShipId ? '旗艦' : '操作対象'}
+                    />
                     <div style={styles.infoGridCompact}>
                       <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.supplies}</span><strong>食 {fleetSupply.food.toFixed(0)}/{fleetSupply.maxFood.toFixed(0)} / 水 {fleetSupply.water.toFixed(0)}/{fleetSupply.maxWater.toFixed(0)}</strong><small>艦隊全体に補給します</small></div>
-                      <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.nav.durability}</span><strong>{repairTargetShip?.currentDurability ?? 0} / {repairTargetShip?.maxDurability ?? 0}</strong><small>修理対象: {repairTargetShip?.name ?? '未選択'} / {shipyardFacility ? `${uiText.town.labels.shipyard} Lv.${shipyardLevel}` : '簡易工房のみ'}</small></div>
+                      <div style={styles.infoBlock}><span style={styles.infoLabel}>艦隊船体</span><strong>損傷 {damagedShipCount} 隻 / 不足 {fleetMissingDurability}</strong><small>{shipyardFacility ? '全艦オーバーホールに対応しています。' : '全艦応急修理に対応しています。'}</small></div>
                     </div>
                     <div>
                       <p style={styles.serviceLabel}>保有船</p>
@@ -742,7 +829,10 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                             <div key={ship.instanceId} style={styles.compactActionRow}>
                               <div style={styles.tradeMeta}>
                                 <strong>{type?.name ?? ship.name}{ship.instanceId === activeShipId ? ` / ${uiText.town.labels.active}` : ''}{isRepairTarget ? ' / 操作対象' : ''}</strong>
-                                <span style={styles.tradeSub}>船員 {ship.currentCrew}/{ship.maxCrew} / 船体 {ship.currentDurability}/{ship.maxDurability} / 積荷 {ship.usedCapacity}/{ship.maxCapacity}</span>
+                                <div style={styles.compactGaugeStack}>
+                                  <ShipGaugeRow label="耐久" current={ship.currentDurability} max={ship.maxDurability} />
+                                  <ShipGaugeRow label="船員" current={ship.currentCrew} max={ship.maxCrew} />
+                                </div>
                                 <span style={styles.tradeSub}>速力 {type?.speed ?? '-'} / 旋回 {type?.turnRate ?? '-'} / 砲門 {type?.cannonSlots ?? '-'} / 船長 {captain?.name ?? (ship.instanceId === activeShipId ? 'プレイヤー' : '未任命')}</span>
                               </div>
                               <button style={isRepairTarget ? styles.secondaryButton : styles.primaryButton} disabled={isRepairTarget} onClick={() => setRepairTargetShipId(ship.instanceId)}>操作対象にする</button>
@@ -766,11 +856,12 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                       </div>
                       <p style={styles.serviceLabel}>{uiText.town.labels.repair}</p>
                       <div style={styles.serviceGrid}>
-                        <button style={styles.secondaryButton} disabled={missingDurability <= 0} onClick={() => handleAction(repairShip('emergency', emergencyPreview || undefined, shipyardLevel, repairTargetShip?.instanceId))}>応急修理 {emergencyRepairCost} d</button>
-                        {shipyardFacility && standardRepairPreview.map(({ amount, cost }) => <button key={`repair-${amount}`} style={styles.secondaryButton} disabled={missingDurability <= 0} onClick={() => handleAction(repairShip('standard', amount, shipyardLevel, repairTargetShip?.instanceId))}>{uiText.town.labels.repair} {amount} {cost} d</button>)}
+                        <button style={styles.secondaryButton} disabled={missingDurability <= 0} onClick={() => handleAction(repairShip('emergency', EMERGENCY_REPAIR_REQUEST, shipyardLevel, repairTargetShip?.instanceId))}>応急修理 {emergencyRepairCost} d</button>
                         {shipyardFacility && <button style={styles.primaryButton} disabled={missingDurability <= 0} onClick={() => handleAction(repairShip('overhaul', undefined, shipyardLevel, repairTargetShip?.instanceId))}>{uiText.town.labels.overhaul} {overhaulCost} d</button>}
+                        <button style={styles.secondaryButton} disabled={damagedShipCount <= 0} onClick={() => handleAction(repairFleet('emergency', EMERGENCY_REPAIR_REQUEST, shipyardLevel))}>全艦応急修理 {fleetEmergencyRepairCost} d</button>
+                        {shipyardFacility && <button style={styles.primaryButton} disabled={damagedShipCount <= 0} onClick={() => handleAction(repairFleet('overhaul', undefined, shipyardLevel))}>全艦オーバーホール {fleetOverhaulCost} d</button>}
                       </div>
-                      <div style={styles.serviceNote}>{shipyardFacility ? 'オーバーホールは耐久を全快し、消耗の蓄積も整えます。' : '造船所がない港では応急修理のみ可能です。'}</div>
+                      <div style={styles.serviceNote}>{shipyardFacility ? 'オーバーホールは耐久を全快し、消耗の蓄積も整えます。全艦ボタンは損傷している船だけを対象にします。' : '造船所がない港では応急修理のみ可能です。'}</div>
                     </div>
                     <div style={styles.departRow}>
                       <button style={styles.leaveButton} onClick={() => {
@@ -880,6 +971,13 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                     <div style={styles.facilityTargetRow}>
                       <span style={styles.serviceNote}>酒場で操作する船</span>
                       {renderFacilityShipSelect(tavernTargetShip?.instanceId ?? fallbackShipId, setTavernTargetShipId)}
+                    </div>
+                    <div style={styles.tavernCrewPanel}>
+                      <div style={styles.tradeMeta}>
+                        <strong>{tavernTargetShipType?.name ?? tavernTargetShip?.name ?? '未選択'}</strong>
+                        <span style={styles.tradeSub}>船員雇用はこの船の空き枠に入ります。</span>
+                      </div>
+                      {tavernTargetShip && <ShipGaugeRow label="船員" current={tavernTargetShip.currentCrew} max={tavernTargetShip.maxCrew} />}
                     </div>
                     <div style={styles.infoGridCompact}>
                       <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.mood}</span><strong>{formatMorale(tavernTargetShip?.morale)}</strong><small>食事で小回復 / 景気づけで大回復</small></div>
@@ -1193,6 +1291,17 @@ const styles: Record<string, React.CSSProperties> = {
   infoGridCompact: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 },
   infoBlock: { display: 'flex', flexDirection: 'column', gap: 4, padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.03)' },
   infoLabel: { color: '#8ca4c4', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em' },
+  selectedShipPanel: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, alignItems: 'stretch', padding: 12, borderRadius: 16, background: 'rgba(15, 23, 42, 0.42)', border: '1px solid rgba(125, 211, 252, 0.16)' },
+  shipModelViewport: { minHeight: 210, borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(148, 163, 184, 0.18)', background: '#071323' },
+  selectedShipInfo: { display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 12, minWidth: 0 },
+  selectedShipTitleRow: { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
+  shipGaugeRow: { display: 'grid', gridTemplateColumns: '48px minmax(80px, 1fr) 58px', alignItems: 'center', gap: 8, minHeight: 22, color: '#dbeafe', fontSize: 12 },
+  shipGaugeLabel: { color: '#9fb4d0', fontSize: 11 },
+  shipGaugeTrack: { height: 8, borderRadius: 999, background: 'rgba(148, 163, 184, 0.18)', overflow: 'hidden' },
+  shipGaugeFill: { height: '100%', borderRadius: 999 },
+  shipGaugeValue: { textAlign: 'right', color: '#eef6ff', fontSize: 12, fontVariantNumeric: 'tabular-nums' },
+  compactGaugeStack: { display: 'grid', gap: 4, marginTop: 2, marginBottom: 2 },
+  tavernCrewPanel: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, alignItems: 'center', padding: 12, borderRadius: 14, background: 'rgba(15, 23, 42, 0.34)', border: '1px solid rgba(148, 163, 184, 0.12)' },
   facilities: { display: 'flex', flexWrap: 'wrap', gap: 8 },
   facilityChip: { padding: '6px 9px', borderRadius: 999, background: 'rgba(57, 116, 184, 0.26)', color: '#dbeafe', fontSize: 11 },
   list: { display: 'flex', flexDirection: 'column', gap: 10 },
