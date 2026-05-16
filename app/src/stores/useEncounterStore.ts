@@ -8,11 +8,15 @@ import type {
   EncounterOutcome,
   EncounterState,
   EncounterType,
+  TacticalBattleResolution,
 } from '@/types/encounter.ts'
 import { COMBAT_CONFIG } from '@/config/gameConfig.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
+import { useGameStore } from '@/stores/useGameStore.ts'
+import { useNpcFleetStore } from '@/stores/useNpcFleetStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
+import { useQuestStore } from '@/stores/useQuestStore.ts'
 import type { PlayerItemStack } from '@/types/character.ts'
 import { useUIStore } from '@/stores/useUIStore.ts'
 
@@ -30,6 +34,7 @@ interface EncounterStoreState {
   resolveEncounter: (action: EncounterAction) => EncounterResolution
   startCombat: () => EncounterResolution
   performCombatAction: (action: CombatAction) => EncounterResolution
+  resolveTacticalBattle: (resolution: TacticalBattleResolution) => EncounterResolution
   closeEncounter: () => void
   clearEncounterNotice: () => void
 }
@@ -41,6 +46,8 @@ interface EnemyBehaviorProfile {
   escapePressure: number
   closeInBias: number
 }
+
+const NPC_FLEET_SUPPRESSION_DAYS = 18
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
@@ -119,6 +126,42 @@ function applyEncounterOutcome(outcome: EncounterOutcome, combatState?: Encounte
   }
   if (durabilityLoss >= 10) {
     useUIStore.getState().addNotification(`船体が ${durabilityLoss} 損傷しました。`, 'warning', 3000)
+  }
+}
+
+function applyTacticalShipResults(resolution: TacticalBattleResolution): void {
+  const playerBefore = usePlayerStore.getState()
+  const beforeCrew = playerBefore.ships.reduce((sum, ship) => sum + ship.currentCrew, 0)
+  const beforeDurability = playerBefore.ships.reduce((sum, ship) => sum + ship.currentDurability, 0)
+  const resultByShipId = new Map(
+    resolution.ships
+      .filter((ship) => ship.side === 'player')
+      .map((ship) => [ship.id, ship]),
+  )
+
+  usePlayerStore.setState((state) => ({
+    ships: state.ships.map((ship) => {
+      const result = resultByShipId.get(ship.instanceId)
+      if (!result) return ship
+      return {
+        ...ship,
+        currentDurability: clamp(Math.round(result.durability), 1, ship.maxDurability),
+        currentCrew: clamp(Math.round(result.crew), 0, ship.maxCrew),
+      }
+    }),
+  }))
+
+  const playerAfter = usePlayerStore.getState()
+  const afterCrew = playerAfter.ships.reduce((sum, ship) => sum + ship.currentCrew, 0)
+  const afterDurability = playerAfter.ships.reduce((sum, ship) => sum + ship.currentDurability, 0)
+  const crewLoss = Math.max(0, beforeCrew - afterCrew)
+  const durabilityLoss = Math.max(0, beforeDurability - afterDurability)
+
+  if (crewLoss > 0) {
+    useUIStore.getState().addNotification(`艦隊の船員が ${crewLoss} 人減りました。`, afterCrew <= 0 ? 'error' : 'warning', 3600)
+  }
+  if (durabilityLoss >= 10) {
+    useUIStore.getState().addNotification(`艦隊が合計 ${durabilityLoss} 損傷しました。`, 'warning', 3000)
   }
 }
 
@@ -617,6 +660,57 @@ export const useEncounterStore = create<EncounterStoreState>()((set, get) => ({
 
     set({ combatState: nextState })
     return { ok: true, message: '戦闘行動を実行しました。' }
+  },
+
+  resolveTacticalBattle: (resolution) => {
+    const encounter = get().activeEncounter
+    const combatState = get().combatState
+    if (!encounter || !combatState) return { ok: false, message: '進行中の戦闘がありません。' }
+    if (combatState.phase === 'resolved') return { ok: false, message: '戦闘はすでに終了しています。' }
+
+    applyTacticalShipResults(resolution)
+
+    const enemyCrew = resolution.ships
+      .filter((ship) => ship.side === 'enemy')
+      .reduce((sum, ship) => sum + ship.crew, 0)
+    const enemyDurability = resolution.ships
+      .filter((ship) => ship.side === 'enemy')
+      .reduce((sum, ship) => sum + ship.durability, 0)
+    const playerCrew = resolution.ships
+      .filter((ship) => ship.side === 'player')
+      .reduce((sum, ship) => sum + ship.crew, 0)
+    const playerDurability = resolution.ships
+      .filter((ship) => ship.side === 'player')
+      .reduce((sum, ship) => sum + ship.durability, 0)
+    const resolvedCombatState: EncounterCombatState = {
+      ...combatState,
+      phase: 'resolved',
+      round: resolution.turn,
+      playerDurability: Math.max(1, Math.round(playerDurability)),
+      playerCrew: Math.max(0, Math.round(playerCrew)),
+      enemyDurability: Math.max(0, Math.round(enemyDurability)),
+      enemyCrew: Math.max(0, Math.round(enemyCrew)),
+    }
+
+    const baseOutcome = resolution.victory
+      ? buildVictoryOutcome(encounter, resolvedCombatState)
+      : buildDefeatOutcome(encounter)
+    let message = baseOutcome.message
+
+    if (resolution.victory && encounter.npcFleetId) {
+      const currentDay = Math.floor(useGameStore.getState().timeState.totalDays)
+      useNpcFleetStore.getState().suppressFleet(encounter.npcFleetId, currentDay + NPC_FLEET_SUPPRESSION_DAYS)
+      const questResult = useQuestStore.getState().completeCombatQuestForFleet(encounter.npcFleetId)
+      if (questResult.ok) message = `${message} ${questResult.message}`
+    }
+
+    const outcome = { ...baseOutcome, message }
+    applyEncounterOutcome(outcome)
+    set({
+      combatState: { ...resolvedCombatState, result: outcome },
+      lastEncounterNotice: outcome.message,
+    })
+    return { ok: true, message: outcome.message }
   },
 
   closeEncounter: () => {

@@ -3,10 +3,11 @@
 // クリック＝舵（方向指示）、帆の開閉＝速度調整
 // ============================================================
 
-import { Suspense, lazy, useMemo, useRef, useEffect } from 'react'
+import { Suspense, createRef, lazy, useMemo, useRef, useEffect } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { BoxGeometry, CircleGeometry, ConeGeometry, CylinderGeometry, MeshBasicMaterial, MeshStandardMaterial, Raycaster, Vector2, Plane, Vector3, type Mesh, type Group } from 'three'
 import type { Port } from '@/types/port.ts'
+import { NPC_FLEETS } from '@/data/master/npcFleets.ts'
 import { OceanScene } from '@/rendering/OceanScene.tsx'
 import { SkyBox } from '@/rendering/SkyBox.tsx'
 import { FleetPlaceholderRenderer, FleetShipRenderer } from '@/rendering/ShipRenderer.tsx'
@@ -14,11 +15,14 @@ import { NpcFleetRenderer } from '@/rendering/NpcFleetRenderer.tsx'
 import { WakeRenderer } from '@/rendering/WakeRenderer.tsx'
 import { LandRenderer } from '@/rendering/LandRenderer.tsx'
 import { TerrainReliefRenderer } from '@/rendering/TerrainReliefRenderer.tsx'
+import { isNpcFleetSuppressed } from '@/game/world/npcFleetRegistry.ts'
+import { getNpcFleetSnapshot } from '@/game/world/npcFleetSimulation.ts'
 import { useUIStore } from '@/stores/useUIStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { useGameStore } from '@/stores/useGameStore.ts'
+import { useNpcFleetStore } from '@/stores/useNpcFleetStore.ts'
 import { worldToScene, sceneToWorld } from '@/rendering/worldTransform.ts'
 
 const CameraControls = lazy(async () => import('./CameraControls.tsx').then((mod) => ({ default: mod.CameraControls })))
@@ -40,6 +44,13 @@ const PORT_MARKER_GEOMETRIES = {
   hitbox: new CylinderGeometry(0.82, 0.82, 2.1, 14),
 }
 const PORT_MARKER_HITBOX_MATERIAL = new MeshBasicMaterial({
+  transparent: true,
+  opacity: 0,
+  depthWrite: false,
+  depthTest: false,
+})
+const NPC_FLEET_HITBOX_GEOMETRY = new CylinderGeometry(3.2, 3.2, 6, 18)
+const NPC_FLEET_HITBOX_MATERIAL = new MeshBasicMaterial({
   transparent: true,
   opacity: 0,
   depthWrite: false,
@@ -129,6 +140,7 @@ export function GameCanvas() {
         <FleetShipRenderer />
       </Suspense>
       <NpcFleetRenderer />
+      <NpcFleetInteractionLayer />
 
       {wireframe && (
         <Suspense fallback={null}>
@@ -205,9 +217,12 @@ function RudderClickHandler() {
       const portHits = portMarkerRaycaster.intersectObjects(scene.children, true)
 
       // PORT_MARKER_HITBOX_MATERIAL でクリックされたら スキップ
-      const firstHit = portHits[0]
-      if (firstHit && (firstHit.object as Mesh).material === PORT_MARKER_HITBOX_MATERIAL) {
-        // 最前面がポートマーカーなら ocean click は無視
+      const markerHit = portHits.find((hit) => {
+        const material = (hit.object as Mesh).material
+        return material === PORT_MARKER_HITBOX_MATERIAL || material === NPC_FLEET_HITBOX_MATERIAL
+      })
+      if (markerHit) {
+        // 港/NPC艦隊クリックは ocean click と競合させない
         return
       }
 
@@ -230,6 +245,58 @@ function RudderClickHandler() {
   }, [camera, gl, scene, raycaster, oceanPlane, mouseVec, intersectPoint, portMarkerRaycaster])
 
   return null
+}
+
+function NpcFleetInteractionLayer() {
+  const questFleets = useNpcFleetStore((s) => s.questFleets)
+  const fleets = useMemo(() => [...NPC_FLEETS, ...Object.values(questFleets)], [questFleets])
+  const fleetCount = fleets.length
+  const fleetRefs = useMemo(
+    () => Array.from({ length: fleetCount }, () => createRef<Group>()),
+    [fleetCount],
+  )
+
+  useFrame(() => {
+    const ports = useWorldStore.getState().ports
+    if (ports.length === 0) return
+
+    const totalDays = useGameStore.getState().gameTime.totalGameSeconds / 86400
+    for (let index = 0; index < fleets.length; index += 1) {
+      const fleet = fleets[index]!
+      const group = fleetRefs[index]?.current
+      if (!group) continue
+
+      const snapshot = getNpcFleetSnapshot(fleet, ports, totalDays)
+      if (!snapshot || snapshot.inPort || isNpcFleetSuppressed(fleet.id, totalDays)) {
+        group.position.set(0, -10000, 0)
+        group.scale.setScalar(0.0001)
+        continue
+      }
+
+      const [x, y, z] = worldToScene(snapshot.position)
+      group.position.set(x, y + 1.85, z)
+      group.scale.setScalar(1)
+    }
+  })
+
+  return (
+    <group>
+      {fleets.map((fleet, index) => (
+        <group key={fleet.id} ref={fleetRefs[index]}>
+          <mesh
+            geometry={NPC_FLEET_HITBOX_GEOMETRY}
+            material={NPC_FLEET_HITBOX_MATERIAL}
+            onClick={(event) => {
+              event.stopPropagation()
+              const nav = useNavigationStore.getState()
+              if (nav.mode === 'docked' || nav.mode === 'combat') return
+              useNpcFleetStore.getState().requestAttack(fleet.id)
+            }}
+          />
+        </group>
+      ))}
+    </group>
+  )
 }
 
 /**

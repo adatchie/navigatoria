@@ -3,11 +3,14 @@
 // ============================================================
 
 import type { PortId, SkillId } from './common.ts'
+import type { NpcFleetDefinition } from './npcFleet.ts'
 
 export type QuestType = 'main' | 'guild' | 'side' | 'delivery' | 'discovery' | 'combat'
 export type QuestStatus = 'available' | 'active' | 'completed' | 'failed' | 'ready_to_turn_in'
 export type QuestRank = 'standard' | 'urgent' | 'premium'
 export type TradeQuestCategory = 'trade_delivery' | 'trade_procurement' | 'trade_sales'
+export type CombatQuestCategory = 'combat_bounty'
+export type QuestCategory = TradeQuestCategory | CombatQuestCategory
 
 export interface Quest {
   id: string
@@ -57,7 +60,7 @@ export type QuestObjectiveType =
   | 'sell_item'
 
 export interface QuestMetadata {
-  category?: TradeQuestCategory
+  category?: QuestCategory
   sourcePortId?: string
   destinationPortId?: string
   reportPortId?: string
@@ -66,5 +69,11 @@ export interface QuestMetadata {
   delivered?: boolean
   purchased?: boolean
   soldQuantity?: number
+  combatTargetFleetId?: string
+  combatTargetName?: string
+  combatTargetAppearancePortId?: string
+  combatTargetPatrolPortId?: string
+  combatTargetExisting?: boolean
+  combatTargetFleet?: NpcFleetDefinition
 }
 

@@ -6,6 +6,7 @@ import { useWorldStore } from '@/stores/useWorldStore.ts'
 import { useEconomyStore } from '@/stores/useEconomyStore.ts'
 import { useQuestStore } from '@/stores/useQuestStore.ts'
 import { useEncounterStore } from '@/stores/useEncounterStore.ts'
+import { useNpcFleetStore } from '@/stores/useNpcFleetStore.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { localizeOfficerName } from '@/game/officers/officerGenerator.ts'
 import type { Port } from '@/types/port.ts'
@@ -22,6 +23,7 @@ export interface GameSnapshot {
   economy: ReturnType<typeof useEconomyStore.getState>
   quest: ReturnType<typeof useQuestStore.getState>
   encounter: ReturnType<typeof useEncounterStore.getState>
+  npcFleet?: ReturnType<typeof useNpcFleetStore.getState>
 }
 
 export function captureGameState(): GameSnapshot | null {
@@ -43,6 +45,7 @@ export function captureGameState(): GameSnapshot | null {
     economy: useEconomyStore.getState(),
     quest: useQuestStore.getState(),
     encounter: useEncounterStore.getState(),
+    npcFleet: useNpcFleetStore.getState(),
   }
 }
 
@@ -124,5 +127,6 @@ export function restoreGameState(snapshot: GameSnapshot): void {
   useEconomyStore.setState(snapshot.economy)
   useQuestStore.setState(snapshot.quest)
   useEncounterStore.setState(snapshot.encounter)
+  if (snapshot.npcFleet) useNpcFleetStore.setState(snapshot.npcFleet)
 }
 

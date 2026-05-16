@@ -41,6 +41,7 @@ export function BattleScreen() {
   const encounter = useEncounterStore((s) => s.activeEncounter)
   const combatState = useEncounterStore((s) => s.combatState)
   const performCombatAction = useEncounterStore((s) => s.performCombatAction)
+  const resolveTacticalBattle = useEncounterStore((s) => s.resolveTacticalBattle)
   const closeEncounter = useEncounterStore((s) => s.closeEncounter)
   const playerFleet = usePlayerStore((s) => s.ships)
   const officers = usePlayerStore((s) => s.officers)
@@ -72,6 +73,7 @@ export function BattleScreen() {
   const [combatEvents, setCombatEvents] = useState<CombatEvent[]>([])
   const [boardingEvents, setBoardingEvents] = useState<BoardingEvent[]>([])
   const actionTimerRef = useRef<number | null>(null)
+  const resolutionSubmittedRef = useRef(false)
 
   useEffect(() => {
     return () => {
@@ -87,7 +89,8 @@ export function BattleScreen() {
   const activePlayerShips = playerShips.filter((ship) => ship.status === 'active')
   const activeEnemyShips = enemyShips.filter((ship) => ship.status === 'active')
   const orderedCount = orders.length
-  const battleResolved = phase === 'resolved' || activePlayerShips.length === 0 || activeEnemyShips.length === 0
+  const battleResolved = phase === 'resolved' || combatState.phase === 'resolved' || activePlayerShips.length === 0 || activeEnemyShips.length === 0
+  const displayHint = combatState.phase === 'resolved' && combatState.result?.message ? combatState.result.message : hint
 
   const replaceOrder = (nextOrder: TacticalShipOrder) => {
     setOrders((current) => [
@@ -195,6 +198,22 @@ export function BattleScreen() {
       setHint(result.resolved ? '戦闘が決着しました。航海へ戻れます。' : '行動フェイズを解決しました。次の目標を設定してください。')
       const nextSelectable = result.ships.find((ship) => ship.side === 'player' && ship.status === 'active')
       setSelectedShipId(nextSelectable?.id)
+      if (result.resolved && !resolutionSubmittedRef.current) {
+        const playerActive = result.ships.some((ship) => ship.side === 'player' && ship.status === 'active')
+        const enemyActive = result.ships.some((ship) => ship.side === 'enemy' && ship.status === 'active')
+        resolutionSubmittedRef.current = true
+        resolveTacticalBattle({
+          victory: playerActive && !enemyActive,
+          turn,
+          ships: result.ships.map((ship) => ({
+            id: ship.id,
+            side: ship.side,
+            durability: ship.durability,
+            crew: ship.crew,
+            status: ship.status,
+          })),
+        })
+      }
     }, ACTION_TICK_MS)
   }
 
@@ -260,11 +279,12 @@ export function BattleScreen() {
 
       <div style={styles.logPanel}>
         <strong>{battleResolved ? '戦闘結果' : '戦闘ログ'}</strong>
+        {battleResolved && combatState.result?.message && <p>{combatState.result.message}</p>}
         {battleLog.map((entry, index) => <p key={`${entry}-${index}`}>{entry}</p>)}
       </div>
 
       <div style={styles.commandPanel}>
-        <div style={styles.hint}>{hint}</div>
+        <div style={styles.hint}>{displayHint}</div>
         <div style={styles.commandRow}>
           {targetEnemyId && <button style={styles.primaryButton} onClick={assignPursuitOrder}>追撃</button>}
           {targetEnemyId && <button style={styles.secondaryButton} onClick={assignMoveToEnemyPosition}>敵位置へ移動</button>}

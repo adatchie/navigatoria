@@ -1,11 +1,13 @@
 import { create } from 'zustand'
+import { generateCombatQuestsForPort } from '@/game/quest/combatQuestGenerator.ts'
 import { generateTradeQuestsForPort } from '@/game/quest/tradeQuestGenerator.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
+import { useNpcFleetStore } from '@/stores/useNpcFleetStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
-import type { Quest, QuestReward, TradeQuestCategory } from '@/types/quest.ts'
+import type { Quest, QuestCategory, QuestReward } from '@/types/quest.ts'
 
 interface QuestStoreState {
   availableByPort: Record<string, Quest[]>
@@ -19,6 +21,7 @@ interface QuestStoreState {
   acceptQuest: (questId: string, portId: string) => { ok: boolean; message: string }
   deliverTradeQuestCargo: () => { ok: boolean; message: string }
   turnInQuest: () => { ok: boolean; message: string }
+  completeCombatQuestForFleet: (fleetId: string) => { ok: boolean; message: string }
   recordPurchasedGoods: (portId: string, goodId: string, quantity: number) => void
   recordSoldGoods: (portId: string, goodId: string, quantity: number) => void
   failExpiredQuests: (currentDay: number) => void
@@ -51,7 +54,7 @@ function getReportPortId(quest: Quest): string | undefined {
   return quest.metadata?.reportPortId ?? quest.metadata?.destinationPortId ?? quest.giverPort
 }
 
-function getQuestCategory(quest: Quest): TradeQuestCategory | undefined {
+function getQuestCategory(quest: Quest): QuestCategory | undefined {
   return quest.metadata?.category
 }
 
@@ -113,14 +116,22 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
     const player = usePlayerStore.getState().player
     if (!port || !player) return
 
-    const quests = generateTradeQuestsForPort({
+    const tradeQuests = generateTradeQuestsForPort({
       port,
       ports: masterData.ports,
       goods: masterData.tradeGoods,
       day: currentDay,
       tradeLevel: player.stats.tradeLevel,
       shipSpeedKnots: getQuestShipSpeedKnots(),
-    }).filter((quest) => !get().completedQuestIds.includes(quest.id) && !get().failedQuestIds.includes(quest.id))
+    })
+    const combatQuests = generateCombatQuestsForPort({
+      port,
+      ports: masterData.ports,
+      day: currentDay,
+      combatLevel: player.stats.combatLevel,
+    })
+    const quests = [...tradeQuests, ...combatQuests]
+      .filter((quest) => !get().completedQuestIds.includes(quest.id) && !get().failedQuestIds.includes(quest.id))
 
     set((state) => ({
       availableByPort: { ...state.availableByPort, [portId]: quests },
@@ -137,13 +148,16 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
     const activeShip = playerState.ships.find((ship) => ship.instanceId === playerState.activeShipId)
     const currentDay = getCurrentDay()
     if (!quest || !player || !activeShip) return { ok: false, message: 'クエストが見つかりません。' }
-    if ((quest.requiredLevel ?? 0) > player.stats.tradeLevel) return { ok: false, message: '交易レベルが足りません。' }
+    const category = getQuestCategory(quest)
+    const requiredLevelStat = category === 'combat_bounty' ? player.stats.combatLevel : player.stats.tradeLevel
+    if ((quest.requiredLevel ?? 0) > requiredLevelStat) {
+      return { ok: false, message: category === 'combat_bounty' ? '戦闘レベルが足りません。' : '交易レベルが足りません。' }
+    }
     if ((quest.requiredFame ?? 0) > player.stats.fame) return { ok: false, message: `名声が ${quest.requiredFame} 必要です。` }
 
     const quantity = quest.metadata?.quantity ?? 0
     const good = quest.metadata?.goodId ? useDataStore.getState().getTradeGood(quest.metadata.goodId) : null
     const requiredCapacity = (good?.weight ?? 1) * quantity
-    const category = getQuestCategory(quest)
     if ((category === 'trade_delivery' || category === 'trade_procurement') && activeShip.maxCapacity < requiredCapacity) {
       return { ok: false, message: 'この依頼を運ぶには船倉が足りません。' }
     }
@@ -152,7 +166,9 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
       ...quest,
       status: 'active',
       acceptedDay: currentDay,
-      metadata: { ...quest.metadata, delivered: false, purchased: false, soldQuantity: 0 },
+      metadata: category === 'combat_bounty'
+        ? { ...quest.metadata }
+        : { ...quest.metadata, delivered: false, purchased: false, soldQuantity: 0 },
     }
 
     set((state) => ({
@@ -163,6 +179,11 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
         [portId]: (state.availableByPort[portId] ?? []).filter((entry) => entry.id !== questId),
       },
     }))
+
+    if (category === 'combat_bounty' && nextQuest.metadata?.combatTargetFleet) {
+      useNpcFleetStore.getState().activateQuestFleet(nextQuest.metadata.combatTargetFleet)
+    }
+
     return { ok: true, message: `${nextQuest.title} を受注しました。` }
   },
 
@@ -274,6 +295,44 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
     return { ok: true, message: `${quest.title} を報告しました。報酬 ${rewardMoney} d を獲得。` }
   },
 
+  completeCombatQuestForFleet: (fleetId) => {
+    const quest = get().activeQuest
+    const player = usePlayerStore.getState().player
+    if (!quest || !player || getQuestCategory(quest) !== 'combat_bounty') {
+      return { ok: false, message: '対象の討伐クエストはありません。' }
+    }
+    if (quest.metadata?.combatTargetFleetId !== fleetId) {
+      return { ok: false, message: '討伐対象が違います。' }
+    }
+
+    const rewardMoney = quest.rewards.filter((reward) => reward.type === 'money').reduce((sum, reward) => sum + (reward.amount ?? 0), 0)
+    const rewardExp = quest.rewards.filter((reward) => reward.type === 'exp').reduce((sum, reward) => sum + (reward.amount ?? 0), 0)
+    const rewardFame = quest.rewards.filter((reward) => reward.type === 'fame').reduce((sum, reward) => sum + (reward.amount ?? 0), 0)
+
+    usePlayerStore.setState((state) => state.player ? ({
+      player: {
+        ...state.player,
+        money: state.player.money + rewardMoney,
+        stats: {
+          ...state.player.stats,
+          combatExp: state.player.stats.combatExp + rewardExp,
+          fame: state.player.stats.fame + rewardFame,
+        },
+      },
+    }) : state)
+
+    const bonusNotes = applyQuestRewards(quest.rewards, player.nationality)
+    useNpcFleetStore.getState().removeQuestFleet(fleetId)
+
+    set((state) => ({
+      activeQuest: null,
+      completedQuestIds: appendUnique(state.completedQuestIds, quest.id),
+      lastQuestNotice: `${quest.title} を達成しました。報酬 ${rewardMoney} d と戦闘経験 ${rewardExp} を獲得。${bonusNotes.length > 0 ? ` 追加: ${bonusNotes.join(', ')}` : ''}`,
+    }))
+
+    return { ok: true, message: `${quest.title} を達成しました。報酬 ${rewardMoney} d を獲得。` }
+  },
+
   recordPurchasedGoods: (portId, goodId, quantity) => {
     if (quantity <= 0) return
     set((state) => {
@@ -331,6 +390,9 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
     const quest = get().activeQuest
     if (!quest || quest.status === 'failed' || quest.status === 'completed') return
     if (quest.deadlineDay == null || day <= quest.deadlineDay) return
+
+    const questFleetId = quest.metadata?.combatTargetFleet?.id
+    if (questFleetId) useNpcFleetStore.getState().removeQuestFleet(questFleetId)
 
     set((state) => ({
       activeQuest: null,

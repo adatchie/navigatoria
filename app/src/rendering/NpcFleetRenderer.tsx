@@ -6,9 +6,11 @@ import type { Group } from 'three'
 import { NPC_FLEETS } from '@/data/master/npcFleets.ts'
 import { getNpcFleetSnapshot } from '@/game/world/npcFleetSimulation.ts'
 import { useGameStore } from '@/stores/useGameStore.ts'
+import { useNpcFleetStore } from '@/stores/useNpcFleetStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
 import { ShipModelRenderer, ShipRenderer } from '@/rendering/ShipRenderer.tsx'
 import { worldToScene } from '@/rendering/worldTransform.ts'
+import { isNpcFleetSuppressed } from '@/game/world/npcFleetRegistry.ts'
 import type { NpcFleetRole } from '@/types/npcFleet.ts'
 
 interface NpcFleetRenderState {
@@ -45,9 +47,12 @@ function getSceneDistance(a: NpcFleetRenderState, x: number, y: number, z: numbe
 }
 
 export function NpcFleetRenderer() {
+  const questFleets = useNpcFleetStore((s) => s.questFleets)
+  const fleets = useMemo(() => [...NPC_FLEETS, ...Object.values(questFleets)], [questFleets])
+  const fleetCount = fleets.length
   const fleetRefs = useMemo(
-    () => Array.from({ length: NPC_FLEETS.length }, () => createRef<Group>()),
-    [],
+    () => Array.from({ length: fleetCount }, () => createRef<Group>()),
+    [fleetCount],
   )
   const renderStatesRef = useRef(new Map<string, NpcFleetRenderState>())
 
@@ -61,15 +66,15 @@ export function NpcFleetRenderer() {
     const headingLerp = 1 - Math.exp(-HEADING_LERP * delta)
     const activeFleetIds = new Set<string>()
 
-    for (let index = 0; index < NPC_FLEETS.length; index += 1) {
-      const fleet = NPC_FLEETS[index]!
+    for (let index = 0; index < fleets.length; index += 1) {
+      const fleet = fleets[index]!
       const group = fleetRefs[index]?.current
       if (!group) continue
 
       const snapshot = getNpcFleetSnapshot(fleet, ports, totalDays)
       activeFleetIds.add(fleet.id)
 
-      if (!snapshot || snapshot.inPort) {
+      if (!snapshot || snapshot.inPort || isNpcFleetSuppressed(fleet.id, totalDays)) {
         group.position.set(0, -10000, 0)
         group.scale.setScalar(0.0001)
         const renderState = renderStatesRef.current.get(fleet.id)
@@ -123,7 +128,7 @@ export function NpcFleetRenderer() {
 
   return (
     <group>
-      {NPC_FLEETS.map((fleet, fleetIndex) => (
+      {fleets.map((fleet, fleetIndex) => (
         <group key={fleet.id} ref={fleetRefs[fleetIndex]}>
           <Suspense fallback={<ShipRenderer heading={0} scale={1} />}>
             <ShipModelRenderer heading={0} scale={1} />

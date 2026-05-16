@@ -24,12 +24,15 @@ export interface NpcFleetDefinition {
   role: NpcFleetRole
   shipTypeId: ShipId
   routePortIds: PortId[]
+  appearancePortId?: PortId
+  patrolPortId?: PortId
   speedKnots: number
   departureOffsetDays: number
   dwellDays: number
   laneOffsetKm: number
   description: string
   interactionTags: NpcFleetInteractionTag[]
+  questOnly?: boolean
 }
 
 export interface NpcFleetSnapshot {

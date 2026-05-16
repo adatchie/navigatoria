@@ -72,4 +72,22 @@ export interface EncounterState {
   recommendedAction: EncounterAction
   lootHint?: string
   startedAtDay: number
+  source?: 'random' | 'npc_fleet' | 'quest'
+  npcFleetId?: string
+  npcFleetName?: string
+  npcCommander?: string
+}
+
+export interface TacticalBattleShipResult {
+  id: string
+  side: 'player' | 'enemy'
+  durability: number
+  crew: number
+  status: 'active' | 'disabled' | 'sunk'
+}
+
+export interface TacticalBattleResolution {
+  victory: boolean
+  turn: number
+  ships: TacticalBattleShipResult[]
 }

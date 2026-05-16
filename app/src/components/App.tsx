@@ -11,6 +11,7 @@ import { Compass } from './HUD/Compass.tsx'
 import { StatusBar } from './HUD/StatusBar.tsx'
 import { SailControl } from './HUD/SailControl.tsx'
 import { EncounterOverlay } from './EncounterOverlay.tsx'
+import { NpcFleetAttackDialog } from './NpcFleetAttackDialog.tsx'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { useUIStore } from '@/stores/useUIStore.ts'
@@ -277,6 +278,7 @@ export function App() {
               <Compass />
               <MiniMap />
               <EncounterOverlay />
+              <NpcFleetAttackDialog />
             </>
           )}
           <DebugPanel />

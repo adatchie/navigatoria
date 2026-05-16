@@ -1,9 +1,10 @@
 import { useMemo } from 'react'
 import { CanvasTexture, ClampToEdgeWrapping, LinearFilter } from 'three'
-import { NPC_FLEETS } from '@/data/master/npcFleets.ts'
 import { getNearbyNpcFleetSnapshots } from '@/game/world/npcFleetSimulation.ts'
+import { getActiveNpcFleetDefinitions } from '@/game/world/npcFleetRegistry.ts'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
+import { useNpcFleetStore } from '@/stores/useNpcFleetStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
 import { worldToScene } from '@/rendering/worldTransform.ts'
 
@@ -112,6 +113,8 @@ function WakeMark({ x, z, heading, speedRatio, scale = 1, texture }: WakeMarkPro
 
 export function WakeRenderer() {
   const ports = useWorldStore((s) => s.ports)
+  const questFleets = useNpcFleetStore((s) => s.questFleets)
+  const defeatedFleetCooldowns = useNpcFleetStore((s) => s.defeatedFleetCooldowns)
   const currentSpeed = useNavigationStore((s) => s.currentSpeed)
   const heading = useNavigationStore((s) => s.heading)
   const mode = useNavigationStore((s) => s.mode)
@@ -121,8 +124,11 @@ export function WakeRenderer() {
 
   const [playerX, , playerZ] = worldToScene(position)
   const playerSpeedRatio = mode === 'sailing' ? clamp01(currentSpeed / PLAYER_WAKE_SPEED) : 0
+  void questFleets
+  void defeatedFleetCooldowns
+  const npcFleets = getActiveNpcFleetDefinitions(totalDays)
   const npcSnapshots = ports.length > 0
-    ? getNearbyNpcFleetSnapshots(NPC_FLEETS, ports, totalDays, position, NPC_WAKE_RADIUS_KM)
+    ? getNearbyNpcFleetSnapshots(npcFleets, ports, totalDays, position, NPC_WAKE_RADIUS_KM)
     : []
 
   return (

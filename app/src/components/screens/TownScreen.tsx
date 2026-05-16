@@ -11,7 +11,7 @@ import { formatOfficerStats, getAssignedOfficer } from '@/game/officers/officerE
 import { generateTavernOfficerOffers, getOfficerSpecialtyLabel, localizeOfficerName } from '@/game/officers/officerGenerator.ts'
 import type { Officer, OfficerStats } from '@/types/character.ts'
 import type { Port } from '@/types/port.ts'
-import type { Quest, QuestRank, QuestReward, TradeQuestCategory } from '@/types/quest.ts'
+import type { Quest, QuestCategory, QuestRank, QuestReward, TradeQuestCategory } from '@/types/quest.ts'
 import { uiText } from '@/i18n/uiText.ts'
 
 interface TownScreenProps {
@@ -101,7 +101,8 @@ function formatQuestRank(rank?: QuestRank): string {
   return uiText.town.labels.standard
 }
 
-function formatQuestCategory(category?: TradeQuestCategory): string {
+function formatQuestCategory(category?: QuestCategory): string {
+  if (category === 'combat_bounty') return '討伐'
   if (category === 'trade_procurement') return '仕入'
   if (category === 'trade_sales') return '売却'
   return '納品'
@@ -135,6 +136,12 @@ function getPortName(ports: Port[], portId?: string): string {
 }
 
 function formatTradeQuestRoute(quest: Quest, ports: Port[]): string {
+  if (quest.metadata?.category === 'combat_bounty') {
+    const appearanceName = getPortName(ports, quest.metadata.combatTargetAppearancePortId)
+    const patrolName = getPortName(ports, quest.metadata.combatTargetPatrolPortId)
+    return `${appearanceName}港付近に出没 / ${patrolName}方面を巡回`
+  }
+
   const sourceName = getPortName(ports, quest.metadata?.sourcePortId)
   const destinationName = getPortName(ports, quest.metadata?.destinationPortId ?? getQuestReportPortId(quest))
   if (quest.metadata?.category === 'trade_procurement') {
@@ -147,6 +154,12 @@ function formatTradeQuestRoute(quest: Quest, ports: Port[]): string {
 }
 
 function formatTradeQuestInstruction(quest: Quest, ports: Port[], goodName?: string): string {
+  if (quest.metadata?.category === 'combat_bounty') {
+    const targetName = quest.metadata.combatTargetName ?? '討伐対象'
+    const appearanceName = getPortName(ports, quest.metadata.combatTargetAppearancePortId)
+    return `${appearanceName}港付近で ${targetName} の艦隊を捕捉して撃破する`
+  }
+
   const sourceName = getPortName(ports, quest.metadata?.sourcePortId)
   const destinationName = getPortName(ports, quest.metadata?.destinationPortId ?? getQuestReportPortId(quest))
   const quantity = quest.metadata?.quantity ?? 0
@@ -169,6 +182,7 @@ function formatObjectiveLabel(type: string): string {
   if (type === 'buy_item') return '買い付け'
   if (type === 'sell_item') return '売却'
   if (type === 'deliver_item' || type === 'deliver_cargo') return '納品'
+  if (type === 'defeat_enemy') return '討伐'
   if (type === 'visit_port') return '目的港到着'
   return type
 }
@@ -457,6 +471,9 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const activeQuestDaysRemaining = getDaysRemaining(activeQuest, day)
   const activeQuestRoute = activeQuest ? formatTradeQuestRoute(activeQuest, ports) : ''
   const activeQuestInstruction = activeQuest ? formatTradeQuestInstruction(activeQuest, ports, questGood?.name) : ''
+  const activeQuestSubject = questCategory === 'combat_bounty'
+    ? `${activeQuest?.metadata?.combatTargetName ?? '討伐対象'} / 報告不要`
+    : `${questGood?.name ?? '-'} x ${activeQuest?.metadata?.quantity ?? 0}`
   const availableSections = ([
     'overview',
     'departure',
@@ -549,7 +566,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
             <>
               <div style={styles.bannerFacts}>
                 <span>{activeQuestRoute}</span>
-                <span>{questGood?.name ?? '-'} x {activeQuest.metadata?.quantity ?? 0}</span>
+                <span>{activeQuestSubject}</span>
                 <span>{rewardSummary}</span>
               </div>
               <div style={styles.bannerFacts}>
@@ -562,7 +579,9 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                 {(questCategory === 'trade_delivery' || questCategory === 'trade_procurement') && (
                   <button style={styles.secondaryButton} disabled={!canDeliverQuest} onClick={() => handleAction(deliverTradeQuestCargo())}>{getQuestActionLabel(questCategory)}</button>
                 )}
-                <button style={styles.primaryButton} disabled={!canReportQuest} onClick={() => handleAction(turnInQuest())}>{uiText.town.labels.reportComplete}</button>
+                {questCategory !== 'combat_bounty' && (
+                  <button style={styles.primaryButton} disabled={!canReportQuest} onClick={() => handleAction(turnInQuest())}>{uiText.town.labels.reportComplete}</button>
+                )}
               </div>
             </>
           )}
