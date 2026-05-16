@@ -91,6 +91,11 @@ function manualChunks(id: string): string | undefined {
 export default defineConfig({
   base: '/navigatoria/',
   plugins: [react(), glsl()],
+  server: {
+    host: '127.0.0.2',
+    port: 5173,
+    strictPort: true,
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
