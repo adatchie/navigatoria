@@ -374,7 +374,7 @@ export function TerrainReliefRenderer() {
     material.dispose()
   }, [material])
 
-  if (!meshData || meshData.geometry.attributes.position.count === 0) return null
+  if (!reliefTexture || !meshData || meshData.geometry.attributes.position.count === 0) return null
 
   return (
     <mesh
