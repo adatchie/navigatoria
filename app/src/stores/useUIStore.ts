@@ -7,7 +7,7 @@ import { subscribeWithSelector } from 'zustand/middleware'
 import type { StopReason } from '@/game/systems/NavigationSystem.ts'
 
 type DebugFlag = 'showDebugPanel' | 'wireframe' | 'showFPS' | 'showPortMarkers' | 'showWindArrows'
-type NotificationLevel = 'info' | 'warning' | 'error'
+export type NotificationLevel = 'info' | 'warning' | 'error'
 
 interface UIStoreState {
   debugFlags: Record<DebugFlag, boolean>
@@ -21,10 +21,12 @@ interface UIStoreState {
   stopDuration: number
   /** 通知メッセージ */
   notificationMessage: string
+  /** 通知レベル */
+  notificationLevel: NotificationLevel
   /** 通知継続時間（ms） */
   notificationDuration: number
   /** 通知を設定（duration経過で自動クリア） */
-  setNotification: (message: string, duration: number) => void
+  setNotification: (message: string, duration: number, level?: NotificationLevel) => void
   addNotification: (message: string, level?: NotificationLevel, duration?: number) => void
   setDebugFlag: (flag: DebugFlag, value: boolean) => void
   /** 停止状態を設定 */
@@ -49,10 +51,11 @@ export const useUIStore = create<UIStoreState>()(
     stopStartTime: 0,
     stopDuration: 0,
     notificationMessage: '',
+    notificationLevel: 'info',
     notificationDuration: 0,
 
-    setNotification: (message, duration) => {
-      set({ notificationMessage: message, notificationDuration: duration })
+    setNotification: (message, duration, level = 'info') => {
+      set({ notificationMessage: message, notificationDuration: duration, notificationLevel: level })
       // 既存のタイマーをクリア
       if (notificationTimeoutId) {
         try {
@@ -65,15 +68,14 @@ export const useUIStore = create<UIStoreState>()(
       // 新しいタイマー設定
       if (duration > 0) {
         notificationTimeoutId = window.setTimeout(() => {
-          set({ notificationMessage: '' })
+          set({ notificationMessage: '', notificationLevel: 'info' })
           notificationTimeoutId = null
         }, duration) as unknown as number
       }
     },
 
     addNotification: (message, level = 'info', duration = 3000) => {
-      void level
-      useUIStore.getState().setNotification(message, duration)
+      useUIStore.getState().setNotification(message, duration, level)
     },
 
     setDebugFlag: (flag, value) =>

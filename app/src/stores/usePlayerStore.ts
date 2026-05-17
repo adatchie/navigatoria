@@ -16,8 +16,12 @@ import { localizeOfficerName } from '@/game/officers/officerGenerator.ts'
 type TavernService = 'meal' | 'rounds' | 'recruit'
 type RepairMode = 'emergency' | 'standard' | 'overhaul'
 
-const FOOD_UNIT_COST = 6
-const WATER_UNIT_COST = 4
+export const SUPPLY_UNIT_COSTS = {
+  food: 6,
+  water: 4,
+} as const
+const FOOD_UNIT_COST = SUPPLY_UNIT_COSTS.food
+const WATER_UNIT_COST = SUPPLY_UNIT_COSTS.water
 const CREW_HIRE_COST = 18
 const DEFAULT_MORALE = 72
 const MAX_FLEET_SHIPS = 5
@@ -549,9 +553,16 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
       : amount > 0
         ? Math.min(amount, supplies.maxWater - supplies.water)
         : supplies.maxWater - supplies.water
-    const totalCost = Math.ceil(desiredFood) * FOOD_UNIT_COST + Math.ceil(desiredWater) * WATER_UNIT_COST
-    if (desiredFood <= 0 && desiredWater <= 0) return { ok: false, message: 'これ以上補給する必要はありません。' }
-    if (player.money < totalCost) return { ok: false, message: '所持金が足りません。' }
+    const foodUnits = Math.ceil(desiredFood)
+    const waterUnits = Math.ceil(desiredWater)
+    const totalCost = foodUnits * FOOD_UNIT_COST + waterUnits * WATER_UNIT_COST
+    if (desiredFood <= 0 && desiredWater <= 0) return { ok: false, message: '食料・水はすでに満タンです。' }
+    if (player.money < totalCost) {
+      return {
+        ok: false,
+        message: `所持金が足りません。必要 ${totalCost} d / 所持 ${player.money} d / 不足 ${totalCost - player.money} d`,
+      }
+    }
 
     set((current) => ({
       player: current.player ? { ...current.player, money: current.player.money - totalCost } : current.player,
@@ -562,7 +573,7 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
       ).ships,
     }))
 
-    return { ok: true, message: `食料 ${Math.ceil(desiredFood)}・水 ${Math.ceil(desiredWater)} を補給しました。` }
+    return { ok: true, message: `食料 ${foodUnits}・水 ${waterUnits} を補給しました。（${totalCost} d）` }
   },
 
   hireCrew: (amount, targetShipId) => {

@@ -58,6 +58,8 @@ export function App() {
   const initializeMarkets = useEconomyStore((s) => s.initializeMarkets)
   const ensurePortQuests = useQuestStore((s) => s.ensurePortQuests)
   const debugFlags = useUIStore((s) => s.debugFlags)
+  const notificationMessage = useUIStore((s) => s.notificationMessage)
+  const notificationLevel = useUIStore((s) => s.notificationLevel)
   const dockedPortId = useNavigationStore((s) => s.dockedPortId)
   const activeEncounter = useEncounterStore((s) => s.activeEncounter)
   const combatState = useEncounterStore((s) => s.combatState)
@@ -293,6 +295,17 @@ export function App() {
         </Suspense>
       )}
       {phase === 'port' && <Suspense fallback={<LoadingScreen message="港へ入港中..." />}><TownScreen onManualSave={() => void handleManualSave()} onLoadLatest={() => void handleLoadLatest()} /></Suspense>}
+      {notificationMessage && (
+        <div
+          style={{
+            ...styles.toast,
+            ...(notificationLevel === 'warning' ? styles.toastWarning : {}),
+            ...(notificationLevel === 'error' ? styles.toastError : {}),
+          }}
+        >
+          {notificationMessage}
+        </div>
+      )}
     </div>
   )
 }
@@ -301,4 +314,7 @@ const styles: Record<string, React.CSSProperties> = {
   root: { width: '100vw', height: '100vh', overflow: 'hidden', background: '#000' },
   keybinds: { position: 'fixed', bottom: 8, left: 8, display: 'flex', gap: 12, alignItems: 'center', color: '#556', fontSize: 10, fontFamily: 'monospace', zIndex: 100 },
   linkButton: { padding: 0, background: 'none', border: 'none', color: '#7ab5ff', fontSize: 10, fontFamily: 'monospace', cursor: 'pointer' },
+  toast: { position: 'fixed', top: 22, left: '50%', transform: 'translateX(-50%)', zIndex: 1400, maxWidth: 'min(720px, calc(100vw - 40px))', padding: '12px 16px', borderRadius: 12, background: 'rgba(15, 42, 75, 0.94)', border: '1px solid rgba(147, 197, 253, 0.42)', color: '#eff6ff', boxShadow: '0 18px 50px rgba(0,0,0,0.32)', fontWeight: 700, lineHeight: 1.45 },
+  toastWarning: { background: 'rgba(92, 53, 14, 0.96)', border: '1px solid rgba(251, 191, 36, 0.52)', color: '#fff7ed' },
+  toastError: { background: 'rgba(91, 18, 18, 0.96)', border: '1px solid rgba(248, 113, 113, 0.58)', color: '#fff1f2' },
 }

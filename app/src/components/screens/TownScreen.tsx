@@ -2,8 +2,9 @@ import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
-import { usePlayerStore } from '@/stores/usePlayerStore.ts'
+import { SUPPLY_UNIT_COSTS, usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { useGameStore } from '@/stores/useGameStore.ts'
+import { useUIStore } from '@/stores/useUIStore.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { useEconomyStore } from '@/stores/useEconomyStore.ts'
 import { MAX_ACTIVE_QUESTS, useQuestStore } from '@/stores/useQuestStore.ts'
@@ -28,6 +29,10 @@ type HireDialogueStep = 'player_line' | 'officer_line' | 'system_message'
 type HireDialogueState = {
   officer: Officer
   step: HireDialogueStep
+}
+type ActionResult = {
+  ok?: boolean
+  message: string
 }
 type CityHotspot = {
   section: TownSection
@@ -415,9 +420,10 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const turnInQuest = useQuestStore((s) => s.turnInQuest)
   const lastQuestNotice = useQuestStore((s) => s.lastQuestNotice)
   const clearQuestNotice = useQuestStore((s) => s.clearQuestNotice)
+  const addNotification = useUIStore((s) => s.addNotification)
 
   const [quantities, setQuantities] = useState<Record<string, number>>({})
-  const [tradeMessageState, setTradeMessageState] = useState<{ portId: string | null; message: string | null }>({ portId: null, message: null })
+  const [tradeMessageState, setTradeMessageState] = useState<{ portId: string | null; message: string | null; ok?: boolean }>({ portId: null, message: null })
   const [activeSection, setActiveSection] = useState<TownSection>('overview')
   const questBoardPortRef = useRef<string | null>(null)
   const [repairTargetShipId, setRepairTargetShipId] = useState<string | null>(null)
@@ -443,6 +449,10 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
     }),
     { food: 0, water: 0, maxFood: 0, maxWater: 0 },
   )
+  const missingFoodSupply = Math.max(0, Math.ceil(fleetSupply.maxFood - fleetSupply.food))
+  const missingWaterSupply = Math.max(0, Math.ceil(fleetSupply.maxWater - fleetSupply.water))
+  const fullResupplyCost = missingFoodSupply * SUPPLY_UNIT_COSTS.food + missingWaterSupply * SUPPLY_UNIT_COSTS.water
+  const fullResupplyShortage = Math.max(0, fullResupplyCost - (player?.money ?? 0))
   const facilities = useMemo(() => port?.facilities.filter((facility) => facility.available) ?? [], [port])
   const marketFacility = facilities.find((facility) => facility.type === 'market')
   const tavernFacility = facilities.find((facility) => facility.type === 'tavern')
@@ -512,9 +522,10 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   if (!port) return <div style={styles.container}><div style={styles.card}>港が選択されていません。</div></div>
 
   const setQuantity = (goodId: string, nextValue: number) => setQuantities((current) => ({ ...current, [goodId]: Math.max(1, Math.min(200, Math.floor(nextValue) || 1)) }))
-  const handleAction = (message: { message: string }) => {
+  const handleAction = (result: ActionResult) => {
     clearQuestNotice()
-    setTradeMessageState({ portId: port.id, message: message.message })
+    setTradeMessageState({ portId: port.id, message: result.message, ok: result.ok })
+    addNotification(result.message, result.ok === false ? 'warning' : 'info', result.ok === false ? 4600 : 3200)
   }
   const beginHireDialogue = (officer: Officer) => {
     clearQuestNotice()
@@ -578,7 +589,9 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
     'inventory',
   ] as const).filter((section): section is TownSection => section !== null)
   const visibleSection = availableSections.includes(activeSection) ? activeSection : 'overview'
-  const notice = (tradeMessageState.portId === port.id ? tradeMessageState.message : null) ?? lastQuestNotice
+  const actionNotice = tradeMessageState.portId === port.id && tradeMessageState.message ? tradeMessageState : null
+  const notice = actionNotice?.message ?? lastQuestNotice
+  const noticeStyle = actionNotice?.ok === false ? { ...styles.notice, ...styles.noticeWarning } : styles.notice
   const repairTargetShipType = repairTargetShip ? getShip(repairTargetShip.typeId) : undefined
   const tavernTargetShipType = tavernTargetShip ? getShip(tavernTargetShip.typeId) : undefined
   const missingDurability = Math.max(0, (repairTargetShip?.maxDurability ?? 0) - (repairTargetShip?.currentDurability ?? 0))
@@ -701,7 +714,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
           )}
         </section>
 
-        {notice && <div style={styles.notice}>{notice}</div>}
+        {notice && <div style={noticeStyle}>{notice}</div>}
 
         <div style={styles.shell}>
           <aside style={styles.sidebar}>
@@ -834,7 +847,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                       roleLabel={repairTargetShip?.instanceId === activeShipId ? '旗艦' : '操作対象'}
                     />
                     <div style={styles.infoGridCompact}>
-                      <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.supplies}</span><strong>食 {fleetSupply.food.toFixed(0)}/{fleetSupply.maxFood.toFixed(0)} / 水 {fleetSupply.water.toFixed(0)}/{fleetSupply.maxWater.toFixed(0)}</strong><small>艦隊全体に補給します</small></div>
+                      <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.supplies}</span><strong>食 {fleetSupply.food.toFixed(0)}/{fleetSupply.maxFood.toFixed(0)} / 水 {fleetSupply.water.toFixed(0)}/{fleetSupply.maxWater.toFixed(0)}</strong><small>満タンまで 食 {missingFoodSupply} / 水 {missingWaterSupply} / 費用 {fullResupplyCost} d</small></div>
                       <div style={styles.infoBlock}><span style={styles.infoLabel}>艦隊船体</span><strong>損傷 {damagedShipCount} 隻 / 不足 {fleetMissingDurability}</strong><small>{shipyardFacility ? '全艦オーバーホールに対応しています。' : '全艦応急修理に対応しています。'}</small></div>
                     </div>
                     <div>
@@ -865,8 +878,16 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                       <div style={styles.serviceGrid}>
                         <button style={styles.secondaryButton} onClick={() => handleAction(resupplyShip('food', SUPPLY_STEP))}>食料 +{SUPPLY_STEP}</button>
                         <button style={styles.secondaryButton} onClick={() => handleAction(resupplyShip('water', SUPPLY_STEP))}>水 +{SUPPLY_STEP}</button>
-                        <button style={styles.primaryButton} onClick={() => handleAction(resupplyShip('all'))}>{uiText.town.labels.fullResupply}</button>
+                        <button style={styles.primaryButton} onClick={() => handleAction(resupplyShip('all'))}>{uiText.town.labels.fullResupply} {fullResupplyCost} d</button>
                       </div>
+                      {actionNotice && (
+                        <div style={actionNotice.ok === false ? { ...styles.inlineNotice, ...styles.inlineNoticeWarning } : styles.inlineNotice}>
+                          {actionNotice.message}
+                        </div>
+                      )}
+                      {fullResupplyShortage > 0 && (
+                        <div style={styles.serviceNote}>一括補給にはあと {fullResupplyShortage} d 必要です。食料/水の個別補給なら所持金の範囲で実行できます。</div>
+                      )}
                     </div>
                     <div>
                       <div style={styles.facilityTargetRow}>
@@ -1280,7 +1301,8 @@ const styles: Record<string, React.CSSProperties> = {
   activeQuestTabSelected: { minHeight: 72, padding: 10, borderRadius: 10, border: '1px solid rgba(96, 165, 250, 0.55)', background: 'rgba(37, 99, 235, 0.22)', color: '#eff6ff', textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 3 },
   bannerFacts: { display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8, color: '#9bb7d9', fontSize: 12 },
   bannerActions: { display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 12 },
-  notice: { marginBottom: 16, padding: '10px 12px', borderRadius: 12, background: 'rgba(37, 99, 235, 0.16)', color: '#dbeafe' },
+  notice: { position: 'sticky', top: 0, zIndex: 5, marginBottom: 16, padding: '10px 12px', borderRadius: 12, background: 'rgba(37, 99, 235, 0.16)', border: '1px solid rgba(147, 197, 253, 0.18)', color: '#dbeafe' },
+  noticeWarning: { background: 'rgba(120, 53, 15, 0.22)', border: '1px solid rgba(251, 191, 36, 0.34)', color: '#fde68a' },
   shell: { display: 'grid', gridTemplateColumns: '210px minmax(0, 1fr)', gap: 16 },
   sidebar: { padding: 14, borderRadius: 18, background: 'rgba(255,255,255,0.035)', display: 'flex', flexDirection: 'column', gap: 8, alignSelf: 'start', position: 'sticky', top: 0 },
   navButton: { padding: '11px 12px', textAlign: 'left', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: '#d8e5f6', cursor: 'pointer' },
@@ -1369,6 +1391,8 @@ const styles: Record<string, React.CSSProperties> = {
   compactFigure: { minWidth: 72, textAlign: 'right', color: '#eef4ff', fontSize: 12 },
   emptyState: { color: '#7b8fab', fontSize: 13, padding: '14px 4px' },
   serviceGrid: { display: 'flex', flexWrap: 'wrap', gap: 10 },
+  inlineNotice: { marginTop: 10, padding: '9px 11px', borderRadius: 10, background: 'rgba(37, 99, 235, 0.14)', border: '1px solid rgba(147, 197, 253, 0.18)', color: '#dbeafe', fontSize: 12, lineHeight: 1.5 },
+  inlineNoticeWarning: { background: 'rgba(120, 53, 15, 0.22)', border: '1px solid rgba(251, 191, 36, 0.34)', color: '#fde68a' },
   inlineButtonGroup: { display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end' },
   serviceColumns: { display: 'grid', gridTemplateColumns: '1fr', gap: 16 },
   facilityTargetRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: 12, borderRadius: 14, border: '1px solid rgba(96, 165, 250, 0.24)', background: 'rgba(37, 99, 235, 0.08)' },
