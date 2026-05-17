@@ -377,6 +377,10 @@ function DialogueLineWindow({ portraitUrl, speaker, message }: { portraitUrl: st
   )
 }
 
+function getActionButtonStyle(baseStyle: React.CSSProperties, disabled: boolean): React.CSSProperties {
+  return disabled ? { ...baseStyle, ...styles.disabledButton } : baseStyle
+}
+
 export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const portId = useNavigationStore((s) => s.dockedPortId)
   const ports = useWorldStore((s) => s.ports)
@@ -707,7 +711,14 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                   <button style={styles.secondaryButton} disabled={!canDeliverQuest} onClick={() => handleAction(deliverTradeQuestCargo())}>{getQuestActionLabel(selectedQuestCategory)}</button>
                 )}
                 {selectedQuestCategory !== 'combat_bounty' && (
-                  <button style={styles.primaryButton} disabled={!canReportQuest} onClick={() => handleAction(turnInQuest())}>{uiText.town.labels.reportComplete}</button>
+                  <button
+                    style={getActionButtonStyle(styles.primaryButton, !canReportQuest)}
+                    disabled={!canReportQuest}
+                    title={canReportQuest ? undefined : 'クエスト達成後に報告できます'}
+                    onClick={() => handleAction(turnInQuest())}
+                  >
+                    {uiText.town.labels.reportComplete}
+                  </button>
                 )}
               </div>
             </>
@@ -1417,6 +1428,7 @@ const styles: Record<string, React.CSSProperties> = {
   leaveButton: { padding: '11px 15px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.08)', color: '#fff', cursor: 'pointer' },
   primaryButton: { padding: '11px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #2563eb, #0ea5e9)', color: '#fff', cursor: 'pointer' },
   secondaryButton: { padding: '11px 16px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.05)', color: '#fff', cursor: 'pointer' },
+  disabledButton: { background: 'rgba(71, 85, 105, 0.34)', border: '1px solid rgba(148, 163, 184, 0.2)', color: '#94a3b8', cursor: 'not-allowed', boxShadow: 'none', opacity: 0.72 },
   outfitPanel: { marginTop: 12, padding: 14, borderRadius: 16, border: '1px solid rgba(148, 163, 184, 0.25)', background: 'rgba(15, 23, 42, 0.8)' },
   outfitHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, color: '#cfd8ff', fontSize: 13 },
   outfitSummary: { display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 10, color: '#9fb2d0', fontSize: 12 },
