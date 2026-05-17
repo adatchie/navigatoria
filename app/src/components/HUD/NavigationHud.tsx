@@ -7,6 +7,7 @@ import { useEncounterStore } from '@/stores/useEncounterStore.ts'
 import { MAX_ACTIVE_QUESTS, useQuestStore } from '@/stores/useQuestStore.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { getNearestPort } from '@/game/world/queries.ts'
+import { TradeGoodIcon } from '@/components/TradeGoodIcon.tsx'
 import { uiText } from '@/i18n/uiText.ts'
 import type { Quest } from '@/types/quest.ts'
 import type { Port } from '@/types/port.ts'
@@ -190,6 +191,7 @@ function QuestLogWindow(props: {
             return (
               <div key={quest.id} style={styles.questLogCard}>
                 <div style={styles.questLogTitleRow}>
+                  {quest.metadata?.goodId && <TradeGoodIcon goodId={quest.metadata.goodId} label={props.getGoodName(quest.metadata.goodId)} size={30} />}
                   <span style={styles.questLogBadge}>{getQuestCategoryLabel(quest)}</span>
                   <strong>{quest.title}</strong>
                   <span style={styles.questLogDays}>残り {daysRemaining ?? '-'} 日</span>

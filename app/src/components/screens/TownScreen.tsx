@@ -11,6 +11,7 @@ import { VOYAGE_CONFIG } from '@/config/gameConfig.ts'
 import { formatOfficerStats, getAssignedOfficer, getOfficerShipEffects } from '@/game/officers/officerEffects.ts'
 import { generateTavernOfficerOffers, getOfficerSpecialtyLabel, localizeOfficerName } from '@/game/officers/officerGenerator.ts'
 import { ShipModelRenderer, ShipRenderer } from '@/rendering/ShipRenderer.tsx'
+import { TradeGoodIcon } from '@/components/TradeGoodIcon.tsx'
 import type { Officer, OfficerStats } from '@/types/character.ts'
 import type { Port } from '@/types/port.ts'
 import type { Quest, QuestCategory, QuestRank, QuestReward, TradeQuestCategory } from '@/types/quest.ts'
@@ -677,6 +678,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
           {selectedQuest && (
             <>
               <div style={styles.bannerFacts}>
+                {questGood && <TradeGoodIcon goodId={questGood.id} label={questGood.name} size={36} />}
                 <span>{activeQuestRoute}</span>
                 <span>{activeQuestSubject}</span>
                 <span>{rewardSummary}</span>
@@ -791,15 +793,18 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                       const questInstruction = formatTradeQuestInstruction(quest, ports, boardQuestGood?.name)
                       return (
                         <div key={quest.id} style={styles.compactActionRow}>
-                          <div style={styles.tradeMeta}>
-                            <div style={styles.questTitleRow}>
-                              <span style={styles.questCategoryBadge}>{formatQuestCategory(quest.metadata?.category)}</span>
-                              <strong>{quest.title}</strong>
+                          <div style={styles.tradeGoodSummary}>
+                            {boardQuestGood && <TradeGoodIcon goodId={boardQuestGood.id} label={boardQuestGood.name} size={42} />}
+                            <div style={styles.tradeMeta}>
+                              <div style={styles.questTitleRow}>
+                                <span style={styles.questCategoryBadge}>{formatQuestCategory(quest.metadata?.category)}</span>
+                                <strong>{quest.title}</strong>
+                              </div>
+                              <span style={styles.tradeSub}>{routeSummary}</span>
+                              <span style={styles.tradeSub}>{questInstruction}</span>
+                              <span style={styles.tradeSub}>{formatQuestRank(quest.rank)} / 名声 {formatQuestRequirement(quest.requiredFame)} / 必要Lv {formatQuestRequirement(quest.requiredLevel)} / 残り {daysRemaining ?? '-'} 日</span>
+                              <span style={styles.tradeSub}>{quest.rewards.map(formatReward).join(' / ')}</span>
                             </div>
-                            <span style={styles.tradeSub}>{routeSummary}</span>
-                            <span style={styles.tradeSub}>{questInstruction}</span>
-                            <span style={styles.tradeSub}>{formatQuestRank(quest.rank)} / 名声 {formatQuestRequirement(quest.requiredFame)} / 必要Lv {formatQuestRequirement(quest.requiredLevel)} / 残り {daysRemaining ?? '-'} 日</span>
-                            <span style={styles.tradeSub}>{quest.rewards.map(formatReward).join(' / ')}</span>
                           </div>
                           <button style={styles.primaryButton} disabled={acceptedQuests.length >= MAX_ACTIVE_QUESTS} onClick={() => handleAction(acceptQuest(quest.id, port.id))}>受注する</button>
                         </div>
@@ -924,12 +929,15 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                         const exceedsCapacity = totalWeight > remainingCapacity
                         return (
                           <div key={good.id} style={styles.marketRowDense}>
-                            <div style={styles.tradeMeta}>
-                              <strong>{good.name}</strong>
-                              <span style={styles.tradeSub}>{quote?.unitPrice ?? item.currentPrice} d / 在庫 {item.stock} / 上限 {limit} / {item.trend}</span>
-                              {purchaseCap <= 0 && <span style={styles.tradeBlocked}>この港では今日はこれ以上買えません。</span>}
-                              {exceedsCap && <span style={styles.tradeBlocked}>数量が購入上限を超えています。</span>}
-                              {exceedsCapacity && <span style={styles.tradeBlocked}>選択中の船の船倉容量が足りません。</span>}
+                            <div style={styles.tradeGoodSummary}>
+                              <TradeGoodIcon goodId={good.id} label={good.name} />
+                              <div style={styles.tradeMeta}>
+                                <strong>{good.name}</strong>
+                                <span style={styles.tradeSub}>{quote?.unitPrice ?? item.currentPrice} d / 在庫 {item.stock} / 上限 {limit} / {item.trend}</span>
+                                {purchaseCap <= 0 && <span style={styles.tradeBlocked}>この港では今日はこれ以上買えません。</span>}
+                                {exceedsCap && <span style={styles.tradeBlocked}>数量が購入上限を超えています。</span>}
+                                {exceedsCapacity && <span style={styles.tradeBlocked}>選択中の船の船倉容量が足りません。</span>}
+                              </div>
                             </div>
                             <div style={styles.tradeControlsDense}>
                               <input type="number" min={1} max={Math.max(1, purchaseCap)} value={quantity} onChange={(e) => setQuantity(good.id, Number(e.target.value))} style={styles.quantityInput} disabled={purchaseCap <= 0} />
@@ -951,9 +959,12 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                         const estimatedProfit = quote ? (quote.unitPrice - slot.buyPrice) * quantity : 0
                         return (
                           <div key={good.id} style={styles.marketRowDense}>
-                            <div style={styles.tradeMeta}>
-                              <strong>{good.name}</strong>
-                              <span style={styles.tradeSub}>所持 {slot.quantity} / 売値 {quote?.unitPrice ?? 0} d / 利益 {estimatedProfit >= 0 ? '+' : ''}{estimatedProfit} d</span>
+                            <div style={styles.tradeGoodSummary}>
+                              <TradeGoodIcon goodId={good.id} label={good.name} />
+                              <div style={styles.tradeMeta}>
+                                <strong>{good.name}</strong>
+                                <span style={styles.tradeSub}>所持 {slot.quantity} / 売値 {quote?.unitPrice ?? 0} d / 利益 {estimatedProfit >= 0 ? '+' : ''}{estimatedProfit} d</span>
+                              </div>
                             </div>
                             <div style={styles.tradeControlsDense}>
                               <input type="number" min={1} max={slot.quantity} value={quantity} onChange={(e) => setQuantity(good.id, Number(e.target.value))} style={styles.quantityInput} />
@@ -1196,10 +1207,13 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                       <div style={styles.list}>
                         {inventoryRows.map((entry) => (
                           <div key={entry.itemId} style={styles.compactActionRow}>
-                            <div style={styles.tradeMeta}>
-                              <strong>{entry.name}</strong>
-                              <span style={styles.tradeSub}>{entry.description}</span>
-                              <span style={styles.tradeSub}>x{entry.quantity} / 単価 {entry.unitValue} d / 合計 {entry.totalValue} d</span>
+                            <div style={styles.tradeGoodSummary}>
+                              <TradeGoodIcon goodId={entry.itemId} label={entry.name} />
+                              <div style={styles.tradeMeta}>
+                                <strong>{entry.name}</strong>
+                                <span style={styles.tradeSub}>{entry.description}</span>
+                                <span style={styles.tradeSub}>x{entry.quantity} / 単価 {entry.unitValue} d / 合計 {entry.totalValue} d</span>
+                              </div>
                             </div>
                             <button style={styles.primaryButton} onClick={() => handleAction(sellInventoryItem(entry.itemId, entry.quantity, entry.unitValue))}>
                               {uiText.town.labels.sellAll}
@@ -1344,6 +1358,7 @@ const styles: Record<string, React.CSSProperties> = {
   dialogueTextBox: { minHeight: 104, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8, padding: '16px 18px', borderRadius: 12, background: 'linear-gradient(180deg, rgba(10, 22, 38, 0.96), rgba(13, 28, 48, 0.98))', border: '1px solid rgba(191, 219, 254, 0.28)', color: '#eef6ff', boxShadow: '0 16px 44px rgba(0,0,0,0.38)', fontSize: 18, lineHeight: 1.5 },
   systemMessageWindow: { width: 'min(640px, 100%)', display: 'flex', flexDirection: 'column', gap: 8, padding: '20px 22px', borderRadius: 14, background: 'linear-gradient(180deg, rgba(13, 30, 52, 0.98), rgba(7, 17, 31, 0.98))', border: '1px solid rgba(250, 204, 21, 0.34)', color: '#f8fbff', boxShadow: '0 20px 60px rgba(0,0,0,0.42)', fontSize: 18, lineHeight: 1.5 },
   dialogueAdvanceHint: { color: '#b7c9e3', fontSize: 12, letterSpacing: '0.08em' },
+  tradeGoodSummary: { display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 },
   tradeMeta: { display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 },
   tradeSub: { color: '#93a8c4', fontSize: 12 },
   questTitleRow: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
