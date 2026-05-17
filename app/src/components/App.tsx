@@ -25,6 +25,7 @@ import { loadAllMasterData } from '@/data/loader/DataLoader.ts'
 import { gameLoop } from '@/game/GameLoop.ts'
 import { initializeWorld } from '@/game/world/WorldInitializer.ts'
 import { buildZonesFromPorts } from '@/game/world/zones.ts'
+import { isQuestDeadlineNotice } from '@/game/quest/questNotices.ts'
 import { WindSystem } from '@/game/systems/WindSystem.ts'
 import { NavigationSystem } from '@/game/systems/NavigationSystem.ts'
 import { VoyageConditionSystem } from '@/game/systems/VoyageConditionSystem.ts'
@@ -57,7 +58,9 @@ export function App() {
   const initPlayer = usePlayerStore((s) => s.initPlayer)
   const initializeMarkets = useEconomyStore((s) => s.initializeMarkets)
   const ensurePortQuests = useQuestStore((s) => s.ensurePortQuests)
+  const lastQuestNotice = useQuestStore((s) => s.lastQuestNotice)
   const debugFlags = useUIStore((s) => s.debugFlags)
+  const addNotification = useUIStore((s) => s.addNotification)
   const notificationMessage = useUIStore((s) => s.notificationMessage)
   const notificationLevel = useUIStore((s) => s.notificationLevel)
   const dockedPortId = useNavigationStore((s) => s.dockedPortId)
@@ -182,6 +185,11 @@ export function App() {
     if (dockedPortId && phase !== 'title' && phase !== 'loading') void autoSaveRef.current?.triggerDockAutoSave(dockedPortId)
     if (!dockedPortId) autoSaveRef.current?.resetDockSignature()
   }, [dockedPortId, phase])
+
+  useEffect(() => {
+    if (!isQuestDeadlineNotice(lastQuestNotice)) return
+    addNotification(lastQuestNotice!, 'warning', 6200)
+  }, [addNotification, lastQuestNotice])
 
   const handleStart = useCallback(() => {
     initPlayer('航海者')

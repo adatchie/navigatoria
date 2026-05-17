@@ -11,6 +11,7 @@ import { MAX_ACTIVE_QUESTS, useQuestStore } from '@/stores/useQuestStore.ts'
 import { VOYAGE_CONFIG } from '@/config/gameConfig.ts'
 import { formatOfficerStats, getAssignedOfficer, getOfficerShipEffects } from '@/game/officers/officerEffects.ts'
 import { generateTavernOfficerOffers, getOfficerSpecialtyLabel, localizeOfficerName } from '@/game/officers/officerGenerator.ts'
+import { isQuestDeadlineNotice } from '@/game/quest/questNotices.ts'
 import { ShipModelRenderer, ShipRenderer } from '@/rendering/ShipRenderer.tsx'
 import { TradeGoodIcon } from '@/components/TradeGoodIcon.tsx'
 import type { Officer, OfficerStats } from '@/types/character.ts'
@@ -595,7 +596,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const visibleSection = availableSections.includes(activeSection) ? activeSection : 'overview'
   const actionNotice = tradeMessageState.portId === port.id && tradeMessageState.message ? tradeMessageState : null
   const notice = actionNotice?.message ?? lastQuestNotice
-  const noticeStyle = actionNotice?.ok === false ? { ...styles.notice, ...styles.noticeWarning } : styles.notice
+  const noticeStyle = actionNotice?.ok === false || (!actionNotice && isQuestDeadlineNotice(lastQuestNotice)) ? { ...styles.notice, ...styles.noticeWarning } : styles.notice
   const repairTargetShipType = repairTargetShip ? getShip(repairTargetShip.typeId) : undefined
   const tavernTargetShipType = tavernTargetShip ? getShip(tavernTargetShip.typeId) : undefined
   const missingDurability = Math.max(0, (repairTargetShip?.maxDurability ?? 0) - (repairTargetShip?.currentDurability ?? 0))

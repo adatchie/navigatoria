@@ -7,6 +7,7 @@ import { useEncounterStore } from '@/stores/useEncounterStore.ts'
 import { MAX_ACTIVE_QUESTS, useQuestStore } from '@/stores/useQuestStore.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { getNearestPort } from '@/game/world/queries.ts'
+import { isQuestDeadlineNotice } from '@/game/quest/questNotices.ts'
 import { TradeGoodIcon } from '@/components/TradeGoodIcon.tsx'
 import { uiText } from '@/i18n/uiText.ts'
 import type { Quest } from '@/types/quest.ts'
@@ -37,6 +38,8 @@ export function NavigationHud() {
   const clearEncounterNotice = useEncounterStore((s) => s.clearEncounterNotice)
   const activeQuests = useQuestStore((s) => s.activeQuests)
   const activeQuest = useQuestStore((s) => s.activeQuest)
+  const questNotice = useQuestStore((s) => s.lastQuestNotice)
+  const clearQuestNotice = useQuestStore((s) => s.clearQuestNotice)
   const setPhase = useGameStore((s) => s.setPhase)
   const currentDay = Math.floor(useGameStore((s) => s.timeState.totalDays))
   const acceptedQuests = activeQuests.length > 0 ? activeQuests : activeQuest ? [activeQuest] : []
@@ -108,6 +111,13 @@ export function NavigationHud() {
           <div style={styles.noticeTitle}>{uiText.nav.encounterResult}</div>
           <div style={styles.noticeText}>{encounterNotice}</div>
           <button style={styles.noticeButton} onClick={clearEncounterNotice}>{uiText.nav.dismiss}</button>
+        </div>
+      )}
+      {isQuestDeadlineNotice(questNotice) && (
+        <div style={{ ...styles.noticeWrap, ...styles.questDeadlineNotice }}>
+          <div style={styles.noticeTitle}>クエスト期限切れ</div>
+          <div style={styles.noticeText}>{questNotice}</div>
+          <button style={styles.noticeButton} onClick={clearQuestNotice}>{uiText.nav.dismiss}</button>
         </div>
       )}
       <button style={styles.questButton} onClick={() => setShowQuestLog(true)}>クエスト {acceptedQuests.length}/{MAX_ACTIVE_QUESTS}</button>
@@ -330,6 +340,10 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 8,
     background: 'rgba(37, 99, 235, 0.12)',
     border: '1px solid rgba(142, 197, 255, 0.16)',
+  },
+  questDeadlineNotice: {
+    background: 'rgba(120, 53, 15, 0.24)',
+    border: '1px solid rgba(251, 191, 36, 0.36)',
   },
   noticeTitle: {
     color: '#8fb1d8',
