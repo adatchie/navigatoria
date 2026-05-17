@@ -107,6 +107,7 @@ const MAX_RENDERED_FLEET_SHIPS = 5
 const FOLLOW_POSITION_LERP = 1.8
 const FOLLOW_HEADING_LERP = 2.4
 const FOLLOW_LAND_CLEARANCE = 0.35
+const FORMATION_DEPLOY_DISTANCE_KM = 24
 const SHIP_MODEL_URL = `${import.meta.env.BASE_URL}models/player-ship-lite.glb`
 const TARGET_MODEL_LENGTH = 5.2
 
@@ -114,6 +115,12 @@ interface FleetRenderState {
   x: number
   y: number
   heading: number
+}
+
+interface FleetNavigationSnapshot {
+  mode: string
+  dockedPortId: string | null
+  lastDeparturePortId: string | null
 }
 
 interface NormalizedModelLayout {
@@ -138,6 +145,7 @@ function getFormationTarget(
   flagship: { x: number; y: number },
   heading: number,
   index: number,
+  deployProgress = 1,
 ): { x: number; y: number } {
   if (index === 0) return flagship
 
@@ -151,10 +159,57 @@ function getFormationTarget(
   const rightX = Math.cos(headingRad)
   const rightY = -Math.sin(headingRad)
 
-  return {
+  const deployedTarget = {
     x: flagship.x - forwardX * backOffset + rightX * sideOffset,
     y: flagship.y - forwardY * backOffset + rightY * sideOffset,
   }
+
+  const progress = Math.max(0, Math.min(1, deployProgress))
+  return {
+    x: flagship.x + (deployedTarget.x - flagship.x) * progress,
+    y: flagship.y + (deployedTarget.y - flagship.y) * progress,
+  }
+}
+
+function getFormationDeployProgress(mode: string, distanceTraveled: number): number {
+  if (mode === 'docked') return 0
+  if (mode !== 'sailing' && mode !== 'anchored') return 1
+  return Math.max(0, Math.min(1, distanceTraveled / FORMATION_DEPLOY_DISTANCE_KM))
+}
+
+function getFleetNavigationSnapshot(nav: ReturnType<typeof useNavigationStore.getState>): FleetNavigationSnapshot {
+  return {
+    mode: nav.mode,
+    dockedPortId: nav.dockedPortId,
+    lastDeparturePortId: nav.lastDeparturePortId,
+  }
+}
+
+function shouldResetFleetAtFlagship(
+  previous: FleetNavigationSnapshot | null,
+  current: FleetNavigationSnapshot,
+  distanceTraveled: number,
+): boolean {
+  if (current.mode === 'docked') return true
+  if (current.mode !== 'sailing') return false
+  if (distanceTraveled > 0.001) return false
+  return previous?.mode !== 'sailing' || previous.lastDeparturePortId !== current.lastDeparturePortId
+}
+
+function resetFleetRenderStatesAtFlagship(
+  renderStates: Map<string, FleetRenderState>,
+  ships: { instanceId: string }[],
+  flagship: { x: number; y: number },
+  heading: number,
+): void {
+  renderStates.clear()
+  ships.forEach((ship) => {
+    renderStates.set(ship.instanceId, {
+      x: flagship.x,
+      y: flagship.y,
+      heading,
+    })
+  })
 }
 
 function resolveFollowerSeaPosition(
@@ -193,6 +248,7 @@ export function FleetShipRenderer() {
   )
   const hiddenObject = useRef(new Object3D())
   const renderStatesRef = useRef(new Map<string, FleetRenderState>())
+  const navigationSnapshotRef = useRef<FleetNavigationSnapshot | null>(null)
   const modelLayout = useMemo<NormalizedModelLayout>(() => {
     const boundsBox = new Box3().setFromObject(scene)
     const boundsSize = boundsBox.getSize(new Vector3())
@@ -223,6 +279,12 @@ export function FleetShipRenderer() {
     const headingLerp = 1 - Math.exp(-FOLLOW_HEADING_LERP * delta)
     const time = state.clock.elapsedTime
     const activeIds = new Set(fleetShips.map((ship) => ship.instanceId))
+    const currentNavigationSnapshot = getFleetNavigationSnapshot(nav)
+
+    if (shouldResetFleetAtFlagship(navigationSnapshotRef.current, currentNavigationSnapshot, nav.distanceTraveled)) {
+      resetFleetRenderStatesAtFlagship(renderStatesRef.current, fleetShips, nav.position, nav.heading)
+    }
+    navigationSnapshotRef.current = currentNavigationSnapshot
 
     renderStatesRef.current.forEach((_, shipId) => {
       if (!activeIds.has(shipId)) renderStatesRef.current.delete(shipId)
@@ -232,11 +294,12 @@ export function FleetShipRenderer() {
     hiddenObject.current.scale.setScalar(0.0001)
     hiddenObject.current.updateMatrix()
 
+    const deployProgress = getFormationDeployProgress(nav.mode, nav.distanceTraveled)
     fleetShips.forEach((ship, index) => {
       const isFlagship = ship.instanceId === player.activeShipId
       const type = getShip(ship.typeId)
       const scale = getShipScale(type?.category) * (isFlagship ? 1 : 0.82)
-      const target = getFormationTarget(nav.position, nav.heading, index)
+      const target = getFormationTarget(nav.position, nav.heading, index, deployProgress)
       const stateForShip = renderStatesRef.current.get(ship.instanceId) ?? {
         x: target.x,
         y: target.y,
@@ -318,6 +381,7 @@ export function FleetPlaceholderRenderer() {
   const shipMotionMatrix = useRef(new Matrix4())
   const hiddenObject = useRef(new Object3D())
   const renderStatesRef = useRef(new Map<string, FleetRenderState>())
+  const navigationSnapshotRef = useRef<FleetNavigationSnapshot | null>(null)
 
   useFrame((state, delta) => {
     const nav = useNavigationStore.getState()
@@ -330,6 +394,12 @@ export function FleetPlaceholderRenderer() {
     const headingLerp = 1 - Math.exp(-FOLLOW_HEADING_LERP * delta)
     const time = state.clock.elapsedTime
     const activeIds = new Set(fleetShips.map((ship) => ship.instanceId))
+    const currentNavigationSnapshot = getFleetNavigationSnapshot(nav)
+
+    if (shouldResetFleetAtFlagship(navigationSnapshotRef.current, currentNavigationSnapshot, nav.distanceTraveled)) {
+      resetFleetRenderStatesAtFlagship(renderStatesRef.current, fleetShips, nav.position, nav.heading)
+    }
+    navigationSnapshotRef.current = currentNavigationSnapshot
 
     renderStatesRef.current.forEach((_, shipId) => {
       if (!activeIds.has(shipId)) renderStatesRef.current.delete(shipId)
@@ -339,11 +409,12 @@ export function FleetPlaceholderRenderer() {
     hiddenObject.current.scale.setScalar(0.0001)
     hiddenObject.current.updateMatrix()
 
+    const deployProgress = getFormationDeployProgress(nav.mode, nav.distanceTraveled)
     fleetShips.forEach((ship, index) => {
       const isFlagship = ship.instanceId === player.activeShipId
       const type = getShip(ship.typeId)
       const scale = getShipScale(type?.category) * (isFlagship ? 1 : 0.82)
-      const target = getFormationTarget(nav.position, nav.heading, index)
+      const target = getFormationTarget(nav.position, nav.heading, index, deployProgress)
       const stateForShip = renderStatesRef.current.get(ship.instanceId) ?? {
         x: target.x,
         y: target.y,
