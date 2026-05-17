@@ -26,8 +26,10 @@ interface ReliefMeshData {
   centerY: number
 }
 
+type LandMaskPredicate = (point: [number, number]) => boolean
+
 const RELIEF_WORLD_SIZE = 2600
-const RELIEF_SEGMENTS = 56
+const RELIEF_SEGMENTS = 64
 const RELIEF_UPDATE_INTERVAL = 0.8
 const RELIEF_MOVE_THRESHOLD = 180
 const BASE_Y = 1.92
@@ -165,7 +167,7 @@ function syncReliefMaterialVisibility(material: MeshStandardMaterial, shouldFade
   material.needsUpdate = true
 }
 
-function buildReliefGeometry(centerX: number, centerY: number): BufferGeometry {
+function buildReliefGeometry(centerX: number, centerY: number, landMask: LandMaskPredicate): BufferGeometry {
   const step = RELIEF_WORLD_SIZE / RELIEF_SEGMENTS
   const half = RELIEF_WORLD_SIZE / 2
   const heights: number[] = []
@@ -227,8 +229,25 @@ function buildReliefGeometry(centerX: number, centerY: number): BufferGeometry {
     pushUv(index)
   }
 
+  function isReliefTriangleContainedByLand(a: number, b: number, c: number): boolean {
+    if (heights[a]! <= 0 || heights[b]! <= 0 || heights[c]! <= 0) return false
+
+    const [ax, ay] = worldPositions[a]!
+    const [bx, by] = worldPositions[b]!
+    const [cx, cy] = worldPositions[c]!
+    const samples: [number, number][] = [
+      [(ax + bx + cx) / 3, (ay + by + cy) / 3],
+      [(ax + bx) / 2, (ay + by) / 2],
+      [(bx + cx) / 2, (by + cy) / 2],
+      [(cx + ax) / 2, (cy + ay) / 2],
+    ]
+
+    return [a, b, c].every((index) => landMask(worldPositions[index]!)) &&
+      samples.every((sample) => landMask(sample))
+  }
+
   function pushTriangle(a: number, b: number, c: number) {
-    if (heights[a]! <= 0 || heights[b]! <= 0 || heights[c]! <= 0) return
+    if (!isReliefTriangleContainedByLand(a, b, c)) return
     topTriangles.push([a, b, c])
   }
 
@@ -299,6 +318,7 @@ export function TerrainReliefRenderer() {
   const [meshData, setMeshData] = useState<ReliefMeshData | null>(null)
   const [reliefTexture, setReliefTexture] = useState<Texture | null>(null)
   const elapsedRef = useRef(0)
+  const landMaskRef = useRef<LandMaskPredicate>(isPointOnLand)
   const lastCenterRef = useRef<{ x: number; y: number } | null>(null)
   const material = useMemo(() => {
     const nextMaterial = reliefMaterial.clone()
@@ -335,6 +355,25 @@ export function TerrainReliefRenderer() {
     }
   }, [maxAnisotropy])
 
+  useEffect(() => {
+    let cancelled = false
+
+    void import('@/data/generated/renderLandMask.ts').then(({ isPointOnRenderedLand }) => {
+      if (cancelled) return
+      landMaskRef.current = isPointOnRenderedLand
+      lastCenterRef.current = null
+      elapsedRef.current = RELIEF_UPDATE_INTERVAL
+      setMeshData((current) => {
+        current?.geometry.dispose()
+        return null
+      })
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   useFrame((state, delta) => {
     syncReliefMaterialVisibility(
       material,
@@ -355,7 +394,7 @@ export function TerrainReliefRenderer() {
     }
 
     lastCenterRef.current = { x: position.x, y: position.y }
-    const nextGeometry = buildReliefGeometry(position.x, position.y)
+    const nextGeometry = buildReliefGeometry(position.x, position.y, landMaskRef.current)
     setMeshData((current) => {
       current?.geometry.dispose()
       return {
