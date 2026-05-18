@@ -105,8 +105,8 @@ function fractalNoise(x: number, y: number): number {
   return total / max
 }
 
-function estimateCoastFade(worldX: number, worldY: number): number {
-  if (!isPointOnLand([worldX, worldY])) return 0
+function estimateCoastFade(worldX: number, worldY: number, landMask: LandMaskPredicate = isPointOnLand): number {
+  if (!landMask([worldX, worldY])) return 0
 
   for (let i = 0; i < NEAR_SEA_SAMPLE_DIRECTIONS; i += 1) {
     const angle = (i / NEAR_SEA_SAMPLE_DIRECTIONS) * Math.PI * 2
@@ -114,14 +114,14 @@ function estimateCoastFade(worldX: number, worldY: number): number {
       worldX + Math.cos(angle) * COAST_FADE_WORLD_DISTANCE,
       worldY + Math.sin(angle) * COAST_FADE_WORLD_DISTANCE,
     ]
-    if (!isPointOnLand(sample)) return 0.18
+    if (!landMask(sample)) return 0.18
   }
 
   return 1
 }
 
-function getReliefHeight(worldX: number, worldY: number): number {
-  const coastFade = estimateCoastFade(worldX, worldY)
+function getReliefHeight(worldX: number, worldY: number, landMask: LandMaskPredicate = isPointOnLand): number {
+  const coastFade = estimateCoastFade(worldX, worldY, landMask)
   if (coastFade <= 0) return 0
 
   const broad = fractalNoise(worldX * 0.0022, worldY * 0.0022)
@@ -181,7 +181,7 @@ function buildReliefGeometry(centerX: number, centerY: number, landMask: LandMas
     for (let col = 0; col <= RELIEF_SEGMENTS; col += 1) {
       const worldX = centerX - half + col * step
       const worldY = centerY - half + row * step
-      const height = getReliefHeight(worldX, worldY)
+      const height = getReliefHeight(worldX, worldY, landMask)
       const [sceneX, , sceneZ] = worldToScene({ x: worldX, y: worldY })
 
       heights.push(height)
@@ -264,21 +264,6 @@ function buildReliefGeometry(centerX: number, centerY: number, landMask: LandMas
     pushVertex(c)
   }
 
-  function isReliefTileBoundaryEdge(a: number, b: number): boolean {
-    const side = RELIEF_SEGMENTS + 1
-    const rowA = Math.floor(a / side)
-    const colA = a % side
-    const rowB = Math.floor(b / side)
-    const colB = b % side
-
-    return (
-      (rowA === 0 && rowB === 0) ||
-      (rowA === RELIEF_SEGMENTS && rowB === RELIEF_SEGMENTS) ||
-      (colA === 0 && colB === 0) ||
-      (colA === RELIEF_SEGMENTS && colB === RELIEF_SEGMENTS)
-    )
-  }
-
   function pushSideWall(a: number, b: number) {
     const [worldAx, worldAy] = worldPositions[a]!
     const [worldBx, worldBy] = worldPositions[b]!
@@ -328,8 +313,7 @@ function buildReliefGeometry(centerX: number, centerY: number, landMask: LandMas
 
   for (const [a, b, c] of topTriangles) {
     for (const [from, to] of [[a, b], [b, c], [c, a]] as [number, number][]) {
-      // Close only the local relief tile edge; coastline edges should stay open to avoid cliff walls.
-      if (edgeCounts.get(edgeKey(from, to)) === 1 && isReliefTileBoundaryEdge(from, to)) {
+      if (edgeCounts.get(edgeKey(from, to)) === 1) {
         pushSideWall(from, to)
       }
     }
