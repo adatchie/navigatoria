@@ -41,6 +41,8 @@ const CAMERA_FADE_HEIGHT_MARGIN = 5.5
 const RELIEF_TEXTURE_URL = `${import.meta.env.BASE_URL}textures/terrain/land-relief-wild.png?v=20260516`
 const RELIEF_TEXTURE_WORLD_SCALE = 1350
 const RELIEF_TEXTURE_WARP_WORLD = 48
+const SIDE_WALL_TEXTURE_WORLD_SCALE = 160
+const SIDE_WALL_TEXTURE_HEIGHT_SCALE = 8
 
 const reliefMaterial = new MeshStandardMaterial({
   color: 0xffffff,
@@ -203,7 +205,12 @@ function buildReliefGeometry(centerX: number, centerY: number, landMask: LandMas
     ]
   }
 
-  function pushUv(index: number) {
+  function pushUv(index: number, uvOverride?: [number, number]) {
+    if (uvOverride) {
+      uvs.push(uvOverride[0], uvOverride[1])
+      return
+    }
+
     const [worldX, worldY] = worldPositions[index]!
     const warpX = (fractalNoise(worldX * 0.0043 + 17.1, worldY * 0.0043 - 9.6) - 0.5) * RELIEF_TEXTURE_WARP_WORLD
     const warpY = (fractalNoise(worldX * 0.0047 - 31.4, worldY * 0.0047 + 22.8) - 0.5) * RELIEF_TEXTURE_WARP_WORLD
@@ -213,20 +220,20 @@ function buildReliefGeometry(centerX: number, centerY: number, landMask: LandMas
     )
   }
 
-  function pushVertex(index: number, yOverride?: number, intensity = 1) {
+  function pushVertex(index: number, yOverride?: number, intensity = 1, uvOverride?: [number, number]) {
     const [x, topY, z] = scenePositions[index]!
     const [r, g, b] = getVertexColor(index, intensity)
     positions.push(x, yOverride ?? topY, z)
     colors.push(r, g, b)
-    pushUv(index)
+    pushUv(index, uvOverride)
   }
 
-  function pushBaseVertex(index: number, intensity = 0.7) {
+  function pushBaseVertex(index: number, intensity = 0.7, uvOverride?: [number, number]) {
     const [x, , z] = scenePositions[index]!
     const [r, g, b] = getVertexColor(index, intensity)
     positions.push(x, BASE_Y, z)
     colors.push(r, g, b)
-    pushUv(index)
+    pushUv(index, uvOverride)
   }
 
   function isReliefTriangleContainedByLand(a: number, b: number, c: number): boolean {
@@ -257,13 +264,35 @@ function buildReliefGeometry(centerX: number, centerY: number, landMask: LandMas
     pushVertex(c)
   }
 
+  function isReliefTileBoundaryEdge(a: number, b: number): boolean {
+    const side = RELIEF_SEGMENTS + 1
+    const rowA = Math.floor(a / side)
+    const colA = a % side
+    const rowB = Math.floor(b / side)
+    const colB = b % side
+
+    return (
+      (rowA === 0 && rowB === 0) ||
+      (rowA === RELIEF_SEGMENTS && rowB === RELIEF_SEGMENTS) ||
+      (colA === 0 && colB === 0) ||
+      (colA === RELIEF_SEGMENTS && colB === RELIEF_SEGMENTS)
+    )
+  }
+
   function pushSideWall(a: number, b: number) {
-    pushVertex(a, undefined, 0.82)
-    pushBaseVertex(a, 0.58)
-    pushBaseVertex(b, 0.58)
-    pushVertex(a, undefined, 0.82)
-    pushBaseVertex(b, 0.58)
-    pushVertex(b, undefined, 0.82)
+    const [worldAx, worldAy] = worldPositions[a]!
+    const [worldBx, worldBy] = worldPositions[b]!
+    const edgeLength = Math.hypot(worldBx - worldAx, worldBy - worldAy)
+    const u1 = edgeLength / SIDE_WALL_TEXTURE_WORLD_SCALE
+    const vA = Math.max(0.05, heights[a]! / SIDE_WALL_TEXTURE_HEIGHT_SCALE)
+    const vB = Math.max(0.05, heights[b]! / SIDE_WALL_TEXTURE_HEIGHT_SCALE)
+
+    pushVertex(a, undefined, 0.82, [0, vA])
+    pushBaseVertex(a, 0.58, [0, 0])
+    pushBaseVertex(b, 0.58, [u1, 0])
+    pushVertex(a, undefined, 0.82, [0, vA])
+    pushBaseVertex(b, 0.58, [u1, 0])
+    pushVertex(b, undefined, 0.82, [u1, vB])
   }
 
   function pushBottomCap(a: number, b: number, c: number) {
@@ -299,7 +328,8 @@ function buildReliefGeometry(centerX: number, centerY: number, landMask: LandMas
 
   for (const [a, b, c] of topTriangles) {
     for (const [from, to] of [[a, b], [b, c], [c, a]] as [number, number][]) {
-      if (edgeCounts.get(edgeKey(from, to)) === 1) {
+      // Close only the local relief tile edge; coastline edges should stay open to avoid cliff walls.
+      if (edgeCounts.get(edgeKey(from, to)) === 1 && isReliefTileBoundaryEdge(from, to)) {
         pushSideWall(from, to)
       }
     }
