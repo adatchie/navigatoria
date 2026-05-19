@@ -208,8 +208,8 @@ function ProgressRow(props: { label: string; value: number; max: number; color: 
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  backdrop: { position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(3, 8, 18, 0.58)', zIndex: 650 },
-  card: { width: 'min(720px, calc(100vw - 32px))', padding: 24, borderRadius: 22, background: 'linear-gradient(180deg, rgba(8,18,32,0.98), rgba(11,24,42,0.99))', color: '#edf3fb', border: '1px solid rgba(128, 176, 222, 0.22)', boxShadow: '0 24px 80px rgba(0,0,0,0.35)' },
+  backdrop: { position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12, background: 'rgba(3, 8, 18, 0.58)', zIndex: 650 },
+  card: { width: 'min(720px, calc(100vw - 24px))', maxHeight: 'calc(100vh - 24px)', overflow: 'auto', padding: 'calc(24px * var(--navigatoria-ui-scale, 1))', borderRadius: 22, background: 'linear-gradient(180deg, rgba(8,18,32,0.98), rgba(11,24,42,0.99))', color: '#edf3fb', border: '1px solid rgba(128, 176, 222, 0.22)', boxShadow: '0 24px 80px rgba(0,0,0,0.35)' },
   header: { display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' },
   eyebrow: { color: '#7fb6f5', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.16em' },
   title: { margin: '8px 0 0', fontSize: 28 },

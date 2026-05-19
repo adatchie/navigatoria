@@ -225,9 +225,11 @@ function QuestLogWindow(props: {
 const styles: Record<string, React.CSSProperties> = {
   panel: {
     position: 'fixed',
-    top: 72,
-    left: 12,
+    top: 'calc(72px * var(--navigatoria-ui-scale, 1))',
+    left: 'calc(12px * var(--navigatoria-ui-scale, 1))',
     width: 330,
+    maxHeight: 'calc((100vh - 92px) / var(--navigatoria-ui-scale, 1))',
+    overflow: 'auto',
     padding: '12px',
     borderRadius: 14,
     background: 'rgba(12, 19, 34, 0.86)',
@@ -238,6 +240,8 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 120,
     pointerEvents: 'auto',
     fontFamily: 'system-ui, sans-serif',
+    transform: 'scale(var(--navigatoria-ui-scale, 1))',
+    transformOrigin: 'top left',
   },
   summaryRow: {
     display: 'grid',

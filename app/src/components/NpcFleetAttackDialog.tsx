@@ -72,6 +72,8 @@ const styles = {
   },
   dialog: {
     width: 'min(420px, calc(100vw - 32px))',
+    maxHeight: 'calc(100vh - 32px)',
+    overflow: 'auto',
     padding: 18,
     borderRadius: 14,
     background: 'rgba(9, 18, 34, 0.94)',

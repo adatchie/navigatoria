@@ -126,12 +126,14 @@ function getHeadingLabel(heading: number): string {
 const styles: Record<string, React.CSSProperties> = {
   container: {
     position: 'fixed',
-    bottom: 148,
-    right: 16,
+    bottom: 'calc(16px + 132px * var(--navigatoria-ui-scale, 1))',
+    right: 'calc(16px * var(--navigatoria-ui-scale, 1))',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     zIndex: 120,
+    transform: 'scale(var(--navigatoria-ui-scale, 1))',
+    transformOrigin: 'bottom right',
   },
   headingText: {
     marginTop: 2,

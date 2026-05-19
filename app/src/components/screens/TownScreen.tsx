@@ -14,6 +14,7 @@ import { generateTavernOfficerOffers, getOfficerSpecialtyLabel, localizeOfficerN
 import { isQuestDeadlineNotice } from '@/game/quest/questNotices.ts'
 import { ShipModelRenderer, ShipRenderer } from '@/rendering/ShipRenderer.tsx'
 import { TradeGoodIcon } from '@/components/TradeGoodIcon.tsx'
+import { useResponsiveUiMetrics } from '@/ui/responsive.ts'
 import type { Officer, OfficerStats } from '@/types/character.ts'
 import type { Port } from '@/types/port.ts'
 import type { Quest, QuestCategory, QuestRank, QuestReward, TradeQuestCategory } from '@/types/quest.ts'
@@ -383,6 +384,8 @@ function getActionButtonStyle(baseStyle: React.CSSProperties, disabled: boolean)
 }
 
 export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
+  const responsiveUi = useResponsiveUiMetrics()
+  const compactLayout = responsiveUi.isCompact
   const portId = useNavigationStore((s) => s.dockedPortId)
   const ports = useWorldStore((s) => s.ports)
   const player = usePlayerStore((s) => s.player)
@@ -645,14 +648,22 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
       </select>
     </label>
   )
+  const containerStyle = compactLayout ? { ...styles.container, ...styles.containerCompact } : styles.container
+  const cardStyle = compactLayout ? { ...styles.card, ...styles.cardCompact } : styles.card
+  const heroStyle = compactLayout ? { ...styles.hero, ...styles.heroCompact } : styles.hero
+  const titleStyle = compactLayout ? { ...styles.title, ...styles.titleCompact } : styles.title
+  const shellStyle = compactLayout ? { ...styles.shell, ...styles.shellCompact } : styles.shell
+  const sidebarStyle = compactLayout ? { ...styles.sidebar, ...styles.sidebarCompact } : styles.sidebar
+  const compactActionRowStyle = compactLayout ? { ...styles.compactActionRow, ...styles.compactActionRowCompact } : styles.compactActionRow
+  const officerOfferCardStyle = compactLayout ? { ...styles.officerOfferCard, ...styles.officerOfferCardCompact } : styles.officerOfferCard
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <div style={styles.hero}>
+    <div style={containerStyle}>
+      <div style={cardStyle}>
+        <div style={heroStyle}>
           <div>
             <p style={styles.eyebrow}>{uiText.town.labels.portOfCall}</p>
-            <h2 style={styles.title}>{port.name}</h2>
+            <h2 style={titleStyle}>{port.name}</h2>
             <p style={styles.subtitle}>{port.nameEn} / {port.culture} / 税率 {(port.taxRate * 100).toFixed(0)}%</p>
           </div>
           <div style={styles.heroActions}>
@@ -730,8 +741,8 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
 
         {notice && <div style={noticeStyle}>{notice}</div>}
 
-        <div style={styles.shell}>
-          <aside style={styles.sidebar}>
+        <div style={shellStyle}>
+          <aside style={sidebarStyle}>
             {availableSections.map((section) => (
               <button key={section} style={section === activeSection ? { ...styles.navButton, ...styles.navButtonActive } : styles.navButton} onClick={() => setActiveSection(section)}>
                 {SECTION_LABELS[section]}
@@ -760,6 +771,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                       <div
                         style={{
                           ...styles.cityVista,
+                          ...(compactLayout ? styles.cityVistaCompact : {}),
                           backgroundImage: `linear-gradient(180deg, rgba(17, 24, 39, 0.08), rgba(17, 24, 39, 0.22)), url(${import.meta.env.BASE_URL}generated/town/lisbon-etching.png)`,
                         }}
                         aria-label="リスボン街全景"
@@ -773,6 +785,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                               type="button"
                               style={{
                                 ...styles.cityHotspot,
+                                ...(compactLayout ? styles.cityHotspotCompact : {}),
                                 left: `${spot.x}%`,
                                 top: `${spot.y}%`,
                                 borderColor: `${spot.tone}cc`,
@@ -819,7 +832,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                       const routeSummary = formatTradeQuestRoute(quest, ports)
                       const questInstruction = formatTradeQuestInstruction(quest, ports, boardQuestGood?.name)
                       return (
-                        <div key={quest.id} style={styles.compactActionRow}>
+                          <div key={quest.id} style={compactActionRowStyle}>
                           <div style={styles.tradeGoodSummary}>
                             {boardQuestGood && <TradeGoodIcon goodId={boardQuestGood.id} label={boardQuestGood.name} size={42} />}
                             <div style={styles.tradeMeta}>
@@ -872,7 +885,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                           const isRepairTarget = ship.instanceId === repairTargetShip?.instanceId
                           const captain = getAssignedOfficer(ship, officers)
                           return (
-                            <div key={ship.instanceId} style={styles.compactActionRow}>
+                            <div key={ship.instanceId} style={compactActionRowStyle}>
                               <div style={styles.tradeMeta}>
                                 <strong>{type?.name ?? ship.name}{ship.instanceId === activeShipId ? ` / ${uiText.town.labels.active}` : ''}{isRepairTarget ? ' / 操作対象' : ''}</strong>
                                 <div style={styles.compactGaugeStack}>
@@ -1063,7 +1076,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                           const hired = hiredOfficerIds.has(officer.id)
                           const officerName = formatOfficerName(officer)
                           return (
-                            <div key={officer.id} style={styles.officerOfferCard}>
+                            <div key={officer.id} style={officerOfferCardStyle}>
                               <div style={styles.officerPortraitColumn}>
                                 <OfficerPortrait officer={officer} />
                                 <span style={styles.officerPortraitCaption}>{formatNationalityLabel(officer.nationality)}</span>
@@ -1106,7 +1119,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                           const assignedShip = ships.find((ship) => ship.captainOfficerId === officer.id)
                           const officerName = formatOfficerName(officer)
                           return (
-                            <div key={officer.id} style={styles.compactActionRow}>
+                            <div key={officer.id} style={compactActionRowStyle}>
                               <div style={styles.assignedOfficerSummary}>
                                 <OfficerPortrait officer={officer} />
                                 <div style={styles.tradeMeta}>
@@ -1154,7 +1167,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                               const blockedByLevel = captainLevel < ship.requiredLevel
                               const blockedByFacility = shipyardLevel < requiredFacility
                             return (
-                              <div key={ship.id} style={styles.compactActionRow}>
+                              <div key={ship.id} style={compactActionRowStyle}>
                                 <div style={styles.tradeMeta}>
                                   <strong>{ship.name}</strong>
                                   <span style={styles.tradeSub}>{ship.price} d / 必要Lv {ship.requiredLevel} / 造船所Lv {requiredFacility}</span>
@@ -1241,7 +1254,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                       </div>
                       <div style={styles.list}>
                         {inventoryRows.map((entry) => (
-                          <div key={entry.itemId} style={styles.compactActionRow}>
+                          <div key={entry.itemId} style={compactActionRowStyle}>
                             <div style={styles.tradeGoodSummary}>
                               <TradeGoodIcon goodId={entry.itemId} label={entry.name} />
                               <div style={styles.tradeMeta}>
@@ -1299,10 +1312,14 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
 
 const styles: Record<string, React.CSSProperties> = {
   container: { position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(180deg, rgba(6,15,28,0.96), rgba(17,30,50,0.98))', zIndex: 700, padding: 24 },
+  containerCompact: { alignItems: 'stretch', justifyContent: 'stretch', padding: 8 },
   card: { width: 'min(1240px, 100%)', maxHeight: '100%', overflow: 'auto', padding: 24, borderRadius: 28, background: 'linear-gradient(180deg, rgba(8,18,32,0.96), rgba(11,24,42,0.98))', color: '#edf3fb', border: '1px solid rgba(128, 176, 222, 0.22)', boxShadow: '0 24px 80px rgba(0,0,0,0.35)' },
+  cardCompact: { width: '100%', maxHeight: 'calc(100vh - 16px)', padding: 12, borderRadius: 16 },
   hero: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 18, marginBottom: 16 },
+  heroCompact: { flexDirection: 'column', gap: 10, marginBottom: 12 },
   eyebrow: { margin: 0, color: '#7fb6f5', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.18em' },
   title: { margin: '6px 0 0', fontSize: 36 },
+  titleCompact: { fontSize: 28 },
   subtitle: { margin: '8px 0 0', color: '#96b2d6' },
   heroActions: { display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 },
   statStrip: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 16 },
@@ -1318,7 +1335,9 @@ const styles: Record<string, React.CSSProperties> = {
   notice: { position: 'sticky', top: 0, zIndex: 5, marginBottom: 16, padding: '10px 12px', borderRadius: 12, background: 'rgba(37, 99, 235, 0.16)', border: '1px solid rgba(147, 197, 253, 0.18)', color: '#dbeafe' },
   noticeWarning: { background: 'rgba(120, 53, 15, 0.22)', border: '1px solid rgba(251, 191, 36, 0.34)', color: '#fde68a' },
   shell: { display: 'grid', gridTemplateColumns: '210px minmax(0, 1fr)', gap: 16 },
+  shellCompact: { gridTemplateColumns: '1fr', gap: 12 },
   sidebar: { padding: 14, borderRadius: 18, background: 'rgba(255,255,255,0.035)', display: 'flex', flexDirection: 'column', gap: 8, alignSelf: 'start', position: 'sticky', top: 0 },
+  sidebarCompact: { position: 'static', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(106px, 1fr))', gap: 6, padding: 10, borderRadius: 14 },
   navButton: { padding: '11px 12px', textAlign: 'left', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: '#d8e5f6', cursor: 'pointer' },
   navButtonActive: { background: 'linear-gradient(135deg, rgba(37,99,235,0.7), rgba(14,165,233,0.45))', border: '1px solid rgba(91, 178, 255, 0.35)' },
   sidebarMeta: { marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 8, color: '#9db7d8', fontSize: 12 },
@@ -1329,6 +1348,7 @@ const styles: Record<string, React.CSSProperties> = {
   cityIntro: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 12 },
   cityBadge: { padding: '8px 10px', borderRadius: 999, background: 'rgba(180, 83, 9, 0.22)', border: '1px solid rgba(251, 191, 36, 0.24)', color: '#f8ddb3', fontSize: 11, whiteSpace: 'nowrap' },
   cityVista: { position: 'relative', minHeight: 430, overflow: 'hidden', borderRadius: 20, border: '1px solid rgba(255,255,255,0.1)', backgroundColor: '#d1b98b', backgroundSize: 'cover', backgroundPosition: 'center', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)' },
+  cityVistaCompact: { minHeight: 300, borderRadius: 14 },
   cityEtchingVignette: { position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(circle at 50% 42%, transparent 54%, rgba(20, 12, 5, 0.32) 100%), linear-gradient(90deg, rgba(67, 40, 17, 0.18), transparent 18%, transparent 82%, rgba(67, 40, 17, 0.18))', mixBlendMode: 'multiply' },
   citySky: { position: 'absolute', inset: 0, background: 'radial-gradient(circle at 18% 16%, rgba(255,244,207,0.58), transparent 15%), linear-gradient(180deg, rgba(125, 180, 202, 0.85), rgba(214, 174, 118, 0.46) 48%, transparent 49%)' },
   citySun: { position: 'absolute', left: '10%', top: '11%', width: 58, height: 58, borderRadius: '50%', background: '#ffe3a3', boxShadow: '0 0 44px rgba(255, 207, 120, 0.55)' },
@@ -1342,6 +1362,7 @@ const styles: Record<string, React.CSSProperties> = {
   cityCrane: { position: 'absolute', width: '10%', height: '18%', borderLeft: '5px solid #5d3b21', borderTop: '4px solid #5d3b21', transform: 'skewX(-12deg)' },
   cityShip: { position: 'absolute', width: '11%', height: '7%', background: '#40230f', clipPath: 'polygon(0 46%, 72% 46%, 100% 22%, 86% 80%, 12% 80%)', boxShadow: '22px -36px 0 -25px #ead9bd' },
   cityHotspot: { position: 'absolute', transform: 'translate(-50%, -50%)', display: 'flex', alignItems: 'center', gap: 8, minWidth: 126, padding: '8px 10px', borderRadius: 999, border: '1px solid rgba(255,255,255,0.24)', background: 'rgba(10, 23, 38, 0.82)', color: '#fff', backdropFilter: 'blur(8px)' },
+  cityHotspotCompact: { minWidth: 0, padding: '6px 8px', gap: 5, fontSize: 11 },
   cityHotspotIcon: { width: 26, height: 26, borderRadius: '50%', display: 'grid', placeItems: 'center', color: '#08111f', fontWeight: 800, flex: '0 0 auto' },
   cityHotspotText: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1, lineHeight: 1.1 },
   overviewCopy: { maxWidth: 620 },
@@ -1373,7 +1394,9 @@ const styles: Record<string, React.CSSProperties> = {
   denseRow: { display: 'flex', justifyContent: 'space-between', gap: 10, padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' },
   inlineMeta: { display: 'block', color: '#89a6c9', fontSize: 11, marginTop: 2 },
   compactActionRow: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 12, alignItems: 'center', padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.035)' },
+  compactActionRowCompact: { gridTemplateColumns: '1fr', gap: 8, padding: 10 },
   officerOfferCard: { display: 'grid', gridTemplateColumns: '112px minmax(0, 1fr)', gap: 14, alignItems: 'stretch', padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(148, 163, 184, 0.12)' },
+  officerOfferCardCompact: { gridTemplateColumns: '1fr', gap: 10 },
   officerPortraitColumn: { display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' },
   officerPortraitFrame: { width: 96, aspectRatio: '1 / 1', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(244, 201, 130, 0.32)', background: 'linear-gradient(180deg, rgba(69, 52, 35, 0.65), rgba(20, 28, 42, 0.9))', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)' },
   officerPortraitImage: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },

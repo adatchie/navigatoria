@@ -9,6 +9,7 @@ import { useEncounterStore } from '@/stores/useEncounterStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { ShipModelRenderer, ShipRenderer } from '@/rendering/ShipRenderer.tsx'
+import { useResponsiveUiMetrics } from '@/ui/responsive.ts'
 import {
   BATTLEFIELD_BOUNDS,
   buildInitialTacticalBattle,
@@ -48,6 +49,8 @@ export function BattleScreen() {
   const getShip = useDataStore((s) => s.getShip)
   const windDirection = useNavigationStore((s) => s.wind.direction)
   const windSpeed = useNavigationStore((s) => s.wind.speed)
+  const responsiveUi = useResponsiveUiMetrics()
+  const compactLayout = responsiveUi.isCompact
   const wind = useMemo<TacticalWindState>(() => ({ direction: windDirection, speed: windSpeed }), [windDirection, windSpeed])
   const initialBattle = useMemo(() => {
     if (!encounter) return null
@@ -91,6 +94,15 @@ export function BattleScreen() {
   const orderedCount = orders.length
   const battleResolved = phase === 'resolved' || combatState.phase === 'resolved' || activePlayerShips.length === 0 || activeEnemyShips.length === 0
   const displayHint = combatState.phase === 'resolved' && combatState.result?.message ? combatState.result.message : hint
+  const headerStyle = compactLayout ? { ...styles.header, ...styles.headerCompact } : styles.header
+  const titleStyle = compactLayout ? { ...styles.title, ...styles.titleCompact } : styles.title
+  const windPanelStyle = compactLayout ? { ...styles.windPanel, ...styles.windPanelCompact } : styles.windPanel
+  const fleetPanelStyle = compactLayout ? { ...styles.fleetPanel, ...styles.fleetPanelCompact } : styles.fleetPanel
+  const enemyPanelStyle = compactLayout ? { ...styles.enemyPanel, ...styles.enemyPanelCompact } : styles.enemyPanel
+  const statusListStyle = compactLayout ? { ...styles.statusList, ...styles.statusListCompact } : styles.statusList
+  const logPanelStyle = compactLayout ? { ...styles.logPanel, ...styles.logPanelCompact } : styles.logPanel
+  const commandPanelStyle = compactLayout ? { ...styles.commandPanel, ...styles.commandPanelCompact } : styles.commandPanel
+  const actionOverlayStyle = compactLayout ? { ...styles.actionOverlay, ...styles.actionOverlayCompact } : styles.actionOverlay
 
   const replaceOrder = (nextOrder: TacticalShipOrder) => {
     setOrders((current) => [
@@ -223,12 +235,12 @@ export function BattleScreen() {
 
   return (
     <div style={styles.root}>
-      <div style={styles.header}>
+      <div style={headerStyle}>
         <div>
           <div style={styles.eyebrow}>戦闘海域 / Turn {turn}</div>
-          <h2 style={styles.title}>{encounter.title}</h2>
+          <h2 style={titleStyle}>{encounter.title}</h2>
         </div>
-        <div style={styles.windPanel}>
+        <div style={windPanelStyle}>
           <span>風向 {Math.round(windDirection)}°</span>
           <strong>{windSpeed.toFixed(1)} kt</strong>
           <span style={styles.cameraHelp}>右ドラッグ/ホイールで視点変更</span>
@@ -236,7 +248,7 @@ export function BattleScreen() {
       </div>
 
       {phase === 'action' && (
-        <div style={styles.actionOverlay}>
+        <div style={actionOverlayStyle}>
           <strong>行動フェイズ</strong>
           <span>{Math.round(actionProgress * 100)}%</span>
           <div style={styles.actionProgressTrack}><div style={{ ...styles.actionProgressFill, width: `${actionProgress * 100}%` }} /></div>
@@ -259,31 +271,31 @@ export function BattleScreen() {
         />
       </div>
 
-      <aside style={styles.fleetPanel}>
+      <aside style={fleetPanelStyle}>
         <div style={styles.panelTitle}>味方艦隊</div>
-        <div style={styles.statusList}>
+        <div style={statusListStyle}>
           {playerShips.map((ship, index) => (
             <ShipStatusCard key={ship.id} index={index + 1} ship={ship} selected={ship.id === selectedShipId} onClick={() => handleShipSelect(ship)} />
           ))}
         </div>
       </aside>
 
-      <aside style={styles.enemyPanel}>
+      <aside style={enemyPanelStyle}>
         <div style={styles.panelTitle}>敵艦隊</div>
-        <div style={styles.statusList}>
+        <div style={statusListStyle}>
           {enemyShips.map((ship, index) => (
             <ShipStatusCard key={ship.id} index={index + 1} ship={ship} enemy selected={ship.id === targetEnemyId} onClick={() => handleShipSelect(ship)} />
           ))}
         </div>
       </aside>
 
-      <div style={styles.logPanel}>
+      <div style={logPanelStyle}>
         <strong>{battleResolved ? '戦闘結果' : '戦闘ログ'}</strong>
         {battleResolved && combatState.result?.message && <p>{combatState.result.message}</p>}
         {battleLog.map((entry, index) => <p key={`${entry}-${index}`}>{entry}</p>)}
       </div>
 
-      <div style={styles.commandPanel}>
+      <div style={commandPanelStyle}>
         <div style={styles.hint}>{displayHint}</div>
         <div style={styles.commandRow}>
           {targetEnemyId && <button style={styles.primaryButton} onClick={assignPursuitOrder}>追撃</button>}
@@ -1066,16 +1078,22 @@ function statusLabel(status: TacticalShipState['status']): string {
 const styles: Record<string, CSSProperties> = {
   root: { position: 'fixed', inset: 0, zIndex: 720, overflow: 'hidden', color: '#e7f2ff', background: '#071b2d', fontFamily: '"Yu Gothic", "Hiragino Sans", sans-serif' },
   header: { position: 'absolute', top: 16, left: 18, right: 18, zIndex: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 18, background: 'rgba(4, 12, 24, 0.58)', border: '1px solid rgba(125, 211, 252, 0.22)', backdropFilter: 'blur(10px)', pointerEvents: 'none' },
+  headerCompact: { top: 8, left: 8, right: 8, padding: '8px 10px', borderRadius: 12, alignItems: 'flex-start', gap: 8 },
   eyebrow: { fontSize: 11, letterSpacing: '0.18em', color: '#93c5fd' },
   title: { margin: '4px 0 0', fontSize: 22 },
+  titleCompact: { fontSize: 16 },
   windPanel: { display: 'flex', gap: 12, alignItems: 'baseline', padding: '8px 12px', borderRadius: 12, background: 'rgba(15, 23, 42, 0.64)', color: '#bfdbfe' },
+  windPanelCompact: { flexWrap: 'wrap', justifyContent: 'flex-end', gap: 6, padding: '6px 8px', fontSize: 11 },
   cameraHelp: { color: '#8ba6c8', fontSize: 11 },
   battlefield: { position: 'absolute', inset: 0, cursor: 'crosshair' },
   canvas: { width: '100%', height: '100%' },
   fleetPanel: { position: 'absolute', top: 104, left: 18, width: 300, maxHeight: '54vh', zIndex: 4, padding: 12, borderRadius: 18, background: 'rgba(5, 13, 27, 0.58)', border: '1px solid rgba(148, 163, 184, 0.24)', backdropFilter: 'blur(10px)' },
+  fleetPanelCompact: { top: 82, left: 8, width: 'calc(50vw - 12px)', maxHeight: '30vh', padding: 8, borderRadius: 12 },
   enemyPanel: { position: 'absolute', top: 104, right: 18, width: 300, maxHeight: '42vh', zIndex: 4, padding: 12, borderRadius: 18, background: 'rgba(5, 13, 27, 0.58)', border: '1px solid rgba(148, 163, 184, 0.24)', backdropFilter: 'blur(10px)' },
+  enemyPanelCompact: { top: 82, right: 8, width: 'calc(50vw - 12px)', maxHeight: '30vh', padding: 8, borderRadius: 12 },
   panelTitle: { marginBottom: 10, fontSize: 13, letterSpacing: '0.12em', color: '#93c5fd' },
   statusList: { display: 'grid', gap: 8, overflow: 'auto', maxHeight: 'calc(54vh - 42px)' },
+  statusListCompact: { gap: 6, maxHeight: 'calc(30vh - 34px)' },
   statusCard: { display: 'block', width: '100%', textAlign: 'left', color: '#e7f2ff', padding: 10, borderRadius: 13, background: 'rgba(15, 23, 42, 0.62)', border: '1px solid rgba(148, 163, 184, 0.16)', cursor: 'pointer' },
   statusCardSelected: { display: 'block', width: '100%', textAlign: 'left', color: '#e7f2ff', padding: 10, borderRadius: 13, background: 'rgba(30, 64, 175, 0.54)', border: '1px solid rgba(250, 204, 21, 0.72)', cursor: 'pointer' },
   statusHeader: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 },
@@ -1094,8 +1112,11 @@ const styles: Record<string, CSSProperties> = {
   damageNumberCrew: { color: '#bae6fd', fontSize: 15, fontWeight: 900, WebkitTextStroke: '0.6px rgba(7, 89, 133, 0.85)', textShadow: '0 2px 8px rgba(8, 47, 73, 0.95)' },
   damageNumberMiss: { color: '#dbeafe', fontSize: 22, fontWeight: 950, letterSpacing: '0.08em', WebkitTextStroke: '1px rgba(15, 23, 42, 0.95)', textShadow: '0 2px 8px rgba(15, 23, 42, 1)' },
   logPanel: { position: 'absolute', left: 18, bottom: 18, width: 420, maxHeight: 190, overflow: 'auto', zIndex: 5, padding: 13, borderRadius: 16, background: 'rgba(5, 13, 27, 0.64)', border: '1px solid rgba(148, 163, 184, 0.22)', color: '#cbd5e1', fontSize: 12, lineHeight: 1.45, backdropFilter: 'blur(10px)' },
+  logPanelCompact: { left: 8, bottom: 8, width: 'calc(42vw - 12px)', maxHeight: '22vh', padding: 8, borderRadius: 12, fontSize: 10 },
   commandPanel: { position: 'absolute', right: 18, bottom: 18, zIndex: 5, width: 560, padding: 15, borderRadius: 18, background: 'rgba(4, 12, 24, 0.72)', border: '1px solid rgba(125, 211, 252, 0.22)', backdropFilter: 'blur(12px)' },
+  commandPanelCompact: { right: 8, bottom: 8, width: 'calc(58vw - 12px)', padding: 9, borderRadius: 12 },
   actionOverlay: { position: 'absolute', top: 92, left: '50%', transform: 'translateX(-50%)', zIndex: 8, width: 320, padding: '12px 14px', borderRadius: 16, background: 'rgba(3, 7, 18, 0.72)', border: '1px solid rgba(251, 191, 36, 0.55)', color: '#fde68a', display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center', backdropFilter: 'blur(10px)' },
+  actionOverlayCompact: { top: 68, width: 'min(280px, calc(100vw - 24px))', padding: '9px 10px', borderRadius: 12 },
   actionProgressTrack: { gridColumn: '1 / -1', height: 8, borderRadius: 999, background: 'rgba(255,255,255,0.12)', overflow: 'hidden' },
   actionProgressFill: { height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, #f59e0b, #fde68a)' },
   hint: { minHeight: 20, marginBottom: 12, color: '#dbeafe', fontSize: 13 },

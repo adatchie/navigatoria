@@ -40,6 +40,7 @@ import { uiText } from '@/i18n/uiText.ts'
 import { INITIAL_PLAYER } from '@/config/gameConfig.ts'
 import { getPortWorldPosition } from '@/data/master/portWorldPosition.ts'
 import { createPortId } from '@/types/common.ts'
+import { getResponsiveUiStyleVars, useResponsiveUiMetrics } from '@/ui/responsive.ts'
 
 const GameCanvas = lazy(async () => import('./GameCanvas.tsx').then((mod) => ({ default: mod.GameCanvas })))
 const DebugPanel = lazy(async () => import('./debug/DebugPanel.tsx').then((mod) => ({ default: mod.DebugPanel })))
@@ -75,6 +76,8 @@ export function App() {
   const [showDataInspector, setShowDataInspector] = useState(false)
   const [loadProgress, setLoadProgress] = useState(0)
   const [latestSaveExists, setLatestSaveExists] = useState(false)
+  const responsiveUi = useResponsiveUiMetrics()
+  const showDebugTools = debugFlags.showDebugPanel && !responsiveUi.isPhone
   const autoSaveRef = useRef<AutoSave | null>(null)
   const questBoardDockedPortRef = useRef<string | null>(null)
 
@@ -278,7 +281,7 @@ export function App() {
   }, [openAssetPreviewWindow, phase])
 
   return (
-    <div style={styles.root}>
+    <div style={{ ...styles.root, ...getResponsiveUiStyleVars(responsiveUi) }}>
       {phase === 'loading' && <LoadingScreen progress={loadProgress} message="マスタデータを読み込み中..." />}
       {phase === 'title' && <TitleScreen onStart={handleStart} onContinue={() => void handleContinue()} canContinue={latestSaveExists} />}
       {(phase === 'playing' || phase === 'paused') && (
@@ -298,9 +301,9 @@ export function App() {
               <NpcFleetAttackDialog />
             </>
           )}
-          <DebugPanel />
-          {debugFlags.showDebugPanel && showDataInspector && <DataInspector />}
-          {debugFlags.showDebugPanel && (
+          {!responsiveUi.isPhone && <DebugPanel />}
+          {showDebugTools && showDataInspector && <DataInspector />}
+          {showDebugTools && (
             <div style={styles.keybinds}>
               <span>F1: {uiText.app.dataInspector}</span>
               <button style={styles.linkButton} onClick={openAssetPreviewWindow}>F2: {uiText.app.assetPreview}</button>

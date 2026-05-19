@@ -83,8 +83,8 @@ export function SailControl() {
 const styles: Record<string, React.CSSProperties> = {
   container: {
     position: 'fixed',
-    bottom: 18,
-    left: 376,
+    bottom: 'calc(18px * var(--navigatoria-ui-scale, 1))',
+    left: 'var(--navigatoria-sail-left, calc(12px + 364px * var(--navigatoria-ui-scale, 1)))',
     width: 160,
     padding: '10px 12px',
     borderRadius: 12,
@@ -93,6 +93,8 @@ const styles: Record<string, React.CSSProperties> = {
     backdropFilter: 'blur(10px)',
     zIndex: 120,
     pointerEvents: 'auto' as const,
+    transform: 'scale(var(--navigatoria-ui-scale, 1))',
+    transformOrigin: 'bottom left',
   },
   header: {
     display: 'flex',

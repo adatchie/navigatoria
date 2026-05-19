@@ -226,8 +226,8 @@ function drawWindArrow(ctx: CanvasRenderingContext2D, direction: number, speed: 
 const styles: Record<string, React.CSSProperties> = {
   container: {
     position: 'fixed',
-    bottom: 16,
-    right: 16,
+    bottom: 'calc(16px * var(--navigatoria-ui-scale, 1))',
+    right: 'calc(16px * var(--navigatoria-ui-scale, 1))',
     borderRadius: 10,
     overflow: 'hidden',
     border: '1px solid rgba(120, 172, 219, 0.24)',
@@ -235,6 +235,8 @@ const styles: Record<string, React.CSSProperties> = {
     backdropFilter: 'blur(8px)',
     zIndex: 120,
     pointerEvents: 'auto' as const,
+    transform: 'scale(var(--navigatoria-ui-scale, 1))',
+    transformOrigin: 'bottom right',
   },
   canvas: {
     display: 'block',

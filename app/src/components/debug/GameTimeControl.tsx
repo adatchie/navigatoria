@@ -64,9 +64,10 @@ export function GameTimeControl() {
 const styles: Record<string, React.CSSProperties> = {
   container: {
     position: 'fixed',
-    top: 42,
+    top: 'calc(42px * var(--navigatoria-ui-scale, 1))',
     left: '50%',
-    transform: 'translateX(-50%)',
+    transform: 'translateX(-50%) scale(var(--navigatoria-ui-scale, 1))',
+    transformOrigin: 'top center',
     display: 'flex',
     alignItems: 'center',
     gap: 12,
