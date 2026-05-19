@@ -12,6 +12,7 @@ import { ShipModelRenderer, ShipRenderer } from '@/rendering/ShipRenderer.tsx'
 import { worldToScene } from '@/rendering/worldTransform.ts'
 import { isNpcFleetSuppressed } from '@/game/world/npcFleetRegistry.ts'
 import type { NpcFleetRole } from '@/types/npcFleet.ts'
+import { isVoyageTimeRunning } from '@/game/timeFlow.ts'
 
 interface NpcFleetRenderState {
   x: number
@@ -61,9 +62,11 @@ export function NpcFleetRenderer() {
     if (ports.length === 0) return
 
     const totalDays = getExactTotalDays()
+    const voyageTimeRunning = isVoyageTimeRunning()
+    const animationDelta = voyageTimeRunning ? delta : 0
     const elapsed = state.clock.elapsedTime
-    const positionLerp = 1 - Math.exp(-POSITION_LERP * delta)
-    const headingLerp = 1 - Math.exp(-HEADING_LERP * delta)
+    const positionLerp = 1 - Math.exp(-POSITION_LERP * animationDelta)
+    const headingLerp = 1 - Math.exp(-HEADING_LERP * animationDelta)
     const activeFleetIds = new Set<string>()
 
     for (let index = 0; index < fleets.length; index += 1) {
@@ -112,9 +115,10 @@ export function NpcFleetRenderer() {
       renderStatesRef.current.set(fleet.id, renderState)
 
       const fleetScale = ROLE_SCALE[snapshot.definition.role] ?? 0.76
+      const bobOffset = voyageTimeRunning ? Math.sin(elapsed * 0.75 + index * 0.3) * 0.08 : 0
       group.position.set(
         renderState.x,
-        renderState.y + Math.sin(elapsed * 0.75 + index * 0.3) * 0.08,
+        renderState.y + bobOffset,
         renderState.z,
       )
       group.rotation.set(0, (-renderState.heading * Math.PI) / 180, 0)

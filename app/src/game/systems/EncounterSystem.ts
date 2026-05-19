@@ -7,6 +7,7 @@ import { useGameStore } from '@/stores/useGameStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
+import { isVoyageTimeRunning } from '@/game/timeFlow.ts'
 import { getNearestPort, getZoneAtPosition } from '@/game/world/queries.ts'
 
 function clamp(value: number, min: number, max: number): number {
@@ -128,10 +129,11 @@ export class EncounterSystem implements GameSystem {
   private nextCheckDay = 0.15
 
   update(): void {
-    const { paused, timeState } = useGameStore.getState()
+    if (!isVoyageTimeRunning()) return
+
+    const { timeState } = useGameStore.getState()
     const navigation = useNavigationStore.getState()
     const encounterStore = useEncounterStore.getState()
-    if (paused || navigation.mode !== 'sailing' || encounterStore.activeEncounter) return
 
     const currentDay = timeState.totalDays
     if (currentDay < this.nextCheckDay) return

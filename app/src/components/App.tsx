@@ -23,6 +23,7 @@ import { useWorldStore } from '@/stores/useWorldStore.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { loadAllMasterData } from '@/data/loader/DataLoader.ts'
 import { gameLoop } from '@/game/GameLoop.ts'
+import { isVoyageTimeRunning } from '@/game/timeFlow.ts'
 import { initializeWorld } from '@/game/world/WorldInitializer.ts'
 import { buildZonesFromPorts } from '@/game/world/zones.ts'
 import { isQuestDeadlineNotice } from '@/game/quest/questNotices.ts'
@@ -108,7 +109,13 @@ export function App() {
   }, [initializeMarkets, refreshSaveAvailability, setFrameStats, setPhase])
 
   useEffect(() => {
-    gameLoop.addSystem({ name: 'GameTimeUpdater', priority: 0, update: (dt) => updateTime(dt) })
+    gameLoop.addSystem({
+      name: 'GameTimeUpdater',
+      priority: 0,
+      update: (dt) => {
+        if (isVoyageTimeRunning()) updateTime(dt)
+      },
+    })
     return () => { gameLoop.removeSystem('GameTimeUpdater') }
   }, [updateTime])
 

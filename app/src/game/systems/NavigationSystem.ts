@@ -20,6 +20,7 @@ import { useUIStore } from '@/stores/useUIStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
 import { updateStopTimer } from '@/stores/useUIStore.ts'
 import { getFleetOfficerEffects } from '@/game/officers/officerEffects.ts'
+import { isVoyageGloballySuspended } from '@/game/timeFlow.ts'
 
 declare global {
   interface Window {
@@ -206,6 +207,7 @@ export class NavigationSystem implements GameSystem {
       if (nav.currentSpeed !== 0) nav.setSpeed(0)
       return
     }
+    if (isVoyageGloballySuspended()) return
 
     // --- 舵の処理: targetHeading に向かって旋回 ---
     const activeShip = playerStore.ships.find((s) => s.instanceId === playerStore.activeShipId)

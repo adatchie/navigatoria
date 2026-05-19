@@ -6,6 +6,7 @@ import { useGameStore } from '@/stores/useGameStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { useNpcFleetStore } from '@/stores/useNpcFleetStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
+import { useVoyageTimeRunning } from '@/game/timeFlow.ts'
 import { worldToScene } from '@/rendering/worldTransform.ts'
 
 const PLAYER_WAKE_SPEED = 10
@@ -121,9 +122,10 @@ export function WakeRenderer() {
   const position = useNavigationStore((s) => s.position)
   const totalDays = useGameStore((s) => s.gameTime.totalGameSeconds / 86400)
   const wakeTexture = useMemo(() => createWakeTexture(), [])
+  const voyageTimeRunning = useVoyageTimeRunning()
 
   const [playerX, , playerZ] = worldToScene(position)
-  const playerSpeedRatio = mode === 'sailing' ? clamp01(currentSpeed / PLAYER_WAKE_SPEED) : 0
+  const playerSpeedRatio = voyageTimeRunning && mode === 'sailing' ? clamp01(currentSpeed / PLAYER_WAKE_SPEED) : 0
   void questFleets
   void defeatedFleetCooldowns
   const npcFleets = getActiveNpcFleetDefinitions(totalDays)
@@ -137,7 +139,7 @@ export function WakeRenderer() {
       {npcSnapshots.slice(0, NPC_WAKE_LIMIT).map((snapshot) => {
         if (snapshot.inPort) return null
         const [x, , z] = worldToScene(snapshot.position)
-        const speedRatio = clamp01(snapshot.definition.speedKnots / NPC_WAKE_SPEED)
+        const speedRatio = voyageTimeRunning ? clamp01(snapshot.definition.speedKnots / NPC_WAKE_SPEED) : 0
         return (
           <WakeMark
             key={snapshot.definition.id}
