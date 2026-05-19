@@ -27,6 +27,13 @@ const NAMES: Record<Nationality, OfficerNameSeed[]> = {
     { first: 'トメ', family: 'ピレス' },
     { first: 'ドゥアルテ', family: 'バルボザ' },
     { first: 'ジョアン', family: 'ロドリゲス' },
+    { first: 'マヌエル', family: 'ペレイラ' },
+    { first: 'アフォンソ', family: 'コレイア' },
+    { first: 'カタリナ', family: 'ソアレス' },
+    { first: 'ガスパル', family: 'デ・レモス' },
+    { first: 'ルイ', family: 'コエリョ' },
+    { first: 'イザベル', family: 'アルメイダ' },
+    { first: 'シモン', family: 'ゴンサルヴェス' },
   ],
   spain: [
     { first: 'ロドリゴ', family: 'デ・トリアナ' },
@@ -34,6 +41,13 @@ const NAMES: Record<Nationality, OfficerNameSeed[]> = {
     { first: 'フアン', family: 'デ・ラ・コサ' },
     { first: 'イネス', family: 'バルガス' },
     { first: 'アロンソ', family: 'ピンソン' },
+    { first: 'ミゲル', family: 'エスピノサ' },
+    { first: 'カタリナ', family: 'デ・ルナ' },
+    { first: 'エルナン', family: 'サルセド' },
+    { first: 'ディエゴ', family: 'メンドーサ' },
+    { first: 'ルシア', family: 'アギーレ' },
+    { first: 'ペドロ', family: 'ナバロ' },
+    { first: 'マルティン', family: 'オルティス' },
   ],
   england: [
     { first: 'ウィリアム', family: 'ホーキンズ' },
@@ -41,6 +55,13 @@ const NAMES: Record<Nationality, OfficerNameSeed[]> = {
     { first: 'ジョン', family: 'ラット' },
     { first: 'トマス', family: 'ウィンダム' },
     { first: 'グレイス', family: 'オマリー' },
+    { first: 'リチャード', family: 'グレンヴィル' },
+    { first: 'エリノア', family: 'ブレイク' },
+    { first: 'エドワード', family: 'フェントン' },
+    { first: 'アン', family: 'クリフォード' },
+    { first: 'ロバート', family: 'クロフト' },
+    { first: 'ヘンリー', family: 'パーマー' },
+    { first: 'マーガレット', family: 'アッシュリー' },
   ],
   netherlands: [
     { first: 'コルネリス', family: 'ハウトマン' },
@@ -48,6 +69,13 @@ const NAMES: Record<Nationality, OfficerNameSeed[]> = {
     { first: 'アニカ', family: 'ヤンス' },
     { first: 'ディルク', family: 'ヘリッツ' },
     { first: 'ヤン', family: 'ホイヘン' },
+    { first: 'ヘンドリク', family: 'ブロウワー' },
+    { first: 'マルテ', family: 'デ・フリース' },
+    { first: 'ウィレム', family: 'バレンツ' },
+    { first: 'エルス', family: 'クラース' },
+    { first: 'アドリアン', family: 'ブロック' },
+    { first: 'リスベット', family: 'スミット' },
+    { first: 'ヨリス', family: 'ファン・スピルベルゲン' },
   ],
   france: [
     { first: 'ジャン', family: 'フルーリ' },
@@ -55,6 +83,13 @@ const NAMES: Record<Nationality, OfficerNameSeed[]> = {
     { first: 'ピエール', family: 'クリニョン' },
     { first: 'ギヨーム', family: 'ル・テストゥ' },
     { first: 'ジャック', family: 'カルティエ' },
+    { first: 'エティエンヌ', family: 'マルシャン' },
+    { first: 'アニエス', family: 'ド・ヴィルヌーヴ' },
+    { first: 'ルネ', family: 'グーレーヌ' },
+    { first: 'クロード', family: 'ダンジェ' },
+    { first: 'シャルル', family: 'デュボワ' },
+    { first: 'イザボー', family: 'マルタン' },
+    { first: 'ニコラ', family: 'ルージュ' },
   ],
   venice: [
     { first: 'ニコロ', family: 'ゼノ' },
@@ -62,6 +97,13 @@ const NAMES: Record<Nationality, OfficerNameSeed[]> = {
     { first: 'ビアンカ', family: 'コンタリーニ' },
     { first: 'アルヴィーゼ', family: 'カダモスト' },
     { first: 'ピエトロ', family: 'クエリーニ' },
+    { first: 'アントニオ', family: 'グリマーニ' },
+    { first: 'ルチア', family: 'ヴェニエル' },
+    { first: 'ロレンツォ', family: 'ロレダン' },
+    { first: 'カテリーナ', family: 'バルバリゴ' },
+    { first: 'ジローラモ', family: 'プリウリ' },
+    { first: 'フェデリコ', family: 'モチェニーゴ' },
+    { first: 'オルサ', family: 'ダンドロ' },
   ],
   ottoman: [
     { first: 'ピーリー', family: 'レイス' },
@@ -69,6 +111,13 @@ const NAMES: Record<Nationality, OfficerNameSeed[]> = {
     { first: 'アイラ', family: 'ハトゥン' },
     { first: 'ケマル', family: 'レイス' },
     { first: 'ムラト', family: 'レイス' },
+    { first: 'シナン', family: 'パシャ' },
+    { first: 'レイラ', family: 'ハトゥン' },
+    { first: 'サリフ', family: 'レイス' },
+    { first: 'ハサン', family: 'アーガ' },
+    { first: 'ナスフ', family: 'マトラクチ' },
+    { first: 'メフメト', family: 'チェレビ' },
+    { first: 'ゼイネプ', family: 'ハトゥン' },
   ],
 }
 
@@ -152,6 +201,58 @@ function buildOfficerName(name: OfficerNameSeed, seed: number): string {
   return `${pick(EPITHETS, seed + 29)}の${name.first}`
 }
 
+function getOfficerBaseName(displayName: string): string {
+  const localizedName = localizeOfficerName(displayName)
+  const epithetIndex = localizedName.lastIndexOf('の')
+  if (epithetIndex >= 0) return localizedName.slice(epithetIndex + 1)
+  return localizedName.split('・')[0] ?? localizedName
+}
+
+function buildNamePool(nationality: Nationality): OfficerNameSeed[] {
+  const localNames = NAMES[nationality] ?? NAMES.portugal
+  const seenFirstNames = new Set(localNames.map((name) => name.first))
+  const otherNames = Object.entries(NAMES)
+    .filter(([entryNationality]) => entryNationality !== nationality)
+    .flatMap(([, entryNames]) => entryNames)
+    .filter((name) => {
+      if (seenFirstNames.has(name.first)) return false
+      seenFirstNames.add(name.first)
+      return true
+    })
+
+  return [...localNames, ...otherNames]
+}
+
+function createOfficerOffer(
+  port: Port,
+  day: number,
+  tavernLevel: number,
+  playerFame: number,
+  namePool: OfficerNameSeed[],
+  attempt: number,
+): Officer {
+  const baseSeed = hashSeed(`${port.id}:${day}:${tavernLevel}:${playerFame}`)
+  const seed = baseSeed + attempt * 101
+  const specialty = pick(SPECIALTIES, seed + 7)
+  const level = Math.min(10, Math.max(1, tavernLevel + Math.floor(playerFame / 450) + Math.floor(random(seed + 13) * 3)))
+  const stats = buildStats(specialty, level, seed)
+  const statTotal = Object.values(stats).reduce((sum, value) => sum + value, 0)
+  const name = buildOfficerName(pick(namePool, seed + 19), seed)
+
+  return {
+    id: createCharacterId(`officer:${port.id}:${day}:${attempt}:${hashSeed(name).toString(36)}`),
+    name,
+    nationality: port.nationality,
+    specialty,
+    stats,
+    level,
+    hireCost: 260 + level * 120 + statTotal * 18,
+    salary: 18 + level * 7 + Math.round(statTotal * 1.6),
+    portraitUrl: SAMPLE_PORTRAIT_URL,
+    description: SPECIALTY_DESCRIPTIONS[specialty],
+  }
+}
+
 export function localizeOfficerName(name: string, seed = 0): string {
   const trimmedName = name.trim()
   const legacyName = LEGACY_NAME_OVERRIDES[trimmedName] ?? Object.entries(LEGACY_NAME_OVERRIDES).find(([legacyKey]) => normalizeAsciiName(legacyKey) === normalizeAsciiName(trimmedName))?.[1]
@@ -181,31 +282,37 @@ export function getOfficerSpecialtyLabel(specialty: OfficerSpecialty): string {
   return '統率'
 }
 
-export function generateTavernOfficerOffers(port: Port, day: number, tavernLevel: number, playerFame = 0): Officer[] {
+export function generateTavernOfficerOffers(
+  port: Port,
+  day: number,
+  tavernLevel: number,
+  playerFame = 0,
+  unavailableOfficerNames: readonly string[] = [],
+): Officer[] {
   const offerCount = Math.min(4, 2 + Math.floor(tavernLevel / 2))
-  const baseSeed = hashSeed(`${port.id}:${day}:${tavernLevel}:${playerFame}`)
   const nationality = port.nationality
-  const names = NAMES[nationality] ?? NAMES.portugal
+  const localNames = NAMES[nationality] ?? NAMES.portugal
+  const fallbackNames = buildNamePool(nationality)
+  const usedDisplayNames = new Set(unavailableOfficerNames.map((name) => localizeOfficerName(name)))
+  const usedBaseNames = new Set(unavailableOfficerNames.map(getOfficerBaseName))
+  const offers: Officer[] = []
 
-  return Array.from({ length: offerCount }, (_, index) => {
-    const seed = baseSeed + index * 101
-    const specialty = pick(SPECIALTIES, seed + 7)
-    const level = Math.min(10, Math.max(1, tavernLevel + Math.floor(playerFame / 450) + Math.floor(random(seed + 13) * 3)))
-    const stats = buildStats(specialty, level, seed)
-    const statTotal = Object.values(stats).reduce((sum, value) => sum + value, 0)
-    const name = buildOfficerName(pick(names, seed + 19), seed)
+  function addUniqueOffers(namePool: OfficerNameSeed[], attemptOffset: number) {
+    const maxAttempts = Math.max(offerCount * 12, namePool.length * 2)
+    for (let attempt = 0; offers.length < offerCount && attempt < maxAttempts; attempt += 1) {
+      const officer = createOfficerOffer(port, day, tavernLevel, playerFame, namePool, attemptOffset + attempt)
+      const displayName = localizeOfficerName(officer.name)
+      const baseName = getOfficerBaseName(displayName)
 
-    return {
-      id: createCharacterId(`officer:${port.id}:${day}:${index}:${hashSeed(name).toString(36)}`),
-      name,
-      nationality,
-      specialty,
-      stats,
-      level,
-      hireCost: 260 + level * 120 + statTotal * 18,
-      salary: 18 + level * 7 + Math.round(statTotal * 1.6),
-      portraitUrl: SAMPLE_PORTRAIT_URL,
-      description: SPECIALTY_DESCRIPTIONS[specialty],
+      if (usedDisplayNames.has(displayName) || usedBaseNames.has(baseName)) continue
+      usedDisplayNames.add(displayName)
+      usedBaseNames.add(baseName)
+      offers.push(officer)
     }
-  })
+  }
+
+  addUniqueOffers(localNames, 0)
+  if (offers.length < offerCount) addUniqueOffers(fallbackNames, localNames.length * 3)
+
+  return offers
 }
