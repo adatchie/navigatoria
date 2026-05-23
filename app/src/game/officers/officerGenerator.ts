@@ -1,6 +1,7 @@
-import type { Nationality, Officer, OfficerSpecialty, OfficerStats } from '@/types/character.ts'
+import type { Nationality, Officer, OfficerGender, OfficerSpecialty, OfficerStats } from '@/types/character.ts'
 import type { Port } from '@/types/port.ts'
 import { createCharacterId } from '@/types/common.ts'
+import { assignOfficerPortraits } from '@/game/officers/officerPortraits.ts'
 
 const SPECIALTIES: OfficerSpecialty[] = ['navigation', 'trade', 'gunnery', 'repair', 'leadership']
 
@@ -19,6 +20,33 @@ interface OfficerNameSeed {
 
 const NAME_MAX_CHARS = 10
 const EPITHETS = ['鋭眼', '碧眼', '黒髪', '金髪', '赤髪', '美髯', '端麗', '豪胆', '寡黙', '温顔', '俊英', '老練', '剛毅', '沈着']
+const FEMALE_FIRST_NAMES = new Set([
+  'レオノール',
+  'カタリナ',
+  'イザベル',
+  'ベアトリス',
+  'イネス',
+  'ルシア',
+  'メアリ',
+  'グレイス',
+  'エリノア',
+  'アン',
+  'マーガレット',
+  'アニカ',
+  'マルテ',
+  'エルス',
+  'リスベット',
+  'マルグリット',
+  'アニエス',
+  'イザボー',
+  'ビアンカ',
+  'ルチア',
+  'カテリーナ',
+  'オルサ',
+  'アイラ',
+  'レイラ',
+  'ゼイネプ',
+])
 
 const NAMES: Record<Nationality, OfficerNameSeed[]> = {
   portugal: [
@@ -201,6 +229,10 @@ function buildOfficerName(name: OfficerNameSeed, seed: number): string {
   return `${pick(EPITHETS, seed + 29)}の${name.first}`
 }
 
+function inferOfficerGender(name: OfficerNameSeed): OfficerGender {
+  return FEMALE_FIRST_NAMES.has(name.first) ? 'female' : 'male'
+}
+
 function getOfficerBaseName(displayName: string): string {
   const localizedName = localizeOfficerName(displayName)
   const epithetIndex = localizedName.lastIndexOf('の')
@@ -237,13 +269,15 @@ function createOfficerOffer(
   const level = Math.min(10, Math.max(1, tavernLevel + Math.floor(playerFame / 450) + Math.floor(random(seed + 13) * 3)))
   const stats = buildStats(specialty, level, seed)
   const statTotal = Object.values(stats).reduce((sum, value) => sum + value, 0)
-  const name = buildOfficerName(pick(namePool, seed + 19), seed)
+  const nameSeed = pick(namePool, seed + 19)
+  const name = buildOfficerName(nameSeed, seed)
 
   return {
     id: createCharacterId(`officer:${port.id}:${day}:${attempt}:${hashSeed(name).toString(36)}`),
     name,
     nationality: port.nationality,
     specialty,
+    gender: inferOfficerGender(nameSeed),
     stats,
     level,
     hireCost: 260 + level * 120 + statTotal * 18,
@@ -314,5 +348,5 @@ export function generateTavernOfficerOffers(
   addUniqueOffers(localNames, 0)
   if (offers.length < offerCount) addUniqueOffers(fallbackNames, localNames.length * 3)
 
-  return offers
+  return assignOfficerPortraits(port, offers)
 }

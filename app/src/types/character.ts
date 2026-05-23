@@ -66,6 +66,7 @@ export interface Player {
 }
 
 export type OfficerSpecialty = 'navigation' | 'trade' | 'gunnery' | 'repair' | 'leadership'
+export type OfficerGender = 'male' | 'female' | 'unspecified'
 
 export interface OfficerStats {
   navigation: number
@@ -80,10 +81,12 @@ export interface Officer {
   name: string
   nationality: Nationality
   specialty: OfficerSpecialty
+  gender?: OfficerGender
   stats: OfficerStats
   level: number
   hireCost: number
   salary: number
+  portraitId?: string
   portraitUrl?: string
   description: string
 }
