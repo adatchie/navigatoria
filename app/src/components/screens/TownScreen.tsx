@@ -617,12 +617,8 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const tavernMealCost = Math.max(20, Math.ceil(Math.max(1, tavernTargetShip?.currentCrew ?? 1) * VOYAGE_CONFIG.TAVERN_MEAL_COST_PER_CREW * (1 - tavernLevel * 0.04)))
   const tavernRoundsCost = Math.max(60, Math.ceil(VOYAGE_CONFIG.TAVERN_ROUND_BASE_COST * (1 + (tavernTargetShip?.maxCrew ?? 1) * 0.04) * (1 - tavernLevel * 0.03)))
   const tavernRecruitUnitCost = Math.max(10, 18 - tavernLevel * VOYAGE_CONFIG.TAVERN_RECRUIT_DISCOUNT_PER_LEVEL)
-  const tavernReservedPortraitIds = officers
-    .filter((officer) => officer.originPortId === port.id)
-    .map((officer) => officer.portraitId)
-    .filter((portraitId): portraitId is string => Boolean(portraitId))
   const tavernOfficerOffers = tavernFacility
-    ? generateTavernOfficerOffers(port, day, tavernLevel, player?.stats.fame ?? 0, officers.map((officer) => officer.name), tavernReservedPortraitIds)
+    ? generateTavernOfficerOffers(port, day, tavernLevel, player?.stats.fame ?? 0, officers.flatMap((officer) => [officer.id, officer.name]))
     : []
   const hiredOfficerIds = new Set(officers.map((officer) => officer.id))
   const consortShips = ships.filter((ship) => ship.instanceId !== activeShipId)

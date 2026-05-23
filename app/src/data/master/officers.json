@@ -1,0 +1,3355 @@
+{
+  "version": 1,
+  "updatedAt": "2026-05-23T09:03:17.277Z",
+  "balanceNote": "Fixed tavern officer master. Each nationality has 12 officers: navigation 3, trade 3, gunnery 2, repair 2, leadership 2. Level and cost bands are fixed for tavern progression; runtime only rotates eligible records and never generates stats or portrait assignments.",
+  "officers": [
+    {
+      "id": "officer:portugal:01",
+      "name": "羅針のディオゴ",
+      "firstName": "ディオゴ",
+      "familyName": "フェルナンデス",
+      "nationality": "portugal",
+      "gender": "male",
+      "specialty": "navigation",
+      "level": 2,
+      "stats": {
+        "navigation": 5,
+        "trade": 2,
+        "gunnery": 2,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 752,
+      "salary": 54,
+      "portraitId": "portrait_brief_moxjdesf_c92lm",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_y34ld",
+        "portrait_brief_moxjdesf_z97j7",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_cy8oh",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_3d991",
+        "portrait_brief_moxjdesf_2m1i4"
+      ],
+      "homePortId": "lisbon",
+      "availablePortIds": [
+        "lisbon",
+        "cape_town",
+        "calicut",
+        "malacca",
+        "macau",
+        "nagasaki"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 1,
+      "description": "リスボンにゆかりを持つ潮目と風待ちを読む水先案内人。長距離航海で消耗を抑える判断に強い。"
+    },
+    {
+      "id": "officer:portugal:02",
+      "name": "レオノール・ヴァス",
+      "firstName": "レオノール",
+      "familyName": "ヴァス",
+      "nationality": "portugal",
+      "gender": "female",
+      "specialty": "trade",
+      "level": 2,
+      "stats": {
+        "navigation": 3,
+        "trade": 5,
+        "gunnery": 1,
+        "repair": 2,
+        "leadership": 2
+      },
+      "hireCost": 734,
+      "salary": 53,
+      "portraitId": "portrait_brief_moxjdesf_866iw",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_z97j7"
+      ],
+      "homePortId": "cape_town",
+      "availablePortIds": [
+        "lisbon",
+        "cape_town",
+        "calicut",
+        "malacca",
+        "macau",
+        "nagasaki"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 2,
+      "description": "ケープタウンにゆかりを持つ港の仲買人との顔つなぎが広い交易担当。買い付けと売却の段取りが速い。"
+    },
+    {
+      "id": "officer:portugal:03",
+      "name": "トメ・ピレス",
+      "firstName": "トメ",
+      "familyName": "ピレス",
+      "nationality": "portugal",
+      "gender": "male",
+      "specialty": "gunnery",
+      "level": 2,
+      "stats": {
+        "navigation": 1,
+        "trade": 2,
+        "gunnery": 5,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 734,
+      "salary": 53,
+      "portraitId": "portrait_brief_moxjdesf_rnm2u",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_y34ld",
+        "portrait_brief_moxjdesf_z97j7",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_ygp1t",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_3d991",
+        "portrait_brief_moxjdesf_cy8oh"
+      ],
+      "homePortId": "calicut",
+      "availablePortIds": [
+        "lisbon",
+        "cape_town",
+        "calicut",
+        "malacca",
+        "macau",
+        "nagasaki"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 3,
+      "description": "カリカットにゆかりを持つ護衛船で砲列指揮を覚えた戦闘航海士。接近戦で砲撃の号令を乱さない。"
+    },
+    {
+      "id": "officer:portugal:04",
+      "name": "ドゥアルテ・バルボザ",
+      "firstName": "ドゥアルテ",
+      "familyName": "バルボザ",
+      "nationality": "portugal",
+      "gender": "male",
+      "specialty": "repair",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 3,
+        "gunnery": 1,
+        "repair": 6,
+        "leadership": 2
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_y34ld",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_z97j7",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_slrmt",
+        "portrait_brief_moxjdesf_ygp1t",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_cy8oh"
+      ],
+      "homePortId": "malacca",
+      "availablePortIds": [
+        "lisbon",
+        "cape_town",
+        "calicut",
+        "malacca",
+        "macau",
+        "nagasaki"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 4,
+      "description": "マラッカにゆかりを持つ艤装と補修の手順に明るい修理役。長旅で傷んだ船を手堅く保たせる。"
+    },
+    {
+      "id": "officer:portugal:05",
+      "name": "ジョアン・ロドリゲス",
+      "firstName": "ジョアン",
+      "familyName": "ロドリゲス",
+      "nationality": "portugal",
+      "gender": "male",
+      "specialty": "leadership",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 2,
+        "gunnery": 3,
+        "repair": 1,
+        "leadership": 6
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_z97j7",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_y34ld",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_cy8oh",
+        "portrait_brief_moxjdesf_2m1i4",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_3d991"
+      ],
+      "homePortId": "macau",
+      "availablePortIds": [
+        "lisbon",
+        "cape_town",
+        "calicut",
+        "malacca",
+        "macau",
+        "nagasaki"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 5,
+      "description": "マカオにゆかりを持つ当直と規律をまとめる副官肌。航海中の士気低下を抑え、僚艦を落ち着かせる。"
+    },
+    {
+      "id": "officer:portugal:06",
+      "name": "マヌエル・ペレイラ",
+      "firstName": "マヌエル",
+      "familyName": "ペレイラ",
+      "nationality": "portugal",
+      "gender": "male",
+      "specialty": "trade",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 6,
+        "gunnery": 1,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_oumdp",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_y34ld",
+        "portrait_brief_moxjdesf_z97j7",
+        "portrait_brief_moxjdesf_ygp1t",
+        "portrait_brief_moxjdesf_cy8oh",
+        "portrait_brief_moxjdesf_2m1i4",
+        "portrait_brief_moxjdesf_slrmt"
+      ],
+      "homePortId": "nagasaki",
+      "availablePortIds": [
+        "lisbon",
+        "cape_town",
+        "calicut",
+        "malacca",
+        "macau",
+        "nagasaki"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 6,
+      "description": "長崎にゆかりを持つ港の仲買人との顔つなぎが広い交易担当。買い付けと売却の段取りが速い。"
+    },
+    {
+      "id": "officer:portugal:07",
+      "name": "アフォンソ・コレイア",
+      "firstName": "アフォンソ",
+      "familyName": "コレイア",
+      "nationality": "portugal",
+      "gender": "male",
+      "specialty": "navigation",
+      "level": 4,
+      "stats": {
+        "navigation": 7,
+        "trade": 3,
+        "gunnery": 3,
+        "repair": 4,
+        "leadership": 5
+      },
+      "hireCost": 1136,
+      "salary": 81,
+      "portraitId": "portrait_brief_moxjdesf_edd7k",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_y34ld",
+        "portrait_brief_moxjdesf_z97j7",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_3d991",
+        "portrait_brief_moxjdesf_cy8oh",
+        "portrait_brief_moxjdesf_ygp1t"
+      ],
+      "homePortId": "lisbon",
+      "availablePortIds": [
+        "lisbon",
+        "cape_town",
+        "calicut",
+        "malacca",
+        "macau",
+        "nagasaki"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 120,
+      "displayOrder": 7,
+      "description": "リスボンにゆかりを持つ潮目と風待ちを読む水先案内人。長距離航海で消耗を抑える判断に強い。"
+    },
+    {
+      "id": "officer:portugal:08",
+      "name": "カタリナ・ソアレス",
+      "firstName": "カタリナ",
+      "familyName": "ソアレス",
+      "nationality": "portugal",
+      "gender": "female",
+      "specialty": "repair",
+      "level": 4,
+      "stats": {
+        "navigation": 5,
+        "trade": 4,
+        "gunnery": 2,
+        "repair": 7,
+        "leadership": 3
+      },
+      "hireCost": 1118,
+      "salary": 80,
+      "portraitId": "portrait_brief_moxjdesf_v3s4j",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_866iw",
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_z97j7"
+      ],
+      "homePortId": "cape_town",
+      "availablePortIds": [
+        "lisbon",
+        "cape_town",
+        "calicut",
+        "malacca",
+        "macau",
+        "nagasaki"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 120,
+      "displayOrder": 8,
+      "description": "ケープタウンにゆかりを持つ艤装と補修の手順に明るい修理役。長旅で傷んだ船を手堅く保たせる。"
+    },
+    {
+      "id": "officer:portugal:09",
+      "name": "ガスパル・デ・レモス",
+      "firstName": "ガスパル",
+      "familyName": "デ・レモス",
+      "nationality": "portugal",
+      "gender": "male",
+      "specialty": "gunnery",
+      "level": 5,
+      "stats": {
+        "navigation": 2,
+        "trade": 3,
+        "gunnery": 8,
+        "repair": 5,
+        "leadership": 6
+      },
+      "hireCost": 1292,
+      "salary": 91,
+      "portraitId": "portrait_brief_moxjdesf_cy8oh",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_y34ld",
+        "portrait_brief_moxjdesf_z97j7",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_ygp1t",
+        "portrait_brief_moxjdesf_slrmt"
+      ],
+      "homePortId": "calicut",
+      "availablePortIds": [
+        "lisbon",
+        "cape_town",
+        "calicut",
+        "malacca",
+        "macau",
+        "nagasaki"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 260,
+      "displayOrder": 9,
+      "description": "カリカットにゆかりを持つ護衛船で砲列指揮を覚えた戦闘航海士。接近戦で砲撃の号令を乱さない。"
+    },
+    {
+      "id": "officer:portugal:10",
+      "name": "ルイ・コエリョ",
+      "firstName": "ルイ",
+      "familyName": "コエリョ",
+      "nationality": "portugal",
+      "gender": "male",
+      "specialty": "leadership",
+      "level": 5,
+      "stats": {
+        "navigation": 6,
+        "trade": 2,
+        "gunnery": 5,
+        "repair": 3,
+        "leadership": 8
+      },
+      "hireCost": 1292,
+      "salary": 91,
+      "portraitId": "portrait_brief_moxjdesf_3d991",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_y34ld",
+        "portrait_brief_moxjdesf_z97j7",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_ygp1t",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_cy8oh"
+      ],
+      "homePortId": "malacca",
+      "availablePortIds": [
+        "lisbon",
+        "cape_town",
+        "calicut",
+        "malacca",
+        "macau",
+        "nagasaki"
+      ],
+      "minTavernLevel": 4,
+      "minFame": 360,
+      "displayOrder": 10,
+      "description": "マラッカにゆかりを持つ船員の気質を見抜くまとめ役。荒れた航海でも命令系統を保つのがうまい。"
+    },
+    {
+      "id": "officer:portugal:11",
+      "name": "イザベル・アルメイダ",
+      "firstName": "イザベル",
+      "familyName": "アルメイダ",
+      "nationality": "portugal",
+      "gender": "female",
+      "specialty": "trade",
+      "level": 4,
+      "stats": {
+        "navigation": 5,
+        "trade": 7,
+        "gunnery": 3,
+        "repair": 2,
+        "leadership": 4
+      },
+      "hireCost": 1118,
+      "salary": 80,
+      "portraitId": "portrait_brief_moxjdesf_b8bf9",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_866iw",
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_z97j7"
+      ],
+      "homePortId": "macau",
+      "availablePortIds": [
+        "lisbon",
+        "cape_town",
+        "calicut",
+        "malacca",
+        "macau",
+        "nagasaki"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 180,
+      "displayOrder": 11,
+      "description": "マカオにゆかりを持つ商館で相場と帳簿を叩き込まれた交渉役。積荷の回転と売り時を読む。"
+    },
+    {
+      "id": "officer:portugal:12",
+      "name": "碧眼のシモン",
+      "firstName": "シモン",
+      "familyName": "ゴンサルヴェス",
+      "nationality": "portugal",
+      "gender": "male",
+      "specialty": "navigation",
+      "level": 6,
+      "stats": {
+        "navigation": 9,
+        "trade": 3,
+        "gunnery": 3,
+        "repair": 6,
+        "leadership": 7
+      },
+      "hireCost": 1484,
+      "salary": 105,
+      "portraitId": "portrait_brief_moxjdesf_ygp1t",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_y34ld",
+        "portrait_brief_moxjdesf_z97j7",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_cy8oh",
+        "portrait_brief_moxjdesf_3d991"
+      ],
+      "homePortId": "nagasaki",
+      "availablePortIds": [
+        "lisbon",
+        "cape_town",
+        "calicut",
+        "malacca",
+        "macau",
+        "nagasaki"
+      ],
+      "minTavernLevel": 4,
+      "minFame": 520,
+      "displayOrder": 12,
+      "description": "長崎にゆかりを持つ沿岸の浅瀬と季節風に通じた航海士。安全な針路を粘り強く探る。"
+    },
+    {
+      "id": "officer:spain:01",
+      "name": "豪胆のロドリゴ",
+      "firstName": "ロドリゴ",
+      "familyName": "デ・トリアナ",
+      "nationality": "spain",
+      "gender": "male",
+      "specialty": "navigation",
+      "level": 2,
+      "stats": {
+        "navigation": 5,
+        "trade": 2,
+        "gunnery": 2,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 752,
+      "salary": 54,
+      "portraitId": "portrait_brief_moxjdesf_oumdp",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_3d991",
+        "portrait_brief_moxjdesf_2m1i4",
+        "portrait_brief_moxjdesf_ygp1t",
+        "portrait_brief_moxjdesf_ztxwj",
+        "portrait_brief_moxjdesf_8btor",
+        "portrait_brief_moxjdesf_xe9ry",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_edd7k"
+      ],
+      "homePortId": "seville",
+      "availablePortIds": [
+        "seville",
+        "santo_domingo",
+        "havana",
+        "naples"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 1,
+      "description": "セビリアにゆかりを持つ潮目と風待ちを読む水先案内人。長距離航海で消耗を抑える判断に強い。"
+    },
+    {
+      "id": "officer:spain:02",
+      "name": "温顔のベアトリス",
+      "firstName": "ベアトリス",
+      "familyName": "メンドーサ",
+      "nationality": "spain",
+      "gender": "female",
+      "specialty": "trade",
+      "level": 2,
+      "stats": {
+        "navigation": 3,
+        "trade": 5,
+        "gunnery": 1,
+        "repair": 2,
+        "leadership": 2
+      },
+      "hireCost": 734,
+      "salary": 53,
+      "portraitId": "portrait_brief_moxjdesf_b8bf9",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_866iw",
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_xe9ry"
+      ],
+      "homePortId": "santo_domingo",
+      "availablePortIds": [
+        "seville",
+        "santo_domingo",
+        "havana",
+        "naples"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 2,
+      "description": "サントドミンゴにゆかりを持つ港の仲買人との顔つなぎが広い交易担当。買い付けと売却の段取りが速い。"
+    },
+    {
+      "id": "officer:spain:03",
+      "name": "フアン・デ・ラ・コサ",
+      "firstName": "フアン",
+      "familyName": "デ・ラ・コサ",
+      "nationality": "spain",
+      "gender": "male",
+      "specialty": "gunnery",
+      "level": 2,
+      "stats": {
+        "navigation": 1,
+        "trade": 2,
+        "gunnery": 5,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 734,
+      "salary": 53,
+      "portraitId": "portrait_brief_moxjdesf_ygp1t",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_8btor",
+        "portrait_brief_moxjdesf_3d991",
+        "portrait_brief_moxjdesf_2m1i4",
+        "portrait_brief_moxjdesf_ztxwj",
+        "portrait_brief_moxjdesf_xe9ry",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_edd7k"
+      ],
+      "homePortId": "havana",
+      "availablePortIds": [
+        "seville",
+        "santo_domingo",
+        "havana",
+        "naples"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 3,
+      "description": "ハバナにゆかりを持つ護衛船で砲列指揮を覚えた戦闘航海士。接近戦で砲撃の号令を乱さない。"
+    },
+    {
+      "id": "officer:spain:04",
+      "name": "イネス・バルガス",
+      "firstName": "イネス",
+      "familyName": "バルガス",
+      "nationality": "spain",
+      "gender": "female",
+      "specialty": "repair",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 3,
+        "gunnery": 1,
+        "repair": 6,
+        "leadership": 2
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_v3s4j",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_866iw",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_xe9ry"
+      ],
+      "homePortId": "naples",
+      "availablePortIds": [
+        "seville",
+        "santo_domingo",
+        "havana",
+        "naples"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 4,
+      "description": "ナポリにゆかりを持つ艤装と補修の手順に明るい修理役。長旅で傷んだ船を手堅く保たせる。"
+    },
+    {
+      "id": "officer:spain:05",
+      "name": "アロンソ・ピンソン",
+      "firstName": "アロンソ",
+      "familyName": "ピンソン",
+      "nationality": "spain",
+      "gender": "male",
+      "specialty": "leadership",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 2,
+        "gunnery": 3,
+        "repair": 1,
+        "leadership": 6
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_3d991",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_ygp1t",
+        "portrait_brief_moxjdesf_8btor",
+        "portrait_brief_moxjdesf_2m1i4",
+        "portrait_brief_moxjdesf_ztxwj",
+        "portrait_brief_moxjdesf_xe9ry",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_rnm2u"
+      ],
+      "homePortId": "seville",
+      "availablePortIds": [
+        "seville",
+        "santo_domingo",
+        "havana",
+        "naples"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 5,
+      "description": "セビリアにゆかりを持つ当直と規律をまとめる副官肌。航海中の士気低下を抑え、僚艦を落ち着かせる。"
+    },
+    {
+      "id": "officer:spain:06",
+      "name": "ミゲル・エスピノサ",
+      "firstName": "ミゲル",
+      "familyName": "エスピノサ",
+      "nationality": "spain",
+      "gender": "male",
+      "specialty": "trade",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 6,
+        "gunnery": 1,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_2m1i4",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_ygp1t",
+        "portrait_brief_moxjdesf_3d991",
+        "portrait_brief_moxjdesf_8btor",
+        "portrait_brief_moxjdesf_xe9ry",
+        "portrait_brief_moxjdesf_ztxwj",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_edd7k"
+      ],
+      "homePortId": "santo_domingo",
+      "availablePortIds": [
+        "seville",
+        "santo_domingo",
+        "havana",
+        "naples"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 6,
+      "description": "サントドミンゴにゆかりを持つ港の仲買人との顔つなぎが広い交易担当。買い付けと売却の段取りが速い。"
+    },
+    {
+      "id": "officer:spain:07",
+      "name": "カタリナ・デ・ルナ",
+      "firstName": "カタリナ",
+      "familyName": "デ・ルナ",
+      "nationality": "spain",
+      "gender": "female",
+      "specialty": "navigation",
+      "level": 4,
+      "stats": {
+        "navigation": 7,
+        "trade": 3,
+        "gunnery": 3,
+        "repair": 4,
+        "leadership": 5
+      },
+      "hireCost": 1136,
+      "salary": 81,
+      "portraitId": "portrait_brief_moxjdesf_866iw",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_xe9ry"
+      ],
+      "homePortId": "havana",
+      "availablePortIds": [
+        "seville",
+        "santo_domingo",
+        "havana",
+        "naples"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 120,
+      "displayOrder": 7,
+      "description": "ハバナにゆかりを持つ潮目と風待ちを読む水先案内人。長距離航海で消耗を抑える判断に強い。"
+    },
+    {
+      "id": "officer:spain:08",
+      "name": "エルナン・サルセド",
+      "firstName": "エルナン",
+      "familyName": "サルセド",
+      "nationality": "spain",
+      "gender": "male",
+      "specialty": "repair",
+      "level": 4,
+      "stats": {
+        "navigation": 5,
+        "trade": 4,
+        "gunnery": 2,
+        "repair": 7,
+        "leadership": 3
+      },
+      "hireCost": 1118,
+      "salary": 80,
+      "portraitId": "portrait_brief_moxjdesf_8btor",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_3d991",
+        "portrait_brief_moxjdesf_ygp1t",
+        "portrait_brief_moxjdesf_2m1i4",
+        "portrait_brief_moxjdesf_ztxwj",
+        "portrait_brief_moxjdesf_xe9ry",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_cy8oh"
+      ],
+      "homePortId": "naples",
+      "availablePortIds": [
+        "seville",
+        "santo_domingo",
+        "havana",
+        "naples"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 120,
+      "displayOrder": 8,
+      "description": "ナポリにゆかりを持つ艤装と補修の手順に明るい修理役。長旅で傷んだ船を手堅く保たせる。"
+    },
+    {
+      "id": "officer:spain:09",
+      "name": "ディエゴ・メンドーサ",
+      "firstName": "ディエゴ",
+      "familyName": "メンドーサ",
+      "nationality": "spain",
+      "gender": "male",
+      "specialty": "gunnery",
+      "level": 5,
+      "stats": {
+        "navigation": 2,
+        "trade": 3,
+        "gunnery": 8,
+        "repair": 5,
+        "leadership": 6
+      },
+      "hireCost": 1292,
+      "salary": 91,
+      "portraitId": "portrait_brief_moxjdesf_xe9ry",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_ygp1t",
+        "portrait_brief_moxjdesf_2m1i4",
+        "portrait_brief_moxjdesf_3d991",
+        "portrait_brief_moxjdesf_8btor",
+        "portrait_brief_moxjdesf_ztxwj",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_rnm2u"
+      ],
+      "homePortId": "seville",
+      "availablePortIds": [
+        "seville",
+        "santo_domingo",
+        "havana",
+        "naples"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 260,
+      "displayOrder": 9,
+      "description": "セビリアにゆかりを持つ護衛船で砲列指揮を覚えた戦闘航海士。接近戦で砲撃の号令を乱さない。"
+    },
+    {
+      "id": "officer:spain:10",
+      "name": "ルシア・アギーレ",
+      "firstName": "ルシア",
+      "familyName": "アギーレ",
+      "nationality": "spain",
+      "gender": "female",
+      "specialty": "leadership",
+      "level": 5,
+      "stats": {
+        "navigation": 6,
+        "trade": 2,
+        "gunnery": 5,
+        "repair": 3,
+        "leadership": 8
+      },
+      "hireCost": 1292,
+      "salary": 91,
+      "portraitId": "portrait_brief_moxjdesf_xtl11",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_866iw",
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_xe9ry"
+      ],
+      "homePortId": "santo_domingo",
+      "availablePortIds": [
+        "seville",
+        "santo_domingo",
+        "havana",
+        "naples"
+      ],
+      "minTavernLevel": 4,
+      "minFame": 360,
+      "displayOrder": 10,
+      "description": "サントドミンゴにゆかりを持つ船員の気質を見抜くまとめ役。荒れた航海でも命令系統を保つのがうまい。"
+    },
+    {
+      "id": "officer:spain:11",
+      "name": "ペドロ・ナバロ",
+      "firstName": "ペドロ",
+      "familyName": "ナバロ",
+      "nationality": "spain",
+      "gender": "male",
+      "specialty": "trade",
+      "level": 4,
+      "stats": {
+        "navigation": 5,
+        "trade": 7,
+        "gunnery": 3,
+        "repair": 2,
+        "leadership": 4
+      },
+      "hireCost": 1118,
+      "salary": 80,
+      "portraitId": "portrait_brief_moxjdesf_ztxwj",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_3d991",
+        "portrait_brief_moxjdesf_2m1i4",
+        "portrait_brief_moxjdesf_ygp1t",
+        "portrait_brief_moxjdesf_8btor",
+        "portrait_brief_moxjdesf_xe9ry",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_edd7k"
+      ],
+      "homePortId": "havana",
+      "availablePortIds": [
+        "seville",
+        "santo_domingo",
+        "havana",
+        "naples"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 180,
+      "displayOrder": 11,
+      "description": "ハバナにゆかりを持つ商館で相場と帳簿を叩き込まれた交渉役。積荷の回転と売り時を読む。"
+    },
+    {
+      "id": "officer:spain:12",
+      "name": "鋭眼のマルティン",
+      "firstName": "マルティン",
+      "familyName": "オルティス",
+      "nationality": "spain",
+      "gender": "male",
+      "specialty": "navigation",
+      "level": 6,
+      "stats": {
+        "navigation": 9,
+        "trade": 3,
+        "gunnery": 3,
+        "repair": 6,
+        "leadership": 7
+      },
+      "hireCost": 1484,
+      "salary": 105,
+      "portraitId": "portrait_brief_moxjdesf_rnm2u",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_ygp1t",
+        "portrait_brief_moxjdesf_3d991",
+        "portrait_brief_moxjdesf_8btor",
+        "portrait_brief_moxjdesf_2m1i4",
+        "portrait_brief_moxjdesf_ztxwj",
+        "portrait_brief_moxjdesf_xe9ry",
+        "portrait_brief_moxjdesf_edd7k"
+      ],
+      "homePortId": "naples",
+      "availablePortIds": [
+        "seville",
+        "santo_domingo",
+        "havana",
+        "naples"
+      ],
+      "minTavernLevel": 4,
+      "minFame": 520,
+      "displayOrder": 12,
+      "description": "ナポリにゆかりを持つ沿岸の浅瀬と季節風に通じた航海士。安全な針路を粘り強く探る。"
+    },
+    {
+      "id": "officer:england:01",
+      "name": "黒髪のウィリアム",
+      "firstName": "ウィリアム",
+      "familyName": "ホーキンズ",
+      "nationality": "england",
+      "gender": "male",
+      "specialty": "navigation",
+      "level": 2,
+      "stats": {
+        "navigation": 5,
+        "trade": 2,
+        "gunnery": 2,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 752,
+      "salary": 54,
+      "portraitId": "portrait_brief_moxjdesf_znjzq",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_z3npp",
+        "portrait_brief_moxjdesf_lv2nc",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_hjsjj"
+      ],
+      "homePortId": "london",
+      "availablePortIds": [
+        "london"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 1,
+      "description": "ロンドンにゆかりを持つ潮目と風待ちを読む水先案内人。長距離航海で消耗を抑える判断に強い。"
+    },
+    {
+      "id": "officer:england:02",
+      "name": "メアリ・フロビシャー",
+      "firstName": "メアリ",
+      "familyName": "フロビシャー",
+      "nationality": "england",
+      "gender": "female",
+      "specialty": "trade",
+      "level": 2,
+      "stats": {
+        "navigation": 3,
+        "trade": 5,
+        "gunnery": 1,
+        "repair": 2,
+        "leadership": 2
+      },
+      "hireCost": 734,
+      "salary": 53,
+      "portraitId": "portrait_brief_moxjdesf_hcu82",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_866iw",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_z3npp"
+      ],
+      "homePortId": "london",
+      "availablePortIds": [
+        "london"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 2,
+      "description": "ロンドンにゆかりを持つ港の仲買人との顔つなぎが広い交易担当。買い付けと売却の段取りが速い。"
+    },
+    {
+      "id": "officer:england:03",
+      "name": "ジョン・ラット",
+      "firstName": "ジョン",
+      "familyName": "ラット",
+      "nationality": "england",
+      "gender": "male",
+      "specialty": "gunnery",
+      "level": 2,
+      "stats": {
+        "navigation": 1,
+        "trade": 2,
+        "gunnery": 5,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 734,
+      "salary": 53,
+      "portraitId": "portrait_brief_moxjdesf_z3npp",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_znjzq",
+        "portrait_brief_moxjdesf_lv2nc",
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_i51xm",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_edd7k"
+      ],
+      "homePortId": "london",
+      "availablePortIds": [
+        "london"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 3,
+      "description": "ロンドンにゆかりを持つ護衛船で砲列指揮を覚えた戦闘航海士。接近戦で砲撃の号令を乱さない。"
+    },
+    {
+      "id": "officer:england:04",
+      "name": "トマス・ウィンダム",
+      "firstName": "トマス",
+      "familyName": "ウィンダム",
+      "nationality": "england",
+      "gender": "male",
+      "specialty": "repair",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 3,
+        "gunnery": 1,
+        "repair": 6,
+        "leadership": 2
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_lv2nc",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_znjzq",
+        "portrait_brief_moxjdesf_z3npp",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_i51xm",
+        "portrait_brief_moxjdesf_oumdp"
+      ],
+      "homePortId": "london",
+      "availablePortIds": [
+        "london"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 4,
+      "description": "ロンドンにゆかりを持つ艤装と補修の手順に明るい修理役。長旅で傷んだ船を手堅く保たせる。"
+    },
+    {
+      "id": "officer:england:05",
+      "name": "グレイス・オマリー",
+      "firstName": "グレイス",
+      "familyName": "オマリー",
+      "nationality": "england",
+      "gender": "female",
+      "specialty": "leadership",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 2,
+        "gunnery": 3,
+        "repair": 1,
+        "leadership": 6
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_866iw",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_z3npp"
+      ],
+      "homePortId": "london",
+      "availablePortIds": [
+        "london"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 5,
+      "description": "ロンドンにゆかりを持つ当直と規律をまとめる副官肌。航海中の士気低下を抑え、僚艦を落ち着かせる。"
+    },
+    {
+      "id": "officer:england:06",
+      "name": "寡黙のリチャード",
+      "firstName": "リチャード",
+      "familyName": "グレンヴィル",
+      "nationality": "england",
+      "gender": "male",
+      "specialty": "trade",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 6,
+        "gunnery": 1,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_6b2in",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_znjzq",
+        "portrait_brief_moxjdesf_z3npp",
+        "portrait_brief_moxjdesf_lv2nc",
+        "portrait_brief_moxjdesf_i51xm",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_edd7k"
+      ],
+      "homePortId": "london",
+      "availablePortIds": [
+        "london"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 6,
+      "description": "ロンドンにゆかりを持つ港の仲買人との顔つなぎが広い交易担当。買い付けと売却の段取りが速い。"
+    },
+    {
+      "id": "officer:england:07",
+      "name": "エリノア・ブレイク",
+      "firstName": "エリノア",
+      "familyName": "ブレイク",
+      "nationality": "england",
+      "gender": "female",
+      "specialty": "navigation",
+      "level": 4,
+      "stats": {
+        "navigation": 7,
+        "trade": 3,
+        "gunnery": 3,
+        "repair": 4,
+        "leadership": 5
+      },
+      "hireCost": 1136,
+      "salary": 81,
+      "portraitId": "portrait_brief_moxjdesf_v3s4j",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_866iw",
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_z3npp"
+      ],
+      "homePortId": "london",
+      "availablePortIds": [
+        "london"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 120,
+      "displayOrder": 7,
+      "description": "ロンドンにゆかりを持つ潮目と風待ちを読む水先案内人。長距離航海で消耗を抑える判断に強い。"
+    },
+    {
+      "id": "officer:england:08",
+      "name": "老練のエドワード",
+      "firstName": "エドワード",
+      "familyName": "フェントン",
+      "nationality": "england",
+      "gender": "male",
+      "specialty": "repair",
+      "level": 4,
+      "stats": {
+        "navigation": 5,
+        "trade": 4,
+        "gunnery": 2,
+        "repair": 7,
+        "leadership": 3
+      },
+      "hireCost": 1118,
+      "salary": 80,
+      "portraitId": "portrait_brief_moxjdesf_oumdp",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_znjzq",
+        "portrait_brief_moxjdesf_z3npp",
+        "portrait_brief_moxjdesf_lv2nc",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_i51xm",
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_edd7k"
+      ],
+      "homePortId": "london",
+      "availablePortIds": [
+        "london"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 120,
+      "displayOrder": 8,
+      "description": "ロンドンにゆかりを持つ艤装と補修の手順に明るい修理役。長旅で傷んだ船を手堅く保たせる。"
+    },
+    {
+      "id": "officer:england:09",
+      "name": "アン・クリフォード",
+      "firstName": "アン",
+      "familyName": "クリフォード",
+      "nationality": "england",
+      "gender": "female",
+      "specialty": "gunnery",
+      "level": 5,
+      "stats": {
+        "navigation": 2,
+        "trade": 3,
+        "gunnery": 8,
+        "repair": 5,
+        "leadership": 6
+      },
+      "hireCost": 1292,
+      "salary": 91,
+      "portraitId": "portrait_brief_moxjdesf_b8bf9",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_866iw",
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_z3npp"
+      ],
+      "homePortId": "london",
+      "availablePortIds": [
+        "london"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 260,
+      "displayOrder": 9,
+      "description": "ロンドンにゆかりを持つ護衛船で砲列指揮を覚えた戦闘航海士。接近戦で砲撃の号令を乱さない。"
+    },
+    {
+      "id": "officer:england:10",
+      "name": "ロバート・クロフト",
+      "firstName": "ロバート",
+      "familyName": "クロフト",
+      "nationality": "england",
+      "gender": "male",
+      "specialty": "leadership",
+      "level": 5,
+      "stats": {
+        "navigation": 6,
+        "trade": 2,
+        "gunnery": 5,
+        "repair": 3,
+        "leadership": 8
+      },
+      "hireCost": 1292,
+      "salary": 91,
+      "portraitId": "portrait_brief_moxjdesf_edd7k",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_znjzq",
+        "portrait_brief_moxjdesf_z3npp",
+        "portrait_brief_moxjdesf_lv2nc",
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_hjsjj"
+      ],
+      "homePortId": "london",
+      "availablePortIds": [
+        "london"
+      ],
+      "minTavernLevel": 4,
+      "minFame": 360,
+      "displayOrder": 10,
+      "description": "ロンドンにゆかりを持つ船員の気質を見抜くまとめ役。荒れた航海でも命令系統を保つのがうまい。"
+    },
+    {
+      "id": "officer:england:11",
+      "name": "ヘンリー・パーマー",
+      "firstName": "ヘンリー",
+      "familyName": "パーマー",
+      "nationality": "england",
+      "gender": "male",
+      "specialty": "trade",
+      "level": 4,
+      "stats": {
+        "navigation": 5,
+        "trade": 7,
+        "gunnery": 3,
+        "repair": 2,
+        "leadership": 4
+      },
+      "hireCost": 1118,
+      "salary": 80,
+      "portraitId": "portrait_brief_moxjdesf_i51xm",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_znjzq",
+        "portrait_brief_moxjdesf_z3npp",
+        "portrait_brief_moxjdesf_lv2nc",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_rnm2u"
+      ],
+      "homePortId": "london",
+      "availablePortIds": [
+        "london"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 180,
+      "displayOrder": 11,
+      "description": "ロンドンにゆかりを持つ商館で相場と帳簿を叩き込まれた交渉役。積荷の回転と売り時を読む。"
+    },
+    {
+      "id": "officer:england:12",
+      "name": "剛毅のマーガレット",
+      "firstName": "マーガレット",
+      "familyName": "アッシュリー",
+      "nationality": "england",
+      "gender": "female",
+      "specialty": "navigation",
+      "level": 6,
+      "stats": {
+        "navigation": 9,
+        "trade": 3,
+        "gunnery": 3,
+        "repair": 6,
+        "leadership": 7
+      },
+      "hireCost": 1484,
+      "salary": 105,
+      "portraitId": "portrait_brief_moxjdesf_fu7q2",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_866iw",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_z3npp"
+      ],
+      "homePortId": "london",
+      "availablePortIds": [
+        "london"
+      ],
+      "minTavernLevel": 4,
+      "minFame": 520,
+      "displayOrder": 12,
+      "description": "ロンドンにゆかりを持つ沿岸の浅瀬と季節風に通じた航海士。安全な針路を粘り強く探る。"
+    },
+    {
+      "id": "officer:netherlands:01",
+      "name": "黒髪のコルネリス",
+      "firstName": "コルネリス",
+      "familyName": "ハウトマン",
+      "nationality": "netherlands",
+      "gender": "male",
+      "specialty": "navigation",
+      "level": 2,
+      "stats": {
+        "navigation": 5,
+        "trade": 2,
+        "gunnery": 2,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 752,
+      "salary": 54,
+      "portraitId": "portrait_brief_moxjdesf_lv2nc",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_znjzq",
+        "portrait_brief_moxjdesf_z3npp",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_cy8oh",
+        "portrait_brief_moxjdesf_i51xm",
+        "portrait_brief_moxjdesf_edd7k"
+      ],
+      "homePortId": "amsterdam",
+      "availablePortIds": [
+        "amsterdam"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 1,
+      "description": "アムステルダムにゆかりを持つ潮目と風待ちを読む水先案内人。長距離航海で消耗を抑える判断に強い。"
+    },
+    {
+      "id": "officer:netherlands:02",
+      "name": "俊英のピーテル",
+      "firstName": "ピーテル",
+      "familyName": "ファン・デル・メール",
+      "nationality": "netherlands",
+      "gender": "male",
+      "specialty": "trade",
+      "level": 2,
+      "stats": {
+        "navigation": 3,
+        "trade": 5,
+        "gunnery": 1,
+        "repair": 2,
+        "leadership": 2
+      },
+      "hireCost": 734,
+      "salary": 53,
+      "portraitId": "portrait_brief_moxjdesf_znjzq",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_lv2nc",
+        "portrait_brief_moxjdesf_z3npp",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_i51xm",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_6b2in"
+      ],
+      "homePortId": "amsterdam",
+      "availablePortIds": [
+        "amsterdam"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 2,
+      "description": "アムステルダムにゆかりを持つ港の仲買人との顔つなぎが広い交易担当。買い付けと売却の段取りが速い。"
+    },
+    {
+      "id": "officer:netherlands:03",
+      "name": "アニカ・ヤンス",
+      "firstName": "アニカ",
+      "familyName": "ヤンス",
+      "nationality": "netherlands",
+      "gender": "female",
+      "specialty": "gunnery",
+      "level": 2,
+      "stats": {
+        "navigation": 1,
+        "trade": 2,
+        "gunnery": 5,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 734,
+      "salary": 53,
+      "portraitId": "portrait_brief_moxjdesf_hcu82",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_866iw",
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_lv2nc"
+      ],
+      "homePortId": "amsterdam",
+      "availablePortIds": [
+        "amsterdam"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 3,
+      "description": "アムステルダムにゆかりを持つ護衛船で砲列指揮を覚えた戦闘航海士。接近戦で砲撃の号令を乱さない。"
+    },
+    {
+      "id": "officer:netherlands:04",
+      "name": "ディルク・ヘリッツ",
+      "firstName": "ディルク",
+      "familyName": "ヘリッツ",
+      "nationality": "netherlands",
+      "gender": "male",
+      "specialty": "repair",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 3,
+        "gunnery": 1,
+        "repair": 6,
+        "leadership": 2
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_z3npp",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_lv2nc",
+        "portrait_brief_moxjdesf_znjzq",
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_i51xm",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_cy8oh"
+      ],
+      "homePortId": "amsterdam",
+      "availablePortIds": [
+        "amsterdam"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 4,
+      "description": "アムステルダムにゆかりを持つ艤装と補修の手順に明るい修理役。長旅で傷んだ船を手堅く保たせる。"
+    },
+    {
+      "id": "officer:netherlands:05",
+      "name": "ヤン・ホイヘン",
+      "firstName": "ヤン",
+      "familyName": "ホイヘン",
+      "nationality": "netherlands",
+      "gender": "male",
+      "specialty": "leadership",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 2,
+        "gunnery": 3,
+        "repair": 1,
+        "leadership": 6
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_6b2in",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_lv2nc",
+        "portrait_brief_moxjdesf_znjzq",
+        "portrait_brief_moxjdesf_z3npp",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_i51xm",
+        "portrait_brief_moxjdesf_c92lm"
+      ],
+      "homePortId": "amsterdam",
+      "availablePortIds": [
+        "amsterdam"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 5,
+      "description": "アムステルダムにゆかりを持つ当直と規律をまとめる副官肌。航海中の士気低下を抑え、僚艦を落ち着かせる。"
+    },
+    {
+      "id": "officer:netherlands:06",
+      "name": "老練のヘンドリク",
+      "firstName": "ヘンドリク",
+      "familyName": "ブロウワー",
+      "nationality": "netherlands",
+      "gender": "male",
+      "specialty": "trade",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 6,
+        "gunnery": 1,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_oumdp",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_lv2nc",
+        "portrait_brief_moxjdesf_znjzq",
+        "portrait_brief_moxjdesf_z3npp",
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_i51xm",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_c92lm"
+      ],
+      "homePortId": "amsterdam",
+      "availablePortIds": [
+        "amsterdam"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 6,
+      "description": "アムステルダムにゆかりを持つ港の仲買人との顔つなぎが広い交易担当。買い付けと売却の段取りが速い。"
+    },
+    {
+      "id": "officer:netherlands:07",
+      "name": "マルテ・デ・フリース",
+      "firstName": "マルテ",
+      "familyName": "デ・フリース",
+      "nationality": "netherlands",
+      "gender": "female",
+      "specialty": "navigation",
+      "level": 4,
+      "stats": {
+        "navigation": 7,
+        "trade": 3,
+        "gunnery": 3,
+        "repair": 4,
+        "leadership": 5
+      },
+      "hireCost": 1136,
+      "salary": 81,
+      "portraitId": "portrait_brief_moxjdesf_866iw",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_lv2nc"
+      ],
+      "homePortId": "amsterdam",
+      "availablePortIds": [
+        "amsterdam"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 120,
+      "displayOrder": 7,
+      "description": "アムステルダムにゆかりを持つ潮目と風待ちを読む水先案内人。長距離航海で消耗を抑える判断に強い。"
+    },
+    {
+      "id": "officer:netherlands:08",
+      "name": "ウィレム・バレンツ",
+      "firstName": "ウィレム",
+      "familyName": "バレンツ",
+      "nationality": "netherlands",
+      "gender": "male",
+      "specialty": "repair",
+      "level": 4,
+      "stats": {
+        "navigation": 5,
+        "trade": 4,
+        "gunnery": 2,
+        "repair": 7,
+        "leadership": 3
+      },
+      "hireCost": 1118,
+      "salary": 80,
+      "portraitId": "portrait_brief_moxjdesf_c92lm",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_lv2nc",
+        "portrait_brief_moxjdesf_znjzq",
+        "portrait_brief_moxjdesf_z3npp",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_i51xm",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_cy8oh"
+      ],
+      "homePortId": "amsterdam",
+      "availablePortIds": [
+        "amsterdam"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 120,
+      "displayOrder": 8,
+      "description": "アムステルダムにゆかりを持つ艤装と補修の手順に明るい修理役。長旅で傷んだ船を手堅く保たせる。"
+    },
+    {
+      "id": "officer:netherlands:09",
+      "name": "エルス・クラース",
+      "firstName": "エルス",
+      "familyName": "クラース",
+      "nationality": "netherlands",
+      "gender": "female",
+      "specialty": "gunnery",
+      "level": 5,
+      "stats": {
+        "navigation": 2,
+        "trade": 3,
+        "gunnery": 8,
+        "repair": 5,
+        "leadership": 6
+      },
+      "hireCost": 1292,
+      "salary": 91,
+      "portraitId": "portrait_brief_moxjdesf_v3s4j",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_866iw",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_lv2nc"
+      ],
+      "homePortId": "amsterdam",
+      "availablePortIds": [
+        "amsterdam"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 260,
+      "displayOrder": 9,
+      "description": "アムステルダムにゆかりを持つ護衛船で砲列指揮を覚えた戦闘航海士。接近戦で砲撃の号令を乱さない。"
+    },
+    {
+      "id": "officer:netherlands:10",
+      "name": "アドリアン・ブロック",
+      "firstName": "アドリアン",
+      "familyName": "ブロック",
+      "nationality": "netherlands",
+      "gender": "male",
+      "specialty": "leadership",
+      "level": 5,
+      "stats": {
+        "navigation": 6,
+        "trade": 2,
+        "gunnery": 5,
+        "repair": 3,
+        "leadership": 8
+      },
+      "hireCost": 1292,
+      "salary": 91,
+      "portraitId": "portrait_brief_moxjdesf_i51xm",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_lv2nc",
+        "portrait_brief_moxjdesf_znjzq",
+        "portrait_brief_moxjdesf_z3npp",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_ygp1t"
+      ],
+      "homePortId": "amsterdam",
+      "availablePortIds": [
+        "amsterdam"
+      ],
+      "minTavernLevel": 4,
+      "minFame": 360,
+      "displayOrder": 10,
+      "description": "アムステルダムにゆかりを持つ船員の気質を見抜くまとめ役。荒れた航海でも命令系統を保つのがうまい。"
+    },
+    {
+      "id": "officer:netherlands:11",
+      "name": "リスベット・スミット",
+      "firstName": "リスベット",
+      "familyName": "スミット",
+      "nationality": "netherlands",
+      "gender": "female",
+      "specialty": "trade",
+      "level": 4,
+      "stats": {
+        "navigation": 5,
+        "trade": 7,
+        "gunnery": 3,
+        "repair": 2,
+        "leadership": 4
+      },
+      "hireCost": 1118,
+      "salary": 80,
+      "portraitId": "portrait_brief_moxjdesf_xtl11",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_866iw",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_lv2nc"
+      ],
+      "homePortId": "amsterdam",
+      "availablePortIds": [
+        "amsterdam"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 180,
+      "displayOrder": 11,
+      "description": "アムステルダムにゆかりを持つ商館で相場と帳簿を叩き込まれた交渉役。積荷の回転と売り時を読む。"
+    },
+    {
+      "id": "officer:netherlands:12",
+      "name": "美髯のヨリス",
+      "firstName": "ヨリス",
+      "familyName": "ファン・スピルベルゲン",
+      "nationality": "netherlands",
+      "gender": "male",
+      "specialty": "navigation",
+      "level": 6,
+      "stats": {
+        "navigation": 9,
+        "trade": 3,
+        "gunnery": 3,
+        "repair": 6,
+        "leadership": 7
+      },
+      "hireCost": 1484,
+      "salary": 105,
+      "portraitId": "portrait_brief_moxjdesf_rnm2u",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_lv2nc",
+        "portrait_brief_moxjdesf_znjzq",
+        "portrait_brief_moxjdesf_z3npp",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_i51xm",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_edd7k"
+      ],
+      "homePortId": "amsterdam",
+      "availablePortIds": [
+        "amsterdam"
+      ],
+      "minTavernLevel": 4,
+      "minFame": 520,
+      "displayOrder": 12,
+      "description": "アムステルダムにゆかりを持つ沿岸の浅瀬と季節風に通じた航海士。安全な針路を粘り強く探る。"
+    },
+    {
+      "id": "officer:france:01",
+      "name": "ジャン・フルーリ",
+      "firstName": "ジャン",
+      "familyName": "フルーリ",
+      "nationality": "france",
+      "gender": "male",
+      "specialty": "navigation",
+      "level": 2,
+      "stats": {
+        "navigation": 5,
+        "trade": 2,
+        "gunnery": 2,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 752,
+      "salary": 54,
+      "portraitId": "portrait_brief_moxjdesf_slrmt",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_cy8oh",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_2m1i4",
+        "portrait_brief_moxjdesf_3d991",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_ygp1t"
+      ],
+      "homePortId": "marseille",
+      "availablePortIds": [
+        "marseille",
+        "bordeaux"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 1,
+      "description": "マルセイユにゆかりを持つ潮目と風待ちを読む水先案内人。長距離航海で消耗を抑える判断に強い。"
+    },
+    {
+      "id": "officer:france:02",
+      "name": "金髪のマルグリット",
+      "firstName": "マルグリット",
+      "familyName": "ルクレール",
+      "nationality": "france",
+      "gender": "female",
+      "specialty": "trade",
+      "level": 2,
+      "stats": {
+        "navigation": 3,
+        "trade": 5,
+        "gunnery": 1,
+        "repair": 2,
+        "leadership": 2
+      },
+      "hireCost": 734,
+      "salary": 53,
+      "portraitId": "portrait_brief_moxjdesf_fu7q2",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_866iw",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_slrmt"
+      ],
+      "homePortId": "bordeaux",
+      "availablePortIds": [
+        "marseille",
+        "bordeaux"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 2,
+      "description": "ボルドーにゆかりを持つ港の仲買人との顔つなぎが広い交易担当。買い付けと売却の段取りが速い。"
+    },
+    {
+      "id": "officer:france:03",
+      "name": "ピエール・クリニョン",
+      "firstName": "ピエール",
+      "familyName": "クリニョン",
+      "nationality": "france",
+      "gender": "male",
+      "specialty": "gunnery",
+      "level": 2,
+      "stats": {
+        "navigation": 1,
+        "trade": 2,
+        "gunnery": 5,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 734,
+      "salary": 53,
+      "portraitId": "portrait_brief_moxjdesf_c92lm",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_slrmt",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_y34ld",
+        "portrait_brief_moxjdesf_2m1i4",
+        "portrait_brief_moxjdesf_cy8oh",
+        "portrait_brief_moxjdesf_ygp1t"
+      ],
+      "homePortId": "marseille",
+      "availablePortIds": [
+        "marseille",
+        "bordeaux"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 3,
+      "description": "マルセイユにゆかりを持つ護衛船で砲列指揮を覚えた戦闘航海士。接近戦で砲撃の号令を乱さない。"
+    },
+    {
+      "id": "officer:france:04",
+      "name": "沈着のギヨーム",
+      "firstName": "ギヨーム",
+      "familyName": "ル・テストゥ",
+      "nationality": "france",
+      "gender": "male",
+      "specialty": "repair",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 3,
+        "gunnery": 1,
+        "repair": 6,
+        "leadership": 2
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_oumdp",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_slrmt",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_2m1i4",
+        "portrait_brief_moxjdesf_cy8oh",
+        "portrait_brief_moxjdesf_y34ld",
+        "portrait_brief_moxjdesf_3d991"
+      ],
+      "homePortId": "bordeaux",
+      "availablePortIds": [
+        "marseille",
+        "bordeaux"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 4,
+      "description": "ボルドーにゆかりを持つ艤装と補修の手順に明るい修理役。長旅で傷んだ船を手堅く保たせる。"
+    },
+    {
+      "id": "officer:france:05",
+      "name": "ジャック・カルティエ",
+      "firstName": "ジャック",
+      "familyName": "カルティエ",
+      "nationality": "france",
+      "gender": "male",
+      "specialty": "leadership",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 2,
+        "gunnery": 3,
+        "repair": 1,
+        "leadership": 6
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_rnm2u",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_slrmt",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_3d991",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_cy8oh",
+        "portrait_brief_moxjdesf_2m1i4",
+        "portrait_brief_moxjdesf_y34ld"
+      ],
+      "homePortId": "marseille",
+      "availablePortIds": [
+        "marseille",
+        "bordeaux"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 5,
+      "description": "マルセイユにゆかりを持つ当直と規律をまとめる副官肌。航海中の士気低下を抑え、僚艦を落ち着かせる。"
+    },
+    {
+      "id": "officer:france:06",
+      "name": "鋭眼のエティエンヌ",
+      "firstName": "エティエンヌ",
+      "familyName": "マルシャン",
+      "nationality": "france",
+      "gender": "male",
+      "specialty": "trade",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 6,
+        "gunnery": 1,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_edd7k",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_slrmt",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_z97j7",
+        "portrait_brief_moxjdesf_2m1i4",
+        "portrait_brief_moxjdesf_y34ld",
+        "portrait_brief_moxjdesf_3d991"
+      ],
+      "homePortId": "bordeaux",
+      "availablePortIds": [
+        "marseille",
+        "bordeaux"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 6,
+      "description": "ボルドーにゆかりを持つ港の仲買人との顔つなぎが広い交易担当。買い付けと売却の段取りが速い。"
+    },
+    {
+      "id": "officer:france:07",
+      "name": "寡黙のアニエス",
+      "firstName": "アニエス",
+      "familyName": "ド・ヴィルヌーヴ",
+      "nationality": "france",
+      "gender": "female",
+      "specialty": "navigation",
+      "level": 4,
+      "stats": {
+        "navigation": 7,
+        "trade": 3,
+        "gunnery": 3,
+        "repair": 4,
+        "leadership": 5
+      },
+      "hireCost": 1136,
+      "salary": 81,
+      "portraitId": "portrait_brief_moxjdesf_866iw",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_slrmt"
+      ],
+      "homePortId": "marseille",
+      "availablePortIds": [
+        "marseille",
+        "bordeaux"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 120,
+      "displayOrder": 7,
+      "description": "マルセイユにゆかりを持つ潮目と風待ちを読む水先案内人。長距離航海で消耗を抑える判断に強い。"
+    },
+    {
+      "id": "officer:france:08",
+      "name": "ルネ・グーレーヌ",
+      "firstName": "ルネ",
+      "familyName": "グーレーヌ",
+      "nationality": "france",
+      "gender": "male",
+      "specialty": "repair",
+      "level": 4,
+      "stats": {
+        "navigation": 5,
+        "trade": 4,
+        "gunnery": 2,
+        "repair": 7,
+        "leadership": 3
+      },
+      "hireCost": 1118,
+      "salary": 80,
+      "portraitId": "portrait_brief_moxjdesf_2m1i4",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_slrmt",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_ygp1t",
+        "portrait_brief_moxjdesf_3d991",
+        "portrait_brief_moxjdesf_y34ld"
+      ],
+      "homePortId": "bordeaux",
+      "availablePortIds": [
+        "marseille",
+        "bordeaux"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 120,
+      "displayOrder": 8,
+      "description": "ボルドーにゆかりを持つ艤装と補修の手順に明るい修理役。長旅で傷んだ船を手堅く保たせる。"
+    },
+    {
+      "id": "officer:france:09",
+      "name": "クロード・ダンジェ",
+      "firstName": "クロード",
+      "familyName": "ダンジェ",
+      "nationality": "france",
+      "gender": "male",
+      "specialty": "gunnery",
+      "level": 5,
+      "stats": {
+        "navigation": 2,
+        "trade": 3,
+        "gunnery": 8,
+        "repair": 5,
+        "leadership": 6
+      },
+      "hireCost": 1292,
+      "salary": 91,
+      "portraitId": "portrait_brief_moxjdesf_y34ld",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_slrmt",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_3d991",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_cy8oh",
+        "portrait_brief_moxjdesf_ygp1t"
+      ],
+      "homePortId": "marseille",
+      "availablePortIds": [
+        "marseille",
+        "bordeaux"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 260,
+      "displayOrder": 9,
+      "description": "マルセイユにゆかりを持つ護衛船で砲列指揮を覚えた戦闘航海士。接近戦で砲撃の号令を乱さない。"
+    },
+    {
+      "id": "officer:france:10",
+      "name": "シャルル・デュボワ",
+      "firstName": "シャルル",
+      "familyName": "デュボワ",
+      "nationality": "france",
+      "gender": "male",
+      "specialty": "leadership",
+      "level": 5,
+      "stats": {
+        "navigation": 6,
+        "trade": 2,
+        "gunnery": 5,
+        "repair": 3,
+        "leadership": 8
+      },
+      "hireCost": 1292,
+      "salary": 91,
+      "portraitId": "portrait_brief_moxjdesf_cy8oh",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_slrmt",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_3d991",
+        "portrait_brief_moxjdesf_y34ld",
+        "portrait_brief_moxjdesf_2m1i4"
+      ],
+      "homePortId": "bordeaux",
+      "availablePortIds": [
+        "marseille",
+        "bordeaux"
+      ],
+      "minTavernLevel": 4,
+      "minFame": 360,
+      "displayOrder": 10,
+      "description": "ボルドーにゆかりを持つ船員の気質を見抜くまとめ役。荒れた航海でも命令系統を保つのがうまい。"
+    },
+    {
+      "id": "officer:france:11",
+      "name": "イザボー・マルタン",
+      "firstName": "イザボー",
+      "familyName": "マルタン",
+      "nationality": "france",
+      "gender": "female",
+      "specialty": "trade",
+      "level": 4,
+      "stats": {
+        "navigation": 5,
+        "trade": 7,
+        "gunnery": 3,
+        "repair": 2,
+        "leadership": 4
+      },
+      "hireCost": 1118,
+      "salary": 80,
+      "portraitId": "portrait_brief_moxjdesf_xtl11",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_866iw",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_slrmt"
+      ],
+      "homePortId": "marseille",
+      "availablePortIds": [
+        "marseille",
+        "bordeaux"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 180,
+      "displayOrder": 11,
+      "description": "マルセイユにゆかりを持つ商館で相場と帳簿を叩き込まれた交渉役。積荷の回転と売り時を読む。"
+    },
+    {
+      "id": "officer:france:12",
+      "name": "ニコラ・ルージュ",
+      "firstName": "ニコラ",
+      "familyName": "ルージュ",
+      "nationality": "france",
+      "gender": "male",
+      "specialty": "navigation",
+      "level": 6,
+      "stats": {
+        "navigation": 9,
+        "trade": 3,
+        "gunnery": 3,
+        "repair": 6,
+        "leadership": 7
+      },
+      "hireCost": 1484,
+      "salary": 105,
+      "portraitId": "portrait_brief_moxjdesf_z97j7",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_slrmt",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_cy8oh",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_y34ld",
+        "portrait_brief_moxjdesf_3d991"
+      ],
+      "homePortId": "bordeaux",
+      "availablePortIds": [
+        "marseille",
+        "bordeaux"
+      ],
+      "minTavernLevel": 4,
+      "minFame": 520,
+      "displayOrder": 12,
+      "description": "ボルドーにゆかりを持つ沿岸の浅瀬と季節風に通じた航海士。安全な針路を粘り強く探る。"
+    },
+    {
+      "id": "officer:venice:01",
+      "name": "ニコロ・ゼノ",
+      "firstName": "ニコロ",
+      "familyName": "ゼノ",
+      "nationality": "venice",
+      "gender": "male",
+      "specialty": "navigation",
+      "level": 2,
+      "stats": {
+        "navigation": 5,
+        "trade": 2,
+        "gunnery": 2,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 752,
+      "salary": 54,
+      "portraitId": "portrait_brief_moxjdesf_cy8oh",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_1zfgm",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_slrmt",
+        "portrait_brief_moxjdesf_y34ld",
+        "portrait_brief_moxjdesf_2m1i4"
+      ],
+      "homePortId": "venice",
+      "availablePortIds": [
+        "venice",
+        "genoa",
+        "athens"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 1,
+      "description": "ヴェネツィアにゆかりを持つ潮目と風待ちを読む水先案内人。長距離航海で消耗を抑える判断に強い。"
+    },
+    {
+      "id": "officer:venice:02",
+      "name": "マルコ・ダ・モスト",
+      "firstName": "マルコ",
+      "familyName": "ダ・モスト",
+      "nationality": "venice",
+      "gender": "male",
+      "specialty": "trade",
+      "level": 2,
+      "stats": {
+        "navigation": 3,
+        "trade": 5,
+        "gunnery": 1,
+        "repair": 2,
+        "leadership": 2
+      },
+      "hireCost": 734,
+      "salary": 53,
+      "portraitId": "portrait_brief_moxjdesf_edd7k",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_cy8oh",
+        "portrait_brief_moxjdesf_1zfgm",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_ygp1t",
+        "portrait_brief_moxjdesf_slrmt",
+        "portrait_brief_moxjdesf_y34ld"
+      ],
+      "homePortId": "genoa",
+      "availablePortIds": [
+        "venice",
+        "genoa",
+        "athens"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 2,
+      "description": "ジェノヴァにゆかりを持つ港の仲買人との顔つなぎが広い交易担当。買い付けと売却の段取りが速い。"
+    },
+    {
+      "id": "officer:venice:03",
+      "name": "金髪のビアンカ",
+      "firstName": "ビアンカ",
+      "familyName": "コンタリーニ",
+      "nationality": "venice",
+      "gender": "female",
+      "specialty": "gunnery",
+      "level": 2,
+      "stats": {
+        "navigation": 1,
+        "trade": 2,
+        "gunnery": 5,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 734,
+      "salary": 53,
+      "portraitId": "portrait_brief_moxjdesf_v3s4j",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_866iw",
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_cy8oh"
+      ],
+      "homePortId": "athens",
+      "availablePortIds": [
+        "venice",
+        "genoa",
+        "athens"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 3,
+      "description": "アテネにゆかりを持つ護衛船で砲列指揮を覚えた戦闘航海士。接近戦で砲撃の号令を乱さない。"
+    },
+    {
+      "id": "officer:venice:04",
+      "name": "俊英のアルヴィーゼ",
+      "firstName": "アルヴィーゼ",
+      "familyName": "カダモスト",
+      "nationality": "venice",
+      "gender": "male",
+      "specialty": "repair",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 3,
+        "gunnery": 1,
+        "repair": 6,
+        "leadership": 2
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_1zfgm",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_cy8oh",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_y34ld",
+        "portrait_brief_moxjdesf_slrmt",
+        "portrait_brief_moxjdesf_3d991"
+      ],
+      "homePortId": "venice",
+      "availablePortIds": [
+        "venice",
+        "genoa",
+        "athens"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 4,
+      "description": "ヴェネツィアにゆかりを持つ艤装と補修の手順に明るい修理役。長旅で傷んだ船を手堅く保たせる。"
+    },
+    {
+      "id": "officer:venice:05",
+      "name": "ピエトロ・クエリーニ",
+      "firstName": "ピエトロ",
+      "familyName": "クエリーニ",
+      "nationality": "venice",
+      "gender": "male",
+      "specialty": "leadership",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 2,
+        "gunnery": 3,
+        "repair": 1,
+        "leadership": 6
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_oumdp",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_cy8oh",
+        "portrait_brief_moxjdesf_1zfgm",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_3d991",
+        "portrait_brief_moxjdesf_y34ld",
+        "portrait_brief_moxjdesf_2m1i4"
+      ],
+      "homePortId": "genoa",
+      "availablePortIds": [
+        "venice",
+        "genoa",
+        "athens"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 5,
+      "description": "ジェノヴァにゆかりを持つ当直と規律をまとめる副官肌。航海中の士気低下を抑え、僚艦を落ち着かせる。"
+    },
+    {
+      "id": "officer:venice:06",
+      "name": "老練のアントニオ",
+      "firstName": "アントニオ",
+      "familyName": "グリマーニ",
+      "nationality": "venice",
+      "gender": "male",
+      "specialty": "trade",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 6,
+        "gunnery": 1,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_rnm2u",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_cy8oh",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_1zfgm",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_2m1i4",
+        "portrait_brief_moxjdesf_ygp1t",
+        "portrait_brief_moxjdesf_8btor"
+      ],
+      "homePortId": "athens",
+      "availablePortIds": [
+        "venice",
+        "genoa",
+        "athens"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 6,
+      "description": "アテネにゆかりを持つ港の仲買人との顔つなぎが広い交易担当。買い付けと売却の段取りが速い。"
+    },
+    {
+      "id": "officer:venice:07",
+      "name": "ルチア・ヴェニエル",
+      "firstName": "ルチア",
+      "familyName": "ヴェニエル",
+      "nationality": "venice",
+      "gender": "female",
+      "specialty": "navigation",
+      "level": 4,
+      "stats": {
+        "navigation": 7,
+        "trade": 3,
+        "gunnery": 3,
+        "repair": 4,
+        "leadership": 5
+      },
+      "hireCost": 1136,
+      "salary": 81,
+      "portraitId": "portrait_brief_moxjdesf_zds1h",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_866iw",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_cy8oh"
+      ],
+      "homePortId": "venice",
+      "availablePortIds": [
+        "venice",
+        "genoa",
+        "athens"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 120,
+      "displayOrder": 7,
+      "description": "ヴェネツィアにゆかりを持つ潮目と風待ちを読む水先案内人。長距離航海で消耗を抑える判断に強い。"
+    },
+    {
+      "id": "officer:venice:08",
+      "name": "ロレンツォ・ロレダン",
+      "firstName": "ロレンツォ",
+      "familyName": "ロレダン",
+      "nationality": "venice",
+      "gender": "male",
+      "specialty": "repair",
+      "level": 4,
+      "stats": {
+        "navigation": 5,
+        "trade": 4,
+        "gunnery": 2,
+        "repair": 7,
+        "leadership": 3
+      },
+      "hireCost": 1118,
+      "salary": 80,
+      "portraitId": "portrait_brief_moxjdesf_c92lm",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_cy8oh",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_1zfgm",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_slrmt",
+        "portrait_brief_moxjdesf_2m1i4",
+        "portrait_brief_moxjdesf_y34ld"
+      ],
+      "homePortId": "genoa",
+      "availablePortIds": [
+        "venice",
+        "genoa",
+        "athens"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 120,
+      "displayOrder": 8,
+      "description": "ジェノヴァにゆかりを持つ艤装と補修の手順に明るい修理役。長旅で傷んだ船を手堅く保たせる。"
+    },
+    {
+      "id": "officer:venice:09",
+      "name": "豪胆のカテリーナ",
+      "firstName": "カテリーナ",
+      "familyName": "バルバリゴ",
+      "nationality": "venice",
+      "gender": "female",
+      "specialty": "gunnery",
+      "level": 5,
+      "stats": {
+        "navigation": 2,
+        "trade": 3,
+        "gunnery": 8,
+        "repair": 5,
+        "leadership": 6
+      },
+      "hireCost": 1292,
+      "salary": 91,
+      "portraitId": "portrait_brief_moxjdesf_866iw",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_cy8oh"
+      ],
+      "homePortId": "athens",
+      "availablePortIds": [
+        "venice",
+        "genoa",
+        "athens"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 260,
+      "displayOrder": 9,
+      "description": "アテネにゆかりを持つ護衛船で砲列指揮を覚えた戦闘航海士。接近戦で砲撃の号令を乱さない。"
+    },
+    {
+      "id": "officer:venice:10",
+      "name": "ジローラモ・プリウリ",
+      "firstName": "ジローラモ",
+      "familyName": "プリウリ",
+      "nationality": "venice",
+      "gender": "male",
+      "specialty": "leadership",
+      "level": 5,
+      "stats": {
+        "navigation": 6,
+        "trade": 2,
+        "gunnery": 5,
+        "repair": 3,
+        "leadership": 8
+      },
+      "hireCost": 1292,
+      "salary": 91,
+      "portraitId": "portrait_brief_moxjdesf_y34ld",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_cy8oh",
+        "portrait_brief_moxjdesf_1zfgm",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_ygp1t",
+        "portrait_brief_moxjdesf_3d991"
+      ],
+      "homePortId": "venice",
+      "availablePortIds": [
+        "venice",
+        "genoa",
+        "athens"
+      ],
+      "minTavernLevel": 4,
+      "minFame": 360,
+      "displayOrder": 10,
+      "description": "ヴェネツィアにゆかりを持つ船員の気質を見抜くまとめ役。荒れた航海でも命令系統を保つのがうまい。"
+    },
+    {
+      "id": "officer:venice:11",
+      "name": "豪胆のフェデリコ",
+      "firstName": "フェデリコ",
+      "familyName": "モチェニーゴ",
+      "nationality": "venice",
+      "gender": "male",
+      "specialty": "trade",
+      "level": 4,
+      "stats": {
+        "navigation": 5,
+        "trade": 7,
+        "gunnery": 3,
+        "repair": 2,
+        "leadership": 4
+      },
+      "hireCost": 1118,
+      "salary": 80,
+      "portraitId": "portrait_brief_moxjdesf_3d991",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_cy8oh",
+        "portrait_brief_moxjdesf_1zfgm",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_y34ld",
+        "portrait_brief_moxjdesf_8btor"
+      ],
+      "homePortId": "genoa",
+      "availablePortIds": [
+        "venice",
+        "genoa",
+        "athens"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 180,
+      "displayOrder": 11,
+      "description": "ジェノヴァにゆかりを持つ商館で相場と帳簿を叩き込まれた交渉役。積荷の回転と売り時を読む。"
+    },
+    {
+      "id": "officer:venice:12",
+      "name": "オルサ・ダンドロ",
+      "firstName": "オルサ",
+      "familyName": "ダンドロ",
+      "nationality": "venice",
+      "gender": "female",
+      "specialty": "navigation",
+      "level": 6,
+      "stats": {
+        "navigation": 9,
+        "trade": 3,
+        "gunnery": 3,
+        "repair": 6,
+        "leadership": 7
+      },
+      "hireCost": 1484,
+      "salary": 105,
+      "portraitId": "portrait_brief_moxjdesf_b8bf9",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_866iw",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_cy8oh"
+      ],
+      "homePortId": "athens",
+      "availablePortIds": [
+        "venice",
+        "genoa",
+        "athens"
+      ],
+      "minTavernLevel": 4,
+      "minFame": 520,
+      "displayOrder": 12,
+      "description": "アテネにゆかりを持つ沿岸の浅瀬と季節風に通じた航海士。安全な針路を粘り強く探る。"
+    },
+    {
+      "id": "officer:ottoman:01",
+      "name": "ピーリー・レイス",
+      "firstName": "ピーリー",
+      "familyName": "レイス",
+      "nationality": "ottoman",
+      "gender": "male",
+      "specialty": "navigation",
+      "level": 2,
+      "stats": {
+        "navigation": 5,
+        "trade": 2,
+        "gunnery": 2,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 752,
+      "salary": 54,
+      "portraitId": "portrait_brief_moxjdesf_6b2in",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_i51xm",
+        "portrait_brief_moxjdesf_hjsjj",
+        "portrait_brief_moxjdesf_yempi",
+        "portrait_brief_moxjdesf_97l64",
+        "portrait_brief_moxjdesf_nk1b2",
+        "portrait_brief_moxjdesf_edd7k",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_c92lm"
+      ],
+      "homePortId": "istanbul",
+      "availablePortIds": [
+        "istanbul",
+        "alexandria",
+        "tunis"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 1,
+      "description": "イスタンブールにゆかりを持つ潮目と風待ちを読む水先案内人。長距離航海で消耗を抑える判断に強い。"
+    },
+    {
+      "id": "officer:ottoman:02",
+      "name": "美髯のセイディ",
+      "firstName": "セイディ",
+      "familyName": "アリ・レイス",
+      "nationality": "ottoman",
+      "gender": "male",
+      "specialty": "trade",
+      "level": 2,
+      "stats": {
+        "navigation": 3,
+        "trade": 5,
+        "gunnery": 1,
+        "repair": 2,
+        "leadership": 2
+      },
+      "hireCost": 734,
+      "salary": 53,
+      "portraitId": "portrait_brief_moxjdesf_i51xm",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_hjsjj",
+        "portrait_brief_moxjdesf_yempi",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_97l64",
+        "portrait_brief_moxjdesf_nk1b2",
+        "portrait_brief_moxjdesf_znjzq",
+        "portrait_brief_moxjdesf_rnm2u"
+      ],
+      "homePortId": "alexandria",
+      "availablePortIds": [
+        "istanbul",
+        "alexandria",
+        "tunis"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 2,
+      "description": "アレクサンドリアにゆかりを持つ港の仲買人との顔つなぎが広い交易担当。買い付けと売却の段取りが速い。"
+    },
+    {
+      "id": "officer:ottoman:03",
+      "name": "アイラ・ハトゥン",
+      "firstName": "アイラ",
+      "familyName": "ハトゥン",
+      "nationality": "ottoman",
+      "gender": "female",
+      "specialty": "gunnery",
+      "level": 2,
+      "stats": {
+        "navigation": 1,
+        "trade": 2,
+        "gunnery": 5,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 734,
+      "salary": 53,
+      "portraitId": "portrait_brief_moxjdesf_v3s4j",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_866iw",
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_i51xm"
+      ],
+      "homePortId": "tunis",
+      "availablePortIds": [
+        "istanbul",
+        "alexandria",
+        "tunis"
+      ],
+      "minTavernLevel": 1,
+      "minFame": 0,
+      "displayOrder": 3,
+      "description": "チュニスにゆかりを持つ護衛船で砲列指揮を覚えた戦闘航海士。接近戦で砲撃の号令を乱さない。"
+    },
+    {
+      "id": "officer:ottoman:04",
+      "name": "ケマル・レイス",
+      "firstName": "ケマル",
+      "familyName": "レイス",
+      "nationality": "ottoman",
+      "gender": "male",
+      "specialty": "repair",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 3,
+        "gunnery": 1,
+        "repair": 6,
+        "leadership": 2
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_hjsjj",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_i51xm",
+        "portrait_brief_moxjdesf_yempi",
+        "portrait_brief_moxjdesf_97l64",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_rnm2u",
+        "portrait_brief_moxjdesf_znjzq",
+        "portrait_brief_moxjdesf_c92lm"
+      ],
+      "homePortId": "istanbul",
+      "availablePortIds": [
+        "istanbul",
+        "alexandria",
+        "tunis"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 4,
+      "description": "イスタンブールにゆかりを持つ艤装と補修の手順に明るい修理役。長旅で傷んだ船を手堅く保たせる。"
+    },
+    {
+      "id": "officer:ottoman:05",
+      "name": "ムラト・レイス",
+      "firstName": "ムラト",
+      "familyName": "レイス",
+      "nationality": "ottoman",
+      "gender": "male",
+      "specialty": "leadership",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 2,
+        "gunnery": 3,
+        "repair": 1,
+        "leadership": 6
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_yempi",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_i51xm",
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_hjsjj",
+        "portrait_brief_moxjdesf_97l64",
+        "portrait_brief_moxjdesf_nk1b2",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_znjzq",
+        "portrait_brief_moxjdesf_edd7k"
+      ],
+      "homePortId": "alexandria",
+      "availablePortIds": [
+        "istanbul",
+        "alexandria",
+        "tunis"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 5,
+      "description": "アレクサンドリアにゆかりを持つ当直と規律をまとめる副官肌。航海中の士気低下を抑え、僚艦を落ち着かせる。"
+    },
+    {
+      "id": "officer:ottoman:06",
+      "name": "シナン・パシャ",
+      "firstName": "シナン",
+      "familyName": "パシャ",
+      "nationality": "ottoman",
+      "gender": "male",
+      "specialty": "trade",
+      "level": 3,
+      "stats": {
+        "navigation": 4,
+        "trade": 6,
+        "gunnery": 1,
+        "repair": 2,
+        "leadership": 3
+      },
+      "hireCost": 908,
+      "salary": 65,
+      "portraitId": "portrait_brief_moxjdesf_97l64",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_i51xm",
+        "portrait_brief_moxjdesf_hjsjj",
+        "portrait_brief_moxjdesf_yempi",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_znjzq",
+        "portrait_brief_moxjdesf_nk1b2"
+      ],
+      "homePortId": "tunis",
+      "availablePortIds": [
+        "istanbul",
+        "alexandria",
+        "tunis"
+      ],
+      "minTavernLevel": 2,
+      "minFame": 0,
+      "displayOrder": 6,
+      "description": "チュニスにゆかりを持つ港の仲買人との顔つなぎが広い交易担当。買い付けと売却の段取りが速い。"
+    },
+    {
+      "id": "officer:ottoman:07",
+      "name": "レイラ・ハトゥン",
+      "firstName": "レイラ",
+      "familyName": "ハトゥン",
+      "nationality": "ottoman",
+      "gender": "female",
+      "specialty": "navigation",
+      "level": 4,
+      "stats": {
+        "navigation": 7,
+        "trade": 3,
+        "gunnery": 3,
+        "repair": 4,
+        "leadership": 5
+      },
+      "hireCost": 1136,
+      "salary": 81,
+      "portraitId": "portrait_brief_moxjdesf_866iw",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_fu7q2",
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_6b2in"
+      ],
+      "homePortId": "istanbul",
+      "availablePortIds": [
+        "istanbul",
+        "alexandria",
+        "tunis"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 120,
+      "displayOrder": 7,
+      "description": "イスタンブールにゆかりを持つ潮目と風待ちを読む水先案内人。長距離航海で消耗を抑える判断に強い。"
+    },
+    {
+      "id": "officer:ottoman:08",
+      "name": "サリフ・レイス",
+      "firstName": "サリフ",
+      "familyName": "レイス",
+      "nationality": "ottoman",
+      "gender": "male",
+      "specialty": "repair",
+      "level": 4,
+      "stats": {
+        "navigation": 5,
+        "trade": 4,
+        "gunnery": 2,
+        "repair": 7,
+        "leadership": 3
+      },
+      "hireCost": 1118,
+      "salary": 80,
+      "portraitId": "portrait_brief_moxjdesf_znjzq",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_i51xm",
+        "portrait_brief_moxjdesf_hjsjj",
+        "portrait_brief_moxjdesf_yempi",
+        "portrait_brief_moxjdesf_97l64",
+        "portrait_brief_moxjdesf_nk1b2",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_oumdp"
+      ],
+      "homePortId": "alexandria",
+      "availablePortIds": [
+        "istanbul",
+        "alexandria",
+        "tunis"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 120,
+      "displayOrder": 8,
+      "description": "アレクサンドリアにゆかりを持つ艤装と補修の手順に明るい修理役。長旅で傷んだ船を手堅く保たせる。"
+    },
+    {
+      "id": "officer:ottoman:09",
+      "name": "ハサン・アーガ",
+      "firstName": "ハサン",
+      "familyName": "アーガ",
+      "nationality": "ottoman",
+      "gender": "male",
+      "specialty": "gunnery",
+      "level": 5,
+      "stats": {
+        "navigation": 2,
+        "trade": 3,
+        "gunnery": 8,
+        "repair": 5,
+        "leadership": 6
+      },
+      "hireCost": 1292,
+      "salary": 91,
+      "portraitId": "portrait_brief_moxjdesf_nk1b2",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_i51xm",
+        "portrait_brief_moxjdesf_hjsjj",
+        "portrait_brief_moxjdesf_yempi",
+        "portrait_brief_moxjdesf_97l64",
+        "portrait_brief_moxjdesf_znjzq",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_rnm2u"
+      ],
+      "homePortId": "tunis",
+      "availablePortIds": [
+        "istanbul",
+        "alexandria",
+        "tunis"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 260,
+      "displayOrder": 9,
+      "description": "チュニスにゆかりを持つ護衛船で砲列指揮を覚えた戦闘航海士。接近戦で砲撃の号令を乱さない。"
+    },
+    {
+      "id": "officer:ottoman:10",
+      "name": "ナスフ・マトラクチ",
+      "firstName": "ナスフ",
+      "familyName": "マトラクチ",
+      "nationality": "ottoman",
+      "gender": "male",
+      "specialty": "leadership",
+      "level": 5,
+      "stats": {
+        "navigation": 6,
+        "trade": 2,
+        "gunnery": 5,
+        "repair": 3,
+        "leadership": 8
+      },
+      "hireCost": 1292,
+      "salary": 91,
+      "portraitId": "portrait_brief_moxjdesf_c92lm",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_i51xm",
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_hjsjj",
+        "portrait_brief_moxjdesf_yempi",
+        "portrait_brief_moxjdesf_97l64",
+        "portrait_brief_moxjdesf_oumdp",
+        "portrait_brief_moxjdesf_nk1b2",
+        "portrait_brief_moxjdesf_znjzq"
+      ],
+      "homePortId": "istanbul",
+      "availablePortIds": [
+        "istanbul",
+        "alexandria",
+        "tunis"
+      ],
+      "minTavernLevel": 4,
+      "minFame": 360,
+      "displayOrder": 10,
+      "description": "イスタンブールにゆかりを持つ船員の気質を見抜くまとめ役。荒れた航海でも命令系統を保つのがうまい。"
+    },
+    {
+      "id": "officer:ottoman:11",
+      "name": "メフメト・チェレビ",
+      "firstName": "メフメト",
+      "familyName": "チェレビ",
+      "nationality": "ottoman",
+      "gender": "male",
+      "specialty": "trade",
+      "level": 4,
+      "stats": {
+        "navigation": 5,
+        "trade": 7,
+        "gunnery": 3,
+        "repair": 2,
+        "leadership": 4
+      },
+      "hireCost": 1118,
+      "salary": 80,
+      "portraitId": "portrait_brief_moxjdesf_oumdp",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_6b2in",
+        "portrait_brief_moxjdesf_i51xm",
+        "portrait_brief_moxjdesf_hjsjj",
+        "portrait_brief_moxjdesf_yempi",
+        "portrait_brief_moxjdesf_97l64",
+        "portrait_brief_moxjdesf_c92lm",
+        "portrait_brief_moxjdesf_znjzq",
+        "portrait_brief_moxjdesf_edd7k"
+      ],
+      "homePortId": "alexandria",
+      "availablePortIds": [
+        "istanbul",
+        "alexandria",
+        "tunis"
+      ],
+      "minTavernLevel": 3,
+      "minFame": 180,
+      "displayOrder": 11,
+      "description": "アレクサンドリアにゆかりを持つ商館で相場と帳簿を叩き込まれた交渉役。積荷の回転と売り時を読む。"
+    },
+    {
+      "id": "officer:ottoman:12",
+      "name": "ゼイネプ・ハトゥン",
+      "firstName": "ゼイネプ",
+      "familyName": "ハトゥン",
+      "nationality": "ottoman",
+      "gender": "female",
+      "specialty": "navigation",
+      "level": 6,
+      "stats": {
+        "navigation": 9,
+        "trade": 3,
+        "gunnery": 3,
+        "repair": 6,
+        "leadership": 7
+      },
+      "hireCost": 1484,
+      "salary": 105,
+      "portraitId": "portrait_brief_moxjdesf_fu7q2",
+      "fallbackPortraitIds": [
+        "portrait_brief_moxjdesf_866iw",
+        "portrait_brief_moxjdesf_v3s4j",
+        "portrait_brief_moxjdesf_zds1h",
+        "portrait_brief_moxjdesf_26cz9",
+        "portrait_brief_moxjdesf_hcu82",
+        "portrait_brief_moxjdesf_xtl11",
+        "portrait_brief_moxjdesf_b8bf9",
+        "portrait_brief_moxjdesf_i51xm"
+      ],
+      "homePortId": "tunis",
+      "availablePortIds": [
+        "istanbul",
+        "alexandria",
+        "tunis"
+      ],
+      "minTavernLevel": 4,
+      "minFame": 520,
+      "displayOrder": 12,
+      "description": "チュニスにゆかりを持つ沿岸の浅瀬と季節風に通じた航海士。安全な針路を粘り強く探る。"
+    }
+  ]
+}
