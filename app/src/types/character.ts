@@ -2,7 +2,7 @@
 // キャラクター型定義 — プレイヤー、NPC、スキル、職業
 // ============================================================
 
-import type { CharacterId, SkillId, Position2D } from './common.ts'
+import type { CharacterId, PortId, SkillId, Position2D } from './common.ts'
 
 export type ProfessionType = 'adventurer' | 'trader' | 'soldier'
 
@@ -82,6 +82,7 @@ export interface Officer {
   nationality: Nationality
   specialty: OfficerSpecialty
   gender?: OfficerGender
+  originPortId?: PortId
   stats: OfficerStats
   level: number
   hireCost: number

@@ -182,8 +182,8 @@ function pickScoredPortrait(officer: Officer, port: Port, usedPortraitIds: Set<s
     ?.portrait
 }
 
-export function assignOfficerPortraits(port: Port, officers: Officer[]): Officer[] {
-  const usedPortraitIds = new Set<string>()
+export function assignOfficerPortraits(port: Port, officers: Officer[], reservedPortraitIds: readonly string[] = []): Officer[] {
+  const usedPortraitIds = new Set(reservedPortraitIds.filter((id) => portraitsById.has(id)))
 
   return officers.map((officer) => {
     const manual = pickManualPortrait(officer, port, usedPortraitIds)

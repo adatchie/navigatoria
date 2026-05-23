@@ -278,6 +278,7 @@ function createOfficerOffer(
     nationality: port.nationality,
     specialty,
     gender: inferOfficerGender(nameSeed),
+    originPortId: port.id,
     stats,
     level,
     hireCost: 260 + level * 120 + statTotal * 18,
@@ -322,6 +323,7 @@ export function generateTavernOfficerOffers(
   tavernLevel: number,
   playerFame = 0,
   unavailableOfficerNames: readonly string[] = [],
+  reservedPortraitIds: readonly string[] = [],
 ): Officer[] {
   const offerCount = Math.min(4, 2 + Math.floor(tavernLevel / 2))
   const nationality = port.nationality
@@ -348,5 +350,5 @@ export function generateTavernOfficerOffers(
   addUniqueOffers(localNames, 0)
   if (offers.length < offerCount) addUniqueOffers(fallbackNames, localNames.length * 3)
 
-  return assignOfficerPortraits(port, offers)
+  return assignOfficerPortraits(port, offers, reservedPortraitIds)
 }
