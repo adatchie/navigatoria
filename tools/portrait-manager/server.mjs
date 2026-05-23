@@ -13,6 +13,12 @@ const REQUEST_FILE = path.join(DATA_DIR, 'latest-generation-request.json')
 const IMAGE_THREAD_FILE = path.join(DATA_DIR, 'image-thread.json')
 const JOB_FILE = path.join(DATA_DIR, 'app-server-job.json')
 const PORTRAIT_RECORDS_FILE = path.join(DATA_DIR, 'portrait-records.json')
+const REPO_ROOT = path.resolve(TOOL_DIR, '..', '..')
+const APP_MASTER_DIR = path.join(REPO_ROOT, 'app', 'src', 'data', 'master')
+const APP_PUBLIC_DIR = path.join(REPO_ROOT, 'app', 'public')
+const OFFICERS_FILE = path.join(APP_MASTER_DIR, 'officers.json')
+const OFFICER_PORTRAITS_FILE = path.join(APP_MASTER_DIR, 'officerPortraits.json')
+const PORTS_FILE = path.join(APP_MASTER_DIR, 'ports.json')
 const PORT = Number(process.env.PORT ?? 4178)
 const MAX_BODY_BYTES = 4 * 1024 * 1024
 const CODEX_CMD = process.env.CODEX_CMD || 'C:\\home\\adatc\\.npm-global\\codex.cmd'
@@ -27,6 +33,30 @@ const RECORD_PATCH_FIELDS = new Set([
   'notes',
   'status',
 ])
+const OFFICER_PATCH_FIELDS = new Set([
+  'name',
+  'firstName',
+  'familyName',
+  'nationality',
+  'gender',
+  'specialty',
+  'level',
+  'stats',
+  'hireCost',
+  'salary',
+  'portraitId',
+  'fallbackPortraitIds',
+  'homePortId',
+  'availablePortIds',
+  'minTavernLevel',
+  'minFame',
+  'displayOrder',
+  'description',
+])
+const OFFICER_STRING_FIELDS = new Set(['name', 'firstName', 'familyName', 'nationality', 'gender', 'specialty', 'portraitId', 'homePortId', 'description'])
+const OFFICER_NUMBER_FIELDS = new Set(['level', 'hireCost', 'salary', 'minTavernLevel', 'minFame', 'displayOrder'])
+const OFFICER_ARRAY_FIELDS = new Set(['fallbackPortraitIds', 'availablePortIds'])
+const OFFICER_STATS_KEYS = ['navigation', 'trade', 'gunnery', 'repair', 'leadership']
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -95,6 +125,76 @@ async function readJsonFile(filePath, fallback) {
 async function writeJsonFile(filePath, payload) {
   await mkdir(path.dirname(filePath), { recursive: true })
   await writeFile(filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8')
+}
+
+async function readOfficerMasterStore() {
+  const store = await readJsonFile(OFFICERS_FILE, { version: 1, officers: [] })
+  return {
+    version: Number(store.version) || 1,
+    updatedAt: store.updatedAt || '',
+    balanceNote: store.balanceNote || '',
+    officers: Array.isArray(store.officers) ? store.officers : [],
+  }
+}
+
+async function writeOfficerMasterStore(store) {
+  await writeJsonFile(OFFICERS_FILE, {
+    ...store,
+    updatedAt: nowIso(),
+  })
+}
+
+async function readOfficerEditorPayload() {
+  const [store, portraitDb, ports] = await Promise.all([
+    readOfficerMasterStore(),
+    readJsonFile(OFFICER_PORTRAITS_FILE, { portraits: [], fallbackPortraitUrl: '' }),
+    readJsonFile(PORTS_FILE, []),
+  ])
+  return {
+    ...store,
+    portraits: Array.isArray(portraitDb.portraits) ? portraitDb.portraits : [],
+    fallbackPortraitUrl: portraitDb.fallbackPortraitUrl || '',
+    ports: Array.isArray(ports) ? ports : [],
+  }
+}
+
+function toNumber(value, fallback = 0) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function normalizeStringArray(value) {
+  if (Array.isArray(value)) return value.map(cleanText).filter(Boolean)
+  return String(value ?? '')
+    .split(',')
+    .map(cleanText)
+    .filter(Boolean)
+}
+
+function normalizeOfficerStats(value, current = {}) {
+  const stats = { ...current }
+  const source = value && typeof value === 'object' ? value : {}
+  for (const key of OFFICER_STATS_KEYS) {
+    stats[key] = Math.max(0, Math.min(10, Math.round(toNumber(source[key], stats[key] ?? 0))))
+  }
+  return stats
+}
+
+function cleanOfficerPatch(patch, current) {
+  const cleaned = {}
+  for (const [key, value] of Object.entries(patch || {})) {
+    if (!OFFICER_PATCH_FIELDS.has(key)) continue
+    if (OFFICER_STRING_FIELDS.has(key)) {
+      cleaned[key] = cleanText(value)
+    } else if (OFFICER_NUMBER_FIELDS.has(key)) {
+      cleaned[key] = Math.max(0, Math.round(toNumber(value, current?.[key] ?? 0)))
+    } else if (OFFICER_ARRAY_FIELDS.has(key)) {
+      cleaned[key] = normalizeStringArray(value)
+    } else if (key === 'stats') {
+      cleaned.stats = normalizeOfficerStats(value, current?.stats)
+    }
+  }
+  return cleaned
 }
 
 function nowIso() {
@@ -219,6 +319,16 @@ async function updatePortraitRecord(id, patch) {
   record.updatedAt = nowIso()
   await writePortraitRecordStore(store.records)
   return record
+}
+
+async function updateMasterOfficer(id, patch) {
+  const store = await readOfficerMasterStore()
+  const officer = store.officers.find((item) => item.id === id)
+  if (!officer) return null
+
+  Object.assign(officer, cleanOfficerPatch(patch, officer))
+  await writeOfficerMasterStore(store)
+  return officer
 }
 
 async function updatePortraitRecordStatus(id, status, patch = {}) {
@@ -733,6 +843,23 @@ async function handleApi(request, response, url) {
     return
   }
 
+  if (request.method === 'GET' && url.pathname === '/api/officer-master') {
+    sendJson(response, 200, await readOfficerEditorPayload())
+    return
+  }
+
+  if (request.method === 'PATCH' && url.pathname.startsWith('/api/officer-master/')) {
+    const id = decodeURIComponent(url.pathname.slice('/api/officer-master/'.length))
+    const body = await readJsonBody(request)
+    const officer = await updateMasterOfficer(id, body.patch || body)
+    if (!officer) {
+      sendJson(response, 404, { error: 'not_found', message: '航海士DBレコードが見つかりません' })
+      return
+    }
+    sendJson(response, 200, { officer })
+    return
+  }
+
   if (request.method === 'PATCH' && url.pathname.startsWith('/api/portrait-records/')) {
     const id = decodeURIComponent(url.pathname.slice('/api/portrait-records/'.length))
     const body = await readJsonBody(request)
@@ -760,6 +887,25 @@ async function handleApi(request, response, url) {
     const requestedPath = cleanText(url.searchParams.get('path'))
     const root = path.resolve(GENERATED_IMAGES_ROOT)
     const resolvedPath = path.resolve(requestedPath)
+    if (!requestedPath || !isPathInside(resolvedPath, root)) {
+      sendJson(response, 403, { error: 'forbidden' })
+      return
+    }
+
+    try {
+      const file = await readFile(resolvedPath)
+      const contentType = MIME_TYPES[path.extname(resolvedPath).toLowerCase()] ?? 'application/octet-stream'
+      send(response, 200, file, { 'content-type': contentType })
+    } catch {
+      notFound(response)
+    }
+    return
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/app-asset') {
+    const requestedPath = cleanText(url.searchParams.get('path')).replace(/^\/+/, '')
+    const root = path.resolve(APP_PUBLIC_DIR)
+    const resolvedPath = path.resolve(root, requestedPath)
     if (!requestedPath || !isPathInside(resolvedPath, root)) {
       sendJson(response, 403, { error: 'forbidden' })
       return

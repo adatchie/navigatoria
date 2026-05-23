@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta http-equiv="cache-control" content="no-store" />
     <title>顔グラ生成</title>
-    <link rel="stylesheet" href="/styles.css?v=portrait-variation-20260509" />
+    <link rel="stylesheet" href="/styles.css?v=officer-db-20260523" />
   </head>
   <body>
     <div class="workbench">
@@ -155,6 +155,23 @@
         <section class="db-section">
           <div class="output-head">
             <div>
+              <h2>航海士DB</h2>
+              <p id="officerSummary" class="section-count">0件</p>
+            </div>
+            <div class="db-actions">
+              <label class="field compact">
+                <span>航海士検索</span>
+                <input id="officerSearchInput" type="search" autocomplete="off" />
+              </label>
+              <button id="refreshOfficersButton" type="button">航海士DB更新</button>
+            </div>
+          </div>
+          <div id="officerEditor" class="officer-editor"></div>
+        </section>
+
+        <section class="db-section">
+          <div class="output-head">
+            <div>
               <h2>顔グラDB</h2>
               <p id="recordSummary" class="section-count">0件</p>
             </div>
@@ -183,6 +200,6 @@
     </div>
 
     <div id="toast" class="toast" role="status"></div>
-    <script type="module" src="/app.js?v=portrait-variation-20260509"></script>
+    <script type="module" src="/app.js?v=officer-db-20260523"></script>
   </body>
 </html>

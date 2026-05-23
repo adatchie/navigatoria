@@ -119,6 +119,22 @@ const genders = [
   ['female', '女性'],
 ]
 
+const officerSpecialties = [
+  ['navigation', '航海'],
+  ['trade', '交易'],
+  ['gunnery', '砲術'],
+  ['repair', '修理'],
+  ['leadership', '統率'],
+]
+
+const officerStatFields = [
+  ['navigation', '航海'],
+  ['trade', '交易'],
+  ['gunnery', '砲術'],
+  ['repair', '修理'],
+  ['leadership', '統率'],
+]
+
 const faceTones = [
   ['beauty', '美形'],
   ['rough', '粗め'],
@@ -241,7 +257,11 @@ const state = {
   parsedRows: [],
   search: '',
   recordSearch: '',
+  officerSearch: '',
   records: [],
+  officers: [],
+  officerPortraits: [],
+  ports: [],
   generatedImages: [],
   submittingGeneration: false,
   thread: null,
@@ -289,6 +309,10 @@ const elements = {
   clearAllButton: $('clearAllButton'),
   searchInput: $('searchInput'),
   cards: $('cards'),
+  officerSummary: $('officerSummary'),
+  officerSearchInput: $('officerSearchInput'),
+  refreshOfficersButton: $('refreshOfficersButton'),
+  officerEditor: $('officerEditor'),
   recordSummary: $('recordSummary'),
   recordSearchInput: $('recordSearchInput'),
   refreshRecordsButton: $('refreshRecordsButton'),
@@ -1358,6 +1382,263 @@ function recordHeading(record) {
     || record.id
 }
 
+function portraitById(id) {
+  return state.officerPortraits.find((portrait) => portrait.id === id)
+}
+
+function portById(id) {
+  return state.ports.find((port) => port.id === id)
+}
+
+function officerPortraitSrc(portraitId) {
+  const portrait = portraitById(portraitId)
+  if (!portrait?.assetUrl) return ''
+  return `/api/app-asset?path=${encodeURIComponent(portrait.assetUrl)}`
+}
+
+function portOptions() {
+  return state.ports.map((port) => [port.id, `${port.name} / ${labelFor(nationalities, port.nationality)}`])
+}
+
+function portraitOptions() {
+  return state.officerPortraits.map((portrait) => [
+    portrait.id,
+    `${portrait.id.replace('portrait_brief_moxjdesf_', '')} / ${labelFor(roles, portrait.role)} / ${labelFor(nationalities, portrait.nationality)} / ${portrait.portName || '-'}`,
+  ])
+}
+
+function matchesOfficerSearch(officer) {
+  const needle = state.officerSearch.trim().toLowerCase()
+  if (!needle) return true
+  const homePort = portById(officer.homePortId)
+  const portrait = portraitById(officer.portraitId)
+  return [
+    officer.id,
+    officer.name,
+    officer.firstName,
+    officer.familyName,
+    labelFor(nationalities, officer.nationality),
+    labelFor(genders, officer.gender),
+    labelFor(officerSpecialties, officer.specialty),
+    homePort?.name,
+    (officer.availablePortIds || []).map((id) => portById(id)?.name || id).join(' '),
+    officer.portraitId,
+    portrait?.setting,
+    portrait?.mood,
+    officer.description,
+  ].join(' ').toLowerCase().includes(needle)
+}
+
+function renderOfficerMaster() {
+  const filtered = state.officers.filter(matchesOfficerSearch)
+  elements.officerSummary.textContent = `${filtered.length} / ${state.officers.length}件`
+  elements.officerEditor.replaceChildren()
+
+  if (!filtered.length) {
+    const empty = document.createElement('div')
+    empty.className = 'empty-state'
+    empty.textContent = '航海士DBが空です'
+    elements.officerEditor.append(empty)
+    return
+  }
+
+  const table = document.createElement('table')
+  table.className = 'officer-table'
+  const thead = document.createElement('thead')
+  const headerRow = document.createElement('tr')
+  for (const label of ['顔', 'ID / 名前', '基本', '能力', '費用', '出現', '説明']) {
+    const th = document.createElement('th')
+    th.textContent = label
+    headerRow.append(th)
+  }
+  thead.append(headerRow)
+
+  const tbody = document.createElement('tbody')
+  for (const officer of filtered) {
+    tbody.append(createOfficerRow(officer))
+  }
+
+  table.append(thead, tbody)
+  elements.officerEditor.append(table)
+}
+
+function createOfficerRow(officer) {
+  const row = document.createElement('tr')
+
+  const portraitCell = document.createElement('td')
+  portraitCell.className = 'officer-portrait-cell'
+  const preview = document.createElement('div')
+  preview.className = 'officer-db-preview'
+  const imageSrc = officerPortraitSrc(officer.portraitId)
+  if (imageSrc) {
+    const image = document.createElement('img')
+    image.src = imageSrc
+    image.alt = `${officer.name} portrait`
+    preview.append(image)
+  } else {
+    preview.textContent = '画像なし'
+  }
+  portraitCell.append(
+    preview,
+    officerSelectField(officer, 'portraitId', '顔グラ', portraitOptions(), 'portrait-select'),
+  )
+
+  const identityCell = document.createElement('td')
+  identityCell.append(
+    readonlyValue('ID', officer.id),
+    officerTextField(officer, 'name', '表示名'),
+    officerTextField(officer, 'firstName', '名'),
+    officerTextField(officer, 'familyName', '姓'),
+  )
+
+  const basicCell = document.createElement('td')
+  basicCell.append(
+    officerSelectField(officer, 'nationality', '国籍', nationalities),
+    officerSelectField(officer, 'gender', '性別', genders),
+    officerSelectField(officer, 'specialty', '専門', officerSpecialties),
+    officerNumberField(officer, 'level', 'Lv', 1, 10),
+  )
+
+  const statsCell = document.createElement('td')
+  statsCell.className = 'officer-stats-cell'
+  for (const [key, label] of officerStatFields) {
+    statsCell.append(officerStatField(officer, key, label))
+  }
+
+  const costCell = document.createElement('td')
+  costCell.append(
+    officerNumberField(officer, 'hireCost', '雇用費', 0, 999999),
+    officerNumberField(officer, 'salary', '日給', 0, 999999),
+  )
+
+  const availabilityCell = document.createElement('td')
+  availabilityCell.append(
+    officerSelectField(officer, 'homePortId', 'ゆかり港', portOptions()),
+    officerCsvField(officer, 'availablePortIds', '出現港ID'),
+    officerNumberField(officer, 'minTavernLevel', '酒場Lv', 1, 5),
+    officerNumberField(officer, 'minFame', '必要名声', 0, 999999),
+    officerNumberField(officer, 'displayOrder', '表示順', 1, 999),
+  )
+
+  const descriptionCell = document.createElement('td')
+  descriptionCell.className = 'officer-description-cell'
+  descriptionCell.append(
+    officerTextareaField(officer, 'description', '背景・説明'),
+    officerCsvField(officer, 'fallbackPortraitIds', '代替顔グラID'),
+  )
+
+  row.append(portraitCell, identityCell, basicCell, statsCell, costCell, availabilityCell, descriptionCell)
+  return row
+}
+
+function readonlyValue(label, value) {
+  const box = document.createElement('div')
+  box.className = 'readonly-value'
+  const caption = document.createElement('span')
+  caption.textContent = label
+  const text = document.createElement('strong')
+  text.textContent = value || '-'
+  box.append(caption, text)
+  return box
+}
+
+function officerFieldShell(labelText) {
+  const label = document.createElement('label')
+  label.className = 'field compact-edit officer-edit-field'
+  const caption = document.createElement('span')
+  caption.textContent = labelText
+  label.append(caption)
+  return label
+}
+
+function officerTextField(officer, key, labelText) {
+  const label = officerFieldShell(labelText)
+  const input = document.createElement('input')
+  input.value = officer[key] || ''
+  input.autocomplete = 'off'
+  input.addEventListener('change', () => updateOfficer(officer.id, { [key]: input.value }).catch((error) => showToast(error.message)))
+  label.append(input)
+  return label
+}
+
+function officerNumberField(officer, key, labelText, min, max) {
+  const label = officerFieldShell(labelText)
+  const input = document.createElement('input')
+  input.type = 'number'
+  input.min = String(min)
+  input.max = String(max)
+  input.value = officer[key] ?? 0
+  input.addEventListener('change', () => updateOfficer(officer.id, { [key]: Number(input.value) }).catch((error) => showToast(error.message)))
+  label.append(input)
+  return label
+}
+
+function officerSelectField(officer, key, labelText, options, extraClass = '') {
+  const label = officerFieldShell(labelText)
+  if (extraClass) label.classList.add(extraClass)
+  const select = document.createElement('select')
+  fillOptions(select, options)
+  select.value = officer[key] || ''
+  select.addEventListener('change', () => updateOfficer(officer.id, { [key]: select.value }).catch((error) => showToast(error.message)))
+  label.append(select)
+  return label
+}
+
+function officerStatField(officer, statKey, labelText) {
+  const label = officerFieldShell(labelText)
+  const input = document.createElement('input')
+  input.type = 'number'
+  input.min = '0'
+  input.max = '10'
+  input.value = officer.stats?.[statKey] ?? 0
+  input.addEventListener('change', () => {
+    updateOfficer(officer.id, { stats: { ...officer.stats, [statKey]: Number(input.value) } }).catch((error) => showToast(error.message))
+  })
+  label.append(input)
+  return label
+}
+
+function officerCsvField(officer, key, labelText) {
+  const label = officerFieldShell(labelText)
+  const input = document.createElement('input')
+  input.value = Array.isArray(officer[key]) ? officer[key].join(', ') : ''
+  input.autocomplete = 'off'
+  input.addEventListener('change', () => {
+    updateOfficer(officer.id, { [key]: input.value.split(',').map((item) => item.trim()).filter(Boolean) }).catch((error) => showToast(error.message))
+  })
+  label.append(input)
+  return label
+}
+
+function officerTextareaField(officer, key, labelText) {
+  const label = officerFieldShell(labelText)
+  const textarea = document.createElement('textarea')
+  textarea.rows = 3
+  textarea.value = officer[key] || ''
+  textarea.spellcheck = false
+  textarea.addEventListener('change', () => updateOfficer(officer.id, { [key]: textarea.value }).catch((error) => showToast(error.message)))
+  label.append(textarea)
+  return label
+}
+
+async function updateOfficer(id, patch) {
+  const response = await fetch(`/api/officer-master/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ patch }),
+  })
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    throw new Error(data.message || data.error || `HTTP ${response.status}`)
+  }
+  const index = state.officers.findIndex((officer) => officer.id === id)
+  if (index >= 0) {
+    state.officers[index] = data.officer
+  }
+  renderOfficerMaster()
+  showToast('航海士DBを保存しました')
+}
+
 function matchesRecordSearch(record) {
   const needle = state.recordSearch.trim().toLowerCase()
   if (!needle) return true
@@ -1676,9 +1957,16 @@ function bindEvents() {
     state.search = event.target.value
     renderCards()
   })
+  elements.officerSearchInput.addEventListener('input', (event) => {
+    state.officerSearch = event.target.value
+    renderOfficerMaster()
+  })
   elements.recordSearchInput.addEventListener('input', (event) => {
     state.recordSearch = event.target.value
     renderRecords()
+  })
+  elements.refreshOfficersButton.addEventListener('click', () => {
+    loadOfficerMaster().catch((error) => showToast(error.message))
   })
   elements.refreshRecordsButton.addEventListener('click', () => {
     loadRecords().catch((error) => showToast(error.message))
@@ -1732,6 +2020,18 @@ async function loadRecords() {
   const data = await response.json()
   state.records = Array.isArray(data.records) ? data.records : []
   renderRecords()
+}
+
+async function loadOfficerMaster() {
+  const response = await fetch('/api/officer-master')
+  const data = await response.json()
+  if (!response.ok) {
+    throw new Error(data.message || data.error || `HTTP ${response.status}`)
+  }
+  state.officers = Array.isArray(data.officers) ? data.officers : []
+  state.officerPortraits = Array.isArray(data.portraits) ? data.portraits : []
+  state.ports = Array.isArray(data.ports) ? data.ports : []
+  renderOfficerMaster()
 }
 
 async function loadGeneratedImages() {
@@ -1831,11 +2131,13 @@ bindEvents()
 renderRowPreview()
 renderCandidates()
 renderCards()
+renderOfficerMaster()
 renderRecords()
 renderGeneratedImages()
 loadImageThread().catch(() => {})
 refreshJobStatus().then(() => {
   if (isJobRunning()) startJobPolling()
 }).catch(() => {})
+loadOfficerMaster().catch(() => {})
 loadRecords().catch(() => {})
 loadGeneratedImages().catch(() => {})
