@@ -255,6 +255,7 @@ const state = {
   candidates: [],
   items: [],
   parsedRows: [],
+  activeOutputTab: 'prompts',
   search: '',
   recordSearch: '',
   officerSearch: '',
@@ -307,6 +308,12 @@ const elements = {
   clearRowsButton: $('clearRowsButton'),
   generateAllButton: $('generateAllButton'),
   clearAllButton: $('clearAllButton'),
+  promptTabButton: $('promptTabButton'),
+  npcTabButton: $('npcTabButton'),
+  faceDbTabButton: $('faceDbTabButton'),
+  promptTabPanel: $('promptTabPanel'),
+  npcTabPanel: $('npcTabPanel'),
+  faceDbTabPanel: $('faceDbTabPanel'),
   searchInput: $('searchInput'),
   cards: $('cards'),
   officerSummary: $('officerSummary'),
@@ -349,6 +356,28 @@ function showToast(message, duration = 1800) {
   showToast.timer = window.setTimeout(() => {
     elements.toast.classList.remove('show')
   }, duration)
+}
+
+function renderOutputTabs() {
+  const tabs = [
+    ['prompts', elements.promptTabButton, elements.promptTabPanel],
+    ['npc', elements.npcTabButton, elements.npcTabPanel],
+    ['faceDb', elements.faceDbTabButton, elements.faceDbTabPanel],
+  ]
+
+  for (const [tabId, button, panel] of tabs) {
+    const selected = state.activeOutputTab === tabId
+    button.classList.toggle('is-active', selected)
+    button.setAttribute('aria-selected', selected ? 'true' : 'false')
+    panel.classList.toggle('is-active', selected)
+    panel.hidden = !selected
+  }
+}
+
+function setOutputTab(tabId) {
+  if (state.activeOutputTab === tabId) return
+  state.activeOutputTab = tabId
+  renderOutputTabs()
 }
 
 function saveWorkspace() {
@@ -1957,6 +1986,9 @@ function bindEvents() {
     state.search = event.target.value
     renderCards()
   })
+  elements.promptTabButton.addEventListener('click', () => setOutputTab('prompts'))
+  elements.npcTabButton.addEventListener('click', () => setOutputTab('npc'))
+  elements.faceDbTabButton.addEventListener('click', () => setOutputTab('faceDb'))
   elements.officerSearchInput.addEventListener('input', (event) => {
     state.officerSearch = event.target.value
     renderOfficerMaster()
@@ -2128,6 +2160,7 @@ if (!state.candidates.length && !state.items.length) {
   generateCandidates({ silent: true })
 }
 bindEvents()
+renderOutputTabs()
 renderRowPreview()
 renderCandidates()
 renderCards()

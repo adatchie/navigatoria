@@ -137,6 +137,54 @@ button.ghost {
   padding: 14px;
 }
 
+.output-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  gap: 8px;
+  margin: -14px -14px 14px;
+  border-bottom: 1px solid #252c36;
+  padding: 10px 14px;
+  background: rgba(16, 18, 22, 0.96);
+  backdrop-filter: blur(10px);
+}
+
+.tab-button {
+  min-height: 38px;
+  border-color: #2f3948;
+  background: #171d25;
+  color: #aebbd0;
+  font-weight: 700;
+}
+
+.tab-button:hover {
+  background: #202837;
+}
+
+.tab-button.is-active {
+  border-color: #5c8cb2;
+  background: #21435f;
+  color: #f4f8ff;
+  box-shadow: inset 0 -2px 0 #8bc6ff;
+}
+
+.tab-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.tab-panel[hidden] {
+  display: none;
+}
+
+.tab-panel > .db-section:first-child,
+.flat-section {
+  margin-top: 0;
+  border-top: 0;
+  padding-top: 0;
+}
+
 .panel {
   margin-bottom: 18px;
 }

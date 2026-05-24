@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta http-equiv="cache-control" content="no-store" />
     <title>顔グラ生成</title>
-    <link rel="stylesheet" href="/styles.css?v=officer-db-20260523" />
+    <link rel="stylesheet" href="/styles.css?v=portrait-tabs-20260524" />
   </head>
   <body>
     <div class="workbench">
@@ -143,16 +143,24 @@
       </aside>
 
       <main class="output-column">
-        <div class="output-head">
-          <h2>承認済み</h2>
-          <label class="field compact">
-            <span>検索</span>
-            <input id="searchInput" type="search" autocomplete="off" />
-          </label>
-        </div>
-        <div id="cards" class="cards"></div>
+        <nav class="output-tabs" aria-label="右ペイン表示切替">
+          <button id="promptTabButton" class="tab-button is-active" type="button" data-output-tab="prompts" aria-controls="promptTabPanel">プロンプト送信</button>
+          <button id="npcTabButton" class="tab-button" type="button" data-output-tab="npc" aria-controls="npcTabPanel">NPCプロフィール管理</button>
+          <button id="faceDbTabButton" class="tab-button" type="button" data-output-tab="faceDb" aria-controls="faceDbTabPanel">顔グラDB</button>
+        </nav>
 
-        <section class="db-section">
+        <section id="promptTabPanel" class="tab-panel is-active" data-output-panel="prompts">
+          <div class="output-head">
+            <h2>承認済みプロンプト</h2>
+            <label class="field compact">
+              <span>検索</span>
+              <input id="searchInput" type="search" autocomplete="off" />
+            </label>
+          </div>
+          <div id="cards" class="cards"></div>
+        </section>
+
+        <section id="npcTabPanel" class="tab-panel" data-output-panel="npc" hidden>
           <div class="output-head">
             <div>
               <h2>航海士DB</h2>
@@ -169,37 +177,39 @@
           <div id="officerEditor" class="officer-editor"></div>
         </section>
 
-        <section class="db-section">
-          <div class="output-head">
-            <div>
-              <h2>顔グラDB</h2>
-              <p id="recordSummary" class="section-count">0件</p>
+        <section id="faceDbTabPanel" class="tab-panel" data-output-panel="faceDb" hidden>
+          <section class="db-section flat-section">
+            <div class="output-head">
+              <div>
+                <h2>顔グラDB</h2>
+                <p id="recordSummary" class="section-count">0件</p>
+              </div>
+              <div class="db-actions">
+                <label class="field compact">
+                  <span>DB検索</span>
+                  <input id="recordSearchInput" type="search" autocomplete="off" />
+                </label>
+                <button id="refreshRecordsButton" type="button">DB更新</button>
+              </div>
             </div>
-            <div class="db-actions">
-              <label class="field compact">
-                <span>DB検索</span>
-                <input id="recordSearchInput" type="search" autocomplete="off" />
-              </label>
-              <button id="refreshRecordsButton" type="button">DB更新</button>
-            </div>
-          </div>
-          <div id="records" class="records"></div>
-        </section>
+            <div id="records" class="records"></div>
+          </section>
 
-        <section class="db-section">
-          <div class="output-head">
-            <div>
-              <h2>生成画像フォルダ</h2>
-              <p id="imageSummary" class="section-count">0件</p>
+          <section class="db-section">
+            <div class="output-head">
+              <div>
+                <h2>生成画像フォルダ</h2>
+                <p id="imageSummary" class="section-count">0件</p>
+              </div>
+              <button id="refreshImagesButton" type="button">画像更新</button>
             </div>
-            <button id="refreshImagesButton" type="button">画像更新</button>
-          </div>
-          <div id="generatedImages" class="image-grid"></div>
+            <div id="generatedImages" class="image-grid"></div>
+          </section>
         </section>
       </main>
     </div>
 
     <div id="toast" class="toast" role="status"></div>
-    <script type="module" src="/app.js?v=officer-db-20260523"></script>
+    <script type="module" src="/app.js?v=portrait-tabs-20260524"></script>
   </body>
 </html>
