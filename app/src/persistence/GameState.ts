@@ -10,6 +10,9 @@ import { useNpcFleetStore } from '@/stores/useNpcFleetStore.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { localizeOfficerName } from '@/game/officers/officerGenerator.ts'
 import type { Port } from '@/types/port.ts'
+import { DEFAULT_GAME_SPEED } from '@/config/gameConfig.ts'
+
+const CURRENT_SAVE_VERSION = 2
 
 export interface GameSnapshot {
   version: number
@@ -26,6 +29,15 @@ export interface GameSnapshot {
   npcFleet?: ReturnType<typeof useNpcFleetStore.getState>
 }
 
+function normalizeSnapshotSpeed(snapshot: GameSnapshot): GameSnapshot['speed'] {
+  const speed = snapshot.speed ?? DEFAULT_GAME_SPEED
+  const version = snapshot.version ?? 1
+  if (version >= CURRENT_SAVE_VERSION) return speed
+  if (speed === 4) return 1
+  if (speed === 2) return 0.5
+  return speed
+}
+
 export function captureGameState(): GameSnapshot | null {
   const game = useGameStore.getState()
   const player = usePlayerStore.getState()
@@ -34,7 +46,7 @@ export function captureGameState(): GameSnapshot | null {
   const normalizedPhase: GameSnapshot['phase'] = game.phase === 'paused' ? 'paused' : game.phase === 'port' ? 'port' : 'playing'
 
   return {
-    version: 1,
+    version: CURRENT_SAVE_VERSION,
     gameTime: game.gameTime.serialize(),
     speed: game.speed,
     paused: game.paused,
@@ -65,8 +77,9 @@ export async function loadLatestSave(): Promise<GameSnapshot | null> {
 
 export function restoreGameState(snapshot: GameSnapshot): void {
   const gameStore = useGameStore.getState()
+  const restoredSpeed = normalizeSnapshotSpeed(snapshot)
   gameStore.gameTime.deserialize(snapshot.gameTime)
-  gameStore.gameTime.speed = snapshot.speed
+  gameStore.gameTime.speed = restoredSpeed
   gameStore.gameTime.paused = snapshot.paused
 
   const ports = useDataStore.getState().masterData.ports
@@ -120,7 +133,7 @@ export function restoreGameState(snapshot: GameSnapshot): void {
     ports: normalizedWorldPorts,
   }
 
-  useGameStore.setState({ speed: snapshot.speed, paused: snapshot.paused, phase: snapshot.phase, timeState: gameStore.gameTime.getState() })
+  useGameStore.setState({ speed: restoredSpeed, paused: snapshot.paused, phase: snapshot.phase, timeState: gameStore.gameTime.getState() })
   useNavigationStore.setState(navigationState)
   usePlayerStore.setState(playerState)
   useWorldStore.setState(worldState)

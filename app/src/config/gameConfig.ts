@@ -10,6 +10,13 @@ export const WORLD_GEOMETRY_SCALE = 32
 export const WORLD_WIDTH = 1600 * WORLD_GEOMETRY_SCALE
 export const WORLD_HEIGHT = 800 * WORLD_GEOMETRY_SCALE
 export const GRID_SIZE = 5
+export const DEFAULT_GAME_SPEED = 1
+// UI上の1xを旧4x相当にするため、表示倍率から実効倍率へ変換する。
+export const GAME_SPEED_BASELINE_MULTIPLIER = 4
+
+export function getEffectiveGameSpeed(displaySpeed: number): number {
+  return displaySpeed * GAME_SPEED_BASELINE_MULTIPLIER
+}
 
 /**
  * 距離スケール: 1座標単位 = 何km か
@@ -62,8 +69,9 @@ export const EXP_CONFIG = {
 } as const
 
 export const VOYAGE_CONFIG = {
-  FOOD_CONSUMPTION_PER_CREW_PER_DAY: 0.32,
-  WATER_CONSUMPTION_PER_CREW_PER_DAY: 0.38,
+  FOOD_CONSUMPTION_PER_CREW_PER_DAY: 0.16,
+  WATER_CONSUMPTION_PER_CREW_PER_DAY: 0.19,
+  OFFICER_SALARY_DAYS_PER_MONTH: 30,
   PASSIVE_MORALE_LOSS_PER_DAY: 0.9,
   STARVATION_ATTRITION_FACTOR: 1.2,
   DEHYDRATION_ATTRITION_FACTOR: 1.8,

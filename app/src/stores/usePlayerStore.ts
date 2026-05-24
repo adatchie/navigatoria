@@ -508,7 +508,8 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
       const shortage =
         waterResult.shortage * VOYAGE_CONFIG.DEHYDRATION_ATTRITION_FACTOR +
         foodResult.shortage * VOYAGE_CONFIG.STARVATION_ATTRITION_FACTOR
-      const dailyOfficerSalary = state.officers.reduce((sum, officer) => sum + officer.salary, 0)
+      const monthlyOfficerSalary = state.officers.reduce((sum, officer) => sum + officer.salary, 0)
+      const dailyOfficerSalary = monthlyOfficerSalary / VOYAGE_CONFIG.OFFICER_SALARY_DAYS_PER_MONTH
       const salaryDue = state.officerSalaryProgress + dailyOfficerSalary * gameDayDelta
       const payableSalary = Math.floor(salaryDue)
       const paidSalary = Math.min(state.player?.money ?? 0, payableSalary)

@@ -622,7 +622,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
     : []
   const hiredOfficerIds = new Set(officers.map((officer) => officer.id))
   const consortShips = ships.filter((ship) => ship.instanceId !== activeShipId)
-  const officerDailySalary = officers.reduce((sum, officer) => sum + officer.salary, 0)
+  const officerMonthlySalary = officers.reduce((sum, officer) => sum + officer.salary, 0)
   const captainLevel = Math.max(player?.stats.tradeLevel ?? 0, player?.stats.combatLevel ?? 0, player?.stats.adventureLevel ?? 0)
   const ownedShipTypeIds = new Set(ships.map((ship) => ship.typeId))
   const shipyardOffers = shipCatalog
@@ -680,7 +680,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
           <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.crew}</span><strong>{fleetStats.crew}/{fleetStats.maxCrew}</strong></div>
           <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.cargo}</span><strong>{fleetStats.cargo.toFixed(1)}/{fleetStats.maxCargo.toFixed(1)}</strong></div>
           <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.morale}</span><strong>{formatMorale(fleetMorale)}</strong></div>
-          <div style={styles.statCard}><span style={styles.statLabel}>航海士</span><strong>{officers.length} 名 / 日給 {officerDailySalary} d</strong></div>
+          <div style={styles.statCard}><span style={styles.statLabel}>航海士</span><strong>{officers.length} 名 / 月給 {officerMonthlySalary} d</strong></div>
           <div style={styles.statCard}><span style={styles.statLabel}>{uiText.town.labels.supplies}</span><strong>食 {fleetSupply.food.toFixed(0)}/{fleetSupply.maxFood.toFixed(0)} / 水 {fleetSupply.water.toFixed(0)}/{fleetSupply.maxWater.toFixed(0)}</strong></div>
         </div>
 
@@ -1101,7 +1101,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                                   </div>
                                   <div style={styles.officerCostBox}>
                                     <span>雇用 {officer.hireCost} d</span>
-                                    <span>日給 {officer.salary} d</span>
+                                    <span>月給 {officer.salary} d</span>
                                     <small>{formatOfficerStats(officer)}</small>
                                   </div>
                                 </div>

@@ -7,6 +7,7 @@ import { subscribeWithSelector } from 'zustand/middleware'
 import type { GamePhase, GameSpeed, GameTimeState } from '@/types/common.ts'
 import { GameTime } from '@/game/GameTime.ts'
 import type { FrameStats } from '@/game/GameLoop.ts'
+import { DEFAULT_GAME_SPEED } from '@/config/gameConfig.ts'
 
 interface GameStoreState {
   /** ゲームフェーズ */
@@ -39,7 +40,7 @@ export const useGameStore = create<GameStoreState>()(
 
     return {
       phase: 'loading',
-      speed: 1,
+      speed: DEFAULT_GAME_SPEED,
       paused: false,
       gameTime,
       timeState: gameTime.getState(),

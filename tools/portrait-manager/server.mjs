@@ -144,15 +144,60 @@ async function writeOfficerMasterStore(store) {
   })
 }
 
+function portraitOptionFromRecord(record) {
+  const id = cleanText(record.implementationId) || cleanText(record.id)
+  if (!id || !cleanText(record.imagePath)) return null
+
+  return {
+    id,
+    assetUrl: '',
+    imagePath: cleanText(record.imagePath),
+    role: cleanText(record.role),
+    nationality: cleanText(record.nationality),
+    portName: cleanText(record.port),
+    portId: '',
+    culture: '',
+    age: cleanText(record.age),
+    gender: cleanText(record.gender),
+    period: cleanText(record.period),
+    faceAngle: cleanText(record.faceAngle),
+    setting: cleanText(record.setting),
+    mood: cleanText(record.mood),
+    sourceImageFileName: cleanText(record.imageFileName) || path.basename(cleanText(record.imagePath)),
+    sourceRecordId: cleanText(record.id),
+    displayName: cleanText(record.displayName),
+    implementationId: cleanText(record.implementationId),
+    notes: cleanText(record.notes),
+    localOnly: true,
+  }
+}
+
+function mergeOfficerPortraitOptions(masterPortraits, records) {
+  const portraits = masterPortraits.map((portrait) => ({ ...portrait, localOnly: false }))
+  const seenIds = new Set(portraits.map((portrait) => cleanText(portrait.id)).filter(Boolean))
+
+  for (const record of records) {
+    const portrait = portraitOptionFromRecord(record)
+    if (!portrait || seenIds.has(portrait.id)) continue
+    portraits.push(portrait)
+    seenIds.add(portrait.id)
+  }
+
+  return portraits
+}
+
 async function readOfficerEditorPayload() {
-  const [store, portraitDb, ports] = await Promise.all([
+  const [store, portraitDb, ports, portraitRecords] = await Promise.all([
     readOfficerMasterStore(),
     readJsonFile(OFFICER_PORTRAITS_FILE, { portraits: [], fallbackPortraitUrl: '' }),
     readJsonFile(PORTS_FILE, []),
+    readPortraitRecordStore(),
   ])
+  const masterPortraits = Array.isArray(portraitDb.portraits) ? portraitDb.portraits : []
+  const records = Array.isArray(portraitRecords.records) ? portraitRecords.records : []
   return {
     ...store,
-    portraits: Array.isArray(portraitDb.portraits) ? portraitDb.portraits : [],
+    portraits: mergeOfficerPortraitOptions(masterPortraits, records),
     fallbackPortraitUrl: portraitDb.fallbackPortraitUrl || '',
     ports: Array.isArray(ports) ? ports : [],
   }

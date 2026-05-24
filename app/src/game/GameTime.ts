@@ -1,24 +1,22 @@
 // ============================================================
 // GameTime — ゲーム内時間管理
-// 1ゲーム日 = 120リアル秒 (デフォルト)
+// UI上の1xは旧4x相当の基準速度
 // ============================================================
 
-import { TIME_CONFIG } from '@/config/gameConfig.ts'
+import { DEFAULT_GAME_SPEED, getEffectiveGameSpeed, TIME_CONFIG } from '@/config/gameConfig.ts'
 import type { GameTimeState, GameSpeed } from '@/types/common.ts'
 import type { Season } from '@/types/world.ts'
 
 export class GameTime {
   private _totalGameSeconds = 0
-  private _speed: GameSpeed = 1
+  private _speed: GameSpeed = DEFAULT_GAME_SPEED
   private _paused = false
 
   /** リアル秒 → ゲーム秒の変換係数 */
   private get _timeScale(): number {
     if (this._paused) return 0
-    // 1ゲーム日(86400ゲーム秒) = 120リアル秒
-    // → 1リアル秒 = 720ゲーム秒
     const baseScale = 86400 / TIME_CONFIG.REAL_SECONDS_PER_GAME_DAY
-    return baseScale * this._speed
+    return baseScale * getEffectiveGameSpeed(this._speed)
   }
 
   /** リアルタイムのdeltaTime(秒)でゲーム時間を進める */

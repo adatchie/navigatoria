@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-23T09:03:17.277Z",
+  "updatedAt": "2026-05-24T13:58:27.381Z",
   "balanceNote": "Fixed tavern officer master. Each nationality has 12 officers: navigation 3, trade 3, gunnery 2, repair 2, leadership 2. Level and cost bands are fixed for tavern progression; runtime only rotates eligible records and never generates stats or portrait assignments.",
   "officers": [
     {
@@ -96,7 +96,7 @@
       "familyName": "ピレス",
       "nationality": "portugal",
       "gender": "male",
-      "specialty": "gunnery",
+      "specialty": "trade",
       "level": 2,
       "stats": {
         "navigation": 1,
@@ -107,7 +107,7 @@
       },
       "hireCost": 734,
       "salary": 53,
-      "portraitId": "portrait_brief_moxjdesf_rnm2u",
+      "portraitId": "portrait_brief_moxjdesf_8btor",
       "fallbackPortraitIds": [
         "portrait_brief_moxjdesf_c92lm",
         "portrait_brief_moxjdesf_y34ld",
@@ -130,7 +130,7 @@
       "minTavernLevel": 1,
       "minFame": 0,
       "displayOrder": 3,
-      "description": "カリカットにゆかりを持つ護衛船で砲列指揮を覚えた戦闘航海士。接近戦で砲撃の号令を乱さない。"
+      "description": "ポルトガルの元薬剤師、ポルトガル宮廷からインドで「麻薬密売人」として働くよう任命されインドへと赴いた。"
     },
     {
       "id": "officer:portugal:04",
@@ -193,7 +193,7 @@
       },
       "hireCost": 908,
       "salary": 65,
-      "portraitId": "portrait_brief_moxjdesf_z97j7",
+      "portraitId": "portrait_brief_moxjdesf_lv2nc",
       "fallbackPortraitIds": [
         "portrait_brief_moxjdesf_c92lm",
         "portrait_brief_moxjdesf_rnm2u",
@@ -392,9 +392,9 @@
     },
     {
       "id": "officer:portugal:10",
-      "name": "ルイ・コエリョ",
-      "firstName": "ルイ",
-      "familyName": "コエリョ",
+      "name": "バルタザール・オリベイラ",
+      "firstName": "バルタザール",
+      "familyName": "オリベイラ",
       "nationality": "portugal",
       "gender": "male",
       "specialty": "leadership",
@@ -408,7 +408,7 @@
       },
       "hireCost": 1292,
       "salary": 91,
-      "portraitId": "portrait_brief_moxjdesf_3d991",
+      "portraitId": "portrait_brief_moxjdesf_ygp1t",
       "fallbackPortraitIds": [
         "portrait_brief_moxjdesf_c92lm",
         "portrait_brief_moxjdesf_rnm2u",
@@ -431,7 +431,7 @@
       "minTavernLevel": 4,
       "minFame": 360,
       "displayOrder": 10,
-      "description": "マラッカにゆかりを持つ船員の気質を見抜くまとめ役。荒れた航海でも命令系統を保つのがうまい。"
+      "description": "血の気の多い腕利きの傭兵。船員の気質を見抜くまとめ役。荒れた航海でも命令系統を保つのに長けている。"
     },
     {
       "id": "officer:portugal:11",
@@ -451,7 +451,7 @@
       },
       "hireCost": 1118,
       "salary": 80,
-      "portraitId": "portrait_brief_moxjdesf_b8bf9",
+      "portraitId": "portrait_brief_moxjdesf_hcu82",
       "fallbackPortraitIds": [
         "portrait_brief_moxjdesf_866iw",
         "portrait_brief_moxjdesf_v3s4j",
@@ -494,7 +494,7 @@
       },
       "hireCost": 1484,
       "salary": 105,
-      "portraitId": "portrait_brief_moxjdesf_ygp1t",
+      "portraitId": "portrait_brief_moxjdesf_znjzq",
       "fallbackPortraitIds": [
         "portrait_brief_moxjdesf_c92lm",
         "portrait_brief_moxjdesf_rnm2u",
@@ -505,7 +505,7 @@
         "portrait_brief_moxjdesf_cy8oh",
         "portrait_brief_moxjdesf_3d991"
       ],
-      "homePortId": "nagasaki",
+      "homePortId": "santo_domingo",
       "availablePortIds": [
         "lisbon",
         "cape_town",
@@ -578,7 +578,7 @@
       },
       "hireCost": 734,
       "salary": 53,
-      "portraitId": "portrait_brief_moxjdesf_b8bf9",
+      "portraitId": "portrait_brief_moxjdesf_fu7q2",
       "fallbackPortraitIds": [
         "portrait_brief_moxjdesf_866iw",
         "portrait_brief_moxjdesf_v3s4j",
@@ -619,7 +619,7 @@
       },
       "hireCost": 734,
       "salary": 53,
-      "portraitId": "portrait_brief_moxjdesf_ygp1t",
+      "portraitId": "portrait_brief_moxjdesf_2m1i4",
       "fallbackPortraitIds": [
         "portrait_brief_moxjdesf_oumdp",
         "portrait_brief_moxjdesf_8btor",
@@ -660,7 +660,7 @@
       },
       "hireCost": 908,
       "salary": 65,
-      "portraitId": "portrait_brief_moxjdesf_v3s4j",
+      "portraitId": "portrait_brief_moxjdesf_fu7q2",
       "fallbackPortraitIds": [
         "portrait_brief_moxjdesf_b8bf9",
         "portrait_brief_moxjdesf_866iw",
@@ -1013,9 +1013,9 @@
     },
     {
       "id": "officer:england:01",
-      "name": "黒髪のウィリアム",
+      "name": "ウィリアム・ロー",
       "firstName": "ウィリアム",
-      "familyName": "ホーキンズ",
+      "familyName": "ロー",
       "nationality": "england",
       "gender": "male",
       "specialty": "navigation",
@@ -1029,7 +1029,7 @@
       },
       "hireCost": 752,
       "salary": 54,
-      "portraitId": "portrait_brief_moxjdesf_znjzq",
+      "portraitId": "portrait_brief_moxjdesf_1zfgm",
       "fallbackPortraitIds": [
         "portrait_brief_moxjdesf_z3npp",
         "portrait_brief_moxjdesf_lv2nc",
@@ -1409,7 +1409,7 @@
       },
       "hireCost": 1118,
       "salary": 80,
-      "portraitId": "portrait_brief_moxjdesf_i51xm",
+      "portraitId": "portrait_brief_moxjdesf_cy8oh",
       "fallbackPortraitIds": [
         "portrait_brief_moxjdesf_znjzq",
         "portrait_brief_moxjdesf_z3npp",
@@ -1903,7 +1903,7 @@
       },
       "hireCost": 1484,
       "salary": 105,
-      "portraitId": "portrait_brief_moxjdesf_rnm2u",
+      "portraitId": "portrait_brief_moxjdesf_hjsjj",
       "fallbackPortraitIds": [
         "portrait_brief_moxjdesf_lv2nc",
         "portrait_brief_moxjdesf_znjzq",
@@ -1980,7 +1980,7 @@
       },
       "hireCost": 734,
       "salary": 53,
-      "portraitId": "portrait_brief_moxjdesf_fu7q2",
+      "portraitId": "portrait_brief_moxjdesf_v3s4j",
       "fallbackPortraitIds": [
         "portrait_brief_moxjdesf_866iw",
         "portrait_brief_moxjdesf_xtl11",
@@ -2019,7 +2019,7 @@
       },
       "hireCost": 734,
       "salary": 53,
-      "portraitId": "portrait_brief_moxjdesf_c92lm",
+      "portraitId": "portrait_brief_moxjdesf_hcu82",
       "fallbackPortraitIds": [
         "portrait_brief_moxjdesf_slrmt",
         "portrait_brief_moxjdesf_rnm2u",
@@ -3169,7 +3169,7 @@
       },
       "hireCost": 1118,
       "salary": 80,
-      "portraitId": "portrait_brief_moxjdesf_znjzq",
+      "portraitId": "portrait_brief_moxjdesf_97l64",
       "fallbackPortraitIds": [
         "portrait_brief_moxjdesf_6b2in",
         "portrait_brief_moxjdesf_i51xm",

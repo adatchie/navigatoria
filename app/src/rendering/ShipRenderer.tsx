@@ -22,8 +22,10 @@ import {
 } from 'three'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
+import { useGameStore } from '@/stores/useGameStore.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { isPointOnLand, snapPointToNearestSea } from '@/data/master/landmasses.ts'
+import { getEffectiveGameSpeed, TIME_CONFIG, WORLD_DISTANCE_SCALE } from '@/config/gameConfig.ts'
 import { SCENE_WORLD_SCALE, worldToScene } from '@/rendering/worldTransform.ts'
 
 interface ShipRendererProps {
@@ -104,8 +106,8 @@ const shipParts: ShipPartDefinition[] = [
 ]
 
 const MAX_RENDERED_FLEET_SHIPS = 5
-const FOLLOW_POSITION_LERP = 1.8
 const FOLLOW_HEADING_LERP = 2.4
+const FOLLOW_SPEED_FACTOR = 1.18
 const FOLLOW_LAND_CLEARANCE = 0.35
 const FORMATION_DEPLOY_DISTANCE_KM = 24
 const SHIP_MODEL_URL = `${import.meta.env.BASE_URL}models/player-ship-lite.glb`
@@ -236,6 +238,44 @@ function resolveFollowerSeaPosition(
   return { x: seaX, y: seaY }
 }
 
+function getFollowerMaxStep(nav: ReturnType<typeof useNavigationStore.getState>, delta: number): number {
+  if (nav.mode !== 'sailing' && nav.mode !== 'anchored') return 0
+  const gameSpeed = useGameStore.getState().speed
+  const hoursPerRealSecond = (24 / TIME_CONFIG.REAL_SECONDS_PER_GAME_DAY) * getEffectiveGameSpeed(gameSpeed)
+  const stepKm = Math.max(0, nav.currentSpeed) * FOLLOW_SPEED_FACTOR * 1.852 * hoursPerRealSecond * delta
+  return stepKm / WORLD_DISTANCE_SCALE
+}
+
+function moveTowardWithMaxStep(
+  current: FleetRenderState,
+  target: { x: number; y: number },
+  maxStep: number,
+): { x: number; y: number } {
+  const dx = target.x - current.x
+  const dy = target.y - current.y
+  const distanceToTarget = Math.hypot(dx, dy)
+  if (distanceToTarget <= 0.0001 || distanceToTarget <= maxStep) return target
+  const ratio = maxStep / distanceToTarget
+  return {
+    x: current.x + dx * ratio,
+    y: current.y + dy * ratio,
+  }
+}
+
+function advanceFollowerFormationState(
+  stateForShip: FleetRenderState,
+  target: { x: number; y: number },
+  navHeading: number,
+  maxStep: number,
+  headingLerp: number,
+): void {
+  const next = moveTowardWithMaxStep(stateForShip, target, maxStep)
+  const resolved = resolveFollowerSeaPosition(stateForShip, next, target)
+  stateForShip.x = resolved.x
+  stateForShip.y = resolved.y
+  stateForShip.heading = (stateForShip.heading + getAngleDelta(stateForShip.heading, navHeading) * headingLerp + 360) % 360
+}
+
 export function FleetShipRenderer() {
   const { scene } = useGLTF(SHIP_MODEL_URL, false, true)
   const shipRefs = useMemo(
@@ -275,11 +315,11 @@ export function FleetShipRenderer() {
     const active = player.ships.find((ship) => ship.instanceId === player.activeShipId)
     const followers = player.ships.filter((ship) => ship.instanceId !== player.activeShipId)
     const fleetShips = (active ? [active, ...followers] : followers).slice(0, MAX_RENDERED_FLEET_SHIPS)
-    const positionLerp = 1 - Math.exp(-FOLLOW_POSITION_LERP * delta)
     const headingLerp = 1 - Math.exp(-FOLLOW_HEADING_LERP * delta)
     const time = state.clock.elapsedTime
     const activeIds = new Set(fleetShips.map((ship) => ship.instanceId))
     const currentNavigationSnapshot = getFleetNavigationSnapshot(nav)
+    const followerMaxStep = getFollowerMaxStep(nav, delta)
 
     if (shouldResetFleetAtFlagship(navigationSnapshotRef.current, currentNavigationSnapshot, nav.distanceTraveled)) {
       resetFleetRenderStatesAtFlagship(renderStatesRef.current, fleetShips, nav.position, nav.heading)
@@ -311,14 +351,7 @@ export function FleetShipRenderer() {
         stateForShip.y = nav.position.y
         stateForShip.heading = nav.heading
       } else {
-        const next = {
-          x: stateForShip.x + (target.x - stateForShip.x) * positionLerp,
-          y: stateForShip.y + (target.y - stateForShip.y) * positionLerp,
-        }
-        const resolved = resolveFollowerSeaPosition(stateForShip, next, target)
-        stateForShip.x = resolved.x
-        stateForShip.y = resolved.y
-        stateForShip.heading = (stateForShip.heading + getAngleDelta(stateForShip.heading, nav.heading) * headingLerp + 360) % 360
+        advanceFollowerFormationState(stateForShip, target, nav.heading, followerMaxStep, headingLerp)
       }
 
       renderStatesRef.current.set(ship.instanceId, stateForShip)
@@ -390,11 +423,11 @@ export function FleetPlaceholderRenderer() {
     const active = player.ships.find((ship) => ship.instanceId === player.activeShipId)
     const followers = player.ships.filter((ship) => ship.instanceId !== player.activeShipId)
     const fleetShips = (active ? [active, ...followers] : followers).slice(0, MAX_RENDERED_FLEET_SHIPS)
-    const positionLerp = 1 - Math.exp(-FOLLOW_POSITION_LERP * delta)
     const headingLerp = 1 - Math.exp(-FOLLOW_HEADING_LERP * delta)
     const time = state.clock.elapsedTime
     const activeIds = new Set(fleetShips.map((ship) => ship.instanceId))
     const currentNavigationSnapshot = getFleetNavigationSnapshot(nav)
+    const followerMaxStep = getFollowerMaxStep(nav, delta)
 
     if (shouldResetFleetAtFlagship(navigationSnapshotRef.current, currentNavigationSnapshot, nav.distanceTraveled)) {
       resetFleetRenderStatesAtFlagship(renderStatesRef.current, fleetShips, nav.position, nav.heading)
@@ -426,14 +459,7 @@ export function FleetPlaceholderRenderer() {
         stateForShip.y = nav.position.y
         stateForShip.heading = nav.heading
       } else {
-        const next = {
-          x: stateForShip.x + (target.x - stateForShip.x) * positionLerp,
-          y: stateForShip.y + (target.y - stateForShip.y) * positionLerp,
-        }
-        const resolved = resolveFollowerSeaPosition(stateForShip, next, target)
-        stateForShip.x = resolved.x
-        stateForShip.y = resolved.y
-        stateForShip.heading = (stateForShip.heading + getAngleDelta(stateForShip.heading, nav.heading) * headingLerp + 360) % 360
+        advanceFollowerFormationState(stateForShip, target, nav.heading, followerMaxStep, headingLerp)
       }
 
       renderStatesRef.current.set(ship.instanceId, stateForShip)

@@ -8,7 +8,7 @@
 // ============================================================
 
 import type { GameSystem } from '@/game/GameLoop.ts'
-import { NAVIGATION_CONFIG, TIME_CONFIG, WORLD_DISTANCE_SCALE, WORLD_WIDTH, WORLD_HEIGHT } from '@/config/gameConfig.ts'
+import { getEffectiveGameSpeed, NAVIGATION_CONFIG, TIME_CONFIG, WORLD_DISTANCE_SCALE, WORLD_WIDTH, WORLD_HEIGHT } from '@/config/gameConfig.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
@@ -299,10 +299,11 @@ export class NavigationSystem implements GameSystem {
         baseSpeed * nav.sailRatio * windFactor * windSpeedBonus * crewSpeedFactor * moraleFactor.speed * loadFactor * officerEffects.speedFactor,
       ),
     )
+    nav.setSpeed(effectiveSpeed)
 
     // --- 移動 ---
     const headingRad = (newHeading * Math.PI) / 180
-    const hoursPerRealSecond = (24 / TIME_CONFIG.REAL_SECONDS_PER_GAME_DAY) * speed
+    const hoursPerRealSecond = (24 / TIME_CONFIG.REAL_SECONDS_PER_GAME_DAY) * getEffectiveGameSpeed(speed)
     // stepKm は実際のkm移動量
     const stepKm = effectiveSpeed * 1.852 * hoursPerRealSecond * deltaTime
     // マップ座標上の移動量に変換 (1マップ単位 = WORLD_DISTANCE_SCALE km)

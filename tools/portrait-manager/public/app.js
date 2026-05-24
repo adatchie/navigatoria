@@ -1421,8 +1421,71 @@ function portById(id) {
 
 function officerPortraitSrc(portraitId) {
   const portrait = portraitById(portraitId)
-  if (!portrait?.assetUrl) return ''
-  return `/api/app-asset?path=${encodeURIComponent(portrait.assetUrl)}`
+  if (portrait?.assetUrl) {
+    return `/api/app-asset?path=${encodeURIComponent(portrait.assetUrl)}`
+  }
+  if (portrait?.imagePath) {
+    return `/api/portrait-image?path=${encodeURIComponent(portrait.imagePath)}`
+  }
+  return ''
+}
+
+function portraitOptionFromRecord(record) {
+  const id = String(record.implementationId || record.id || '').trim()
+  const imagePath = String(record.imagePath || '').trim()
+  if (!id || !imagePath) return null
+
+  return {
+    id,
+    assetUrl: '',
+    imagePath,
+    role: String(record.role || '').trim(),
+    nationality: String(record.nationality || '').trim(),
+    portName: String(record.port || '').trim(),
+    age: String(record.age || '').trim(),
+    gender: String(record.gender || '').trim(),
+    period: String(record.period || '').trim(),
+    faceAngle: String(record.faceAngle || '').trim(),
+    setting: String(record.setting || '').trim(),
+    mood: String(record.mood || '').trim(),
+    sourceImageFileName: String(record.imageFileName || '').trim(),
+    sourceRecordId: String(record.id || '').trim(),
+    displayName: String(record.displayName || '').trim(),
+    implementationId: String(record.implementationId || '').trim(),
+    notes: String(record.notes || '').trim(),
+    localOnly: true,
+  }
+}
+
+function portraitOptionSignature(portrait) {
+  return [
+    portrait.id,
+    portrait.assetUrl,
+    portrait.imagePath,
+    portrait.displayName,
+    portrait.role,
+    portrait.nationality,
+    portrait.portName,
+    portrait.localOnly ? 'local' : 'master',
+  ].map((value) => String(value || '')).join('|')
+}
+
+function syncOfficerPortraitsFromRecords() {
+  const masterPortraits = state.officerPortraits.filter((portrait) => !portrait.localOnly)
+  const portraits = [...masterPortraits]
+  const seenIds = new Set(masterPortraits.map((portrait) => portrait.id).filter(Boolean))
+
+  for (const record of state.records) {
+    const portrait = portraitOptionFromRecord(record)
+    if (!portrait || seenIds.has(portrait.id)) continue
+    portraits.push(portrait)
+    seenIds.add(portrait.id)
+  }
+
+  const before = state.officerPortraits.map(portraitOptionSignature).join('\n')
+  const after = portraits.map(portraitOptionSignature).join('\n')
+  state.officerPortraits = portraits
+  return before !== after
 }
 
 function portOptions() {
@@ -1432,7 +1495,14 @@ function portOptions() {
 function portraitOptions() {
   return state.officerPortraits.map((portrait) => [
     portrait.id,
-    `${portrait.id.replace('portrait_brief_moxjdesf_', '')} / ${labelFor(roles, portrait.role)} / ${labelFor(nationalities, portrait.nationality)} / ${portrait.portName || '-'}`,
+    [
+      portrait.id.replace('portrait_brief_moxjdesf_', ''),
+      portrait.localOnly ? '顔グラDB' : '実装済み',
+      portrait.displayName,
+      labelFor(roles, portrait.role),
+      labelFor(nationalities, portrait.nationality),
+      portrait.portName || '-',
+    ].filter(Boolean).join(' / '),
   ])
 }
 
@@ -1452,8 +1522,10 @@ function matchesOfficerSearch(officer) {
     homePort?.name,
     (officer.availablePortIds || []).map((id) => portById(id)?.name || id).join(' '),
     officer.portraitId,
+    portrait?.displayName,
     portrait?.setting,
     portrait?.mood,
+    portrait?.imagePath,
     officer.description,
   ].join(' ').toLowerCase().includes(needle)
 }
@@ -1837,6 +1909,9 @@ async function updateRecord(id, patch) {
   if (index >= 0) {
     state.records[index] = data.record
   }
+  if (syncOfficerPortraitsFromRecords() && state.officers.length) {
+    renderOfficerMaster()
+  }
   renderRecords()
 }
 
@@ -1877,12 +1952,43 @@ function createImageTile(image) {
   return tile
 }
 
+function portraitRecordIdForBrief(brief) {
+  return `portrait_${String(brief.id || '').replace(/[^\w-]/g, '_')}`
+}
+
+function recordMatchesBrief(record, brief) {
+  const briefId = String(brief.id || '').trim()
+  if (!briefId) return false
+  return record.sourceBriefId === briefId
+    || record.sourceKey === `brief:${briefId}`
+    || record.id === portraitRecordIdForBrief(brief)
+}
+
+function isAlreadyGeneratedBrief(brief) {
+  return state.records.some((record) => recordMatchesBrief(record, brief) && record.imagePath)
+}
+
 async function requestGeneration(briefs) {
   if (!briefs.length) {
     showToast('生成対象がありません')
     return
   }
 
+  await loadRecords().catch(() => {})
+  const generationBriefs = briefs.filter((brief) => !isAlreadyGeneratedBrief(brief))
+  const skippedCount = briefs.length - generationBriefs.length
+  if (skippedCount > 0) {
+    showToast(`${skippedCount}件の生成済み候補を除外しました`, 4000)
+  }
+  if (!generationBriefs.length) {
+    showToast('送信対象はすべて生成済みです')
+    return
+  }
+  if (generationBriefs.length > 1 && !window.confirm(`${generationBriefs.length}件を画像スレッドへ送信します。よろしいですか？`)) {
+    return
+  }
+
+  briefs = generationBriefs
   state.submittingGeneration = true
   elements.generateAllButton.disabled = true
   elements.jobStatus.textContent = `送信中: ${briefTitle(briefs[0]) || '生成対象'}`
@@ -2051,7 +2157,11 @@ async function loadRecords() {
   const response = await fetch('/api/portrait-records')
   const data = await response.json()
   state.records = Array.isArray(data.records) ? data.records : []
+  const changedPortraitOptions = syncOfficerPortraitsFromRecords()
   renderRecords()
+  if (changedPortraitOptions && state.officers.length) {
+    renderOfficerMaster()
+  }
 }
 
 async function loadOfficerMaster() {
@@ -2063,6 +2173,7 @@ async function loadOfficerMaster() {
   state.officers = Array.isArray(data.officers) ? data.officers : []
   state.officerPortraits = Array.isArray(data.portraits) ? data.portraits : []
   state.ports = Array.isArray(data.ports) ? data.ports : []
+  syncOfficerPortraitsFromRecords()
   renderOfficerMaster()
 }
 
