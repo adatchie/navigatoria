@@ -110,7 +110,30 @@ const FOLLOW_HEADING_LERP = 2.4
 const FOLLOW_SPEED_FACTOR = 1.18
 const FOLLOW_LAND_CLEARANCE = 0.35
 const FORMATION_DEPLOY_DISTANCE_KM = 24
-const SHIP_MODEL_URL = `${import.meta.env.BASE_URL}models/player-ship-lite.glb`
+const DEFAULT_SHIP_MODEL_ID = 'player-ship-lite'
+const SHIP_MODEL_URLS: Record<string, string> = {
+  [DEFAULT_SHIP_MODEL_ID]: `${import.meta.env.BASE_URL}models/player-ship-lite.glb`,
+  galley: `${import.meta.env.BASE_URL}models/ships/galley.glb`,
+  cog: `${import.meta.env.BASE_URL}models/ships/cog.glb`,
+  barsha: `${import.meta.env.BASE_URL}models/ships/barsha.glb`,
+  caravel: `${import.meta.env.BASE_URL}models/ships/caravel.glb`,
+  carrack: `${import.meta.env.BASE_URL}models/ships/carrack.glb`,
+  galleon: `${import.meta.env.BASE_URL}models/ships/galleon.glb`,
+  schooner: `${import.meta.env.BASE_URL}models/ships/schooner.glb`,
+  barca: `${import.meta.env.BASE_URL}models/ships/barsha.glb`,
+  balca: `${import.meta.env.BASE_URL}models/ships/barsha.glb`,
+}
+const SHIP_MODEL_SIZE_SCALE: Record<string, number> = {
+  [DEFAULT_SHIP_MODEL_ID]: 1,
+  barsha: 0.62,
+  barca: 0.62,
+  balca: 0.62,
+  caravel: 0.82,
+  cog: 0.82,
+  carrack: 1.34,
+  galleon: 1.55,
+  schooner: 1.55,
+}
 const TARGET_MODEL_LENGTH = 5.2
 
 interface FleetRenderState {
@@ -137,6 +160,60 @@ function getShipScale(category?: string): number {
   if (category === 'large_sail') return 1.45
   if (category === 'galley') return 1.1
   return 1.2
+}
+
+function resolveShipModelId(modelId?: string): string {
+  if (modelId && SHIP_MODEL_URLS[modelId]) return modelId
+  return DEFAULT_SHIP_MODEL_ID
+}
+
+function resolveShipModelUrl(modelId?: string): string {
+  return SHIP_MODEL_URLS[resolveShipModelId(modelId)]
+}
+
+function resolveShipModelSizeScale(modelId?: string): number {
+  return SHIP_MODEL_SIZE_SCALE[resolveShipModelId(modelId)] ?? 1
+}
+
+function getFleetModelScale(category?: string, modelId?: string): number {
+  if (modelId && SHIP_MODEL_URLS[modelId]) return 1
+  return getShipScale(category)
+}
+
+function useNormalizedModelLayout(scene: Group, sizeScale: number): NormalizedModelLayout {
+  return useMemo<NormalizedModelLayout>(() => {
+    const boundsBox = new Box3().setFromObject(scene)
+    const boundsSize = boundsBox.getSize(new Vector3())
+    const boundsCenter = boundsBox.getCenter(new Vector3())
+    const dominantLength = Math.max(boundsSize.x, boundsSize.z, 0.0001)
+    const modelScale = (TARGET_MODEL_LENGTH * sizeScale) / dominantLength
+    const rotationY = (boundsSize.x > boundsSize.z ? Math.PI / 2 : 0) + Math.PI
+
+    return {
+      scale: modelScale,
+      offset: [
+        -boundsCenter.x * modelScale,
+        -boundsBox.min.y * modelScale,
+        -boundsCenter.z * modelScale,
+      ],
+      rotationY,
+    }
+  }, [scene, sizeScale])
+}
+
+function ShipModelClone({ modelId }: { modelId?: string }) {
+  const { scene } = useGLTF(resolveShipModelUrl(modelId), false, true)
+  const modelLayout = useNormalizedModelLayout(scene, resolveShipModelSizeScale(modelId))
+
+  return (
+    <group
+      position={modelLayout.offset}
+      rotation={[0, modelLayout.rotationY, 0]}
+      scale={modelLayout.scale}
+    >
+      <Clone object={scene} />
+    </group>
+  )
 }
 
 function getAngleDelta(current: number, target: number): number {
@@ -277,7 +354,9 @@ function advanceFollowerFormationState(
 }
 
 export function FleetShipRenderer() {
-  const { scene } = useGLTF(SHIP_MODEL_URL, false, true)
+  const playerShips = usePlayerStore((s) => s.ships)
+  const activeShipId = usePlayerStore((s) => s.activeShipId)
+  const getShip = useDataStore((s) => s.getShip)
   const shipRefs = useMemo(
     () => Array.from({ length: MAX_RENDERED_FLEET_SHIPS }, () => createRef<Group>()),
     [],
@@ -289,24 +368,12 @@ export function FleetShipRenderer() {
   const hiddenObject = useRef(new Object3D())
   const renderStatesRef = useRef(new Map<string, FleetRenderState>())
   const navigationSnapshotRef = useRef<FleetNavigationSnapshot | null>(null)
-  const modelLayout = useMemo<NormalizedModelLayout>(() => {
-    const boundsBox = new Box3().setFromObject(scene)
-    const boundsSize = boundsBox.getSize(new Vector3())
-    const boundsCenter = boundsBox.getCenter(new Vector3())
-    const dominantLength = Math.max(boundsSize.x, boundsSize.z, 0.0001)
-    const modelScale = TARGET_MODEL_LENGTH / dominantLength
-    const rotationY = (boundsSize.x > boundsSize.z ? Math.PI / 2 : 0) + Math.PI
-
-    return {
-      scale: modelScale,
-      offset: [
-        -boundsCenter.x * modelScale,
-        -boundsBox.min.y * modelScale,
-        -boundsCenter.z * modelScale,
-      ],
-      rotationY,
-    }
-  }, [scene])
+  const fleetModelIds = useMemo(() => {
+    const active = playerShips.find((ship) => ship.instanceId === activeShipId)
+    const followers = playerShips.filter((ship) => ship.instanceId !== activeShipId)
+    const fleetShips = (active ? [active, ...followers] : followers).slice(0, MAX_RENDERED_FLEET_SHIPS)
+    return fleetShips.map((ship) => getShip(ship.typeId)?.modelId)
+  }, [activeShipId, getShip, playerShips])
 
   useFrame((state, delta) => {
     const nav = useNavigationStore.getState()
@@ -338,7 +405,7 @@ export function FleetShipRenderer() {
     fleetShips.forEach((ship, index) => {
       const isFlagship = ship.instanceId === player.activeShipId
       const type = getShip(ship.typeId)
-      const scale = getShipScale(type?.category) * (isFlagship ? 1 : 0.82)
+      const scale = getFleetModelScale(type?.category, type?.modelId) * (isFlagship ? 1 : 0.82)
       const target = getFormationTarget(nav.position, nav.heading, index, deployProgress)
       const stateForShip = renderStatesRef.current.get(ship.instanceId) ?? {
         x: target.x,
@@ -391,13 +458,7 @@ export function FleetShipRenderer() {
           ref={shipRefs[index]}
         >
           <group ref={motionRefs[index]}>
-            <group
-              position={modelLayout.offset}
-              rotation={[0, modelLayout.rotationY, 0]}
-              scale={modelLayout.scale}
-            >
-              <Clone object={scene} />
-            </group>
+            <ShipModelClone modelId={fleetModelIds[index]} />
           </group>
         </group>
       ))}
@@ -557,27 +618,11 @@ export function ShipModelRenderer({
   position = [0, 0.5, 0],
   heading = 0,
   scale = 1,
+  modelId,
 }: ShipRendererProps) {
-  const { scene } = useGLTF(SHIP_MODEL_URL, false, true)
+  const { scene } = useGLTF(resolveShipModelUrl(modelId), false, true)
   const motionGroupRef = useRef<Group>(null)
-  const modelLayout = useMemo<NormalizedModelLayout>(() => {
-    const boundsBox = new Box3().setFromObject(scene)
-    const boundsSize = boundsBox.getSize(new Vector3())
-    const boundsCenter = boundsBox.getCenter(new Vector3())
-    const dominantLength = Math.max(boundsSize.x, boundsSize.z, 0.0001)
-    const modelScale = TARGET_MODEL_LENGTH / dominantLength
-    const rotationY = (boundsSize.x > boundsSize.z ? Math.PI / 2 : 0) + Math.PI
-
-    return {
-      scale: modelScale,
-      offset: [
-        -boundsCenter.x * modelScale,
-        -boundsBox.min.y * modelScale,
-        -boundsCenter.z * modelScale,
-      ],
-      rotationY,
-    }
-  }, [scene])
+  const modelLayout = useNormalizedModelLayout(scene, resolveShipModelSizeScale(modelId))
 
   useFrame((state) => {
     if (!motionGroupRef.current) return
@@ -604,4 +649,6 @@ export function ShipModelRenderer({
   )
 }
 
-useGLTF.preload(SHIP_MODEL_URL, false, true)
+Array.from(new Set(Object.values(SHIP_MODEL_URLS))).forEach((modelUrl) => {
+  useGLTF.preload(modelUrl, false, true)
+})

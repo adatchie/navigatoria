@@ -15,7 +15,8 @@
     "horizontalSails": 1,
     "requiredLevel": 1,
     "price": 3000,
-    "cultures": ["west_europe", "north_europe", "islamic", "new_world"]
+    "cultures": ["west_europe", "north_europe", "islamic", "new_world"],
+    "modelId": "barsha"
   },
   {
     "id": "caravela_latina",
@@ -33,7 +34,8 @@
     "horizontalSails": 0,
     "requiredLevel": 4,
     "price": 12000,
-    "cultures": ["west_europe", "new_world", "africa"]
+    "cultures": ["west_europe", "new_world", "africa"],
+    "modelId": "caravel"
   },
   {
     "id": "caravel_redonda",
@@ -51,7 +53,8 @@
     "horizontalSails": 2,
     "requiredLevel": 7,
     "price": 24000,
-    "cultures": ["west_europe", "new_world", "africa"]
+    "cultures": ["west_europe", "new_world", "africa"],
+    "modelId": "caravel"
   },
   {
     "id": "nao",
@@ -87,7 +90,8 @@
     "horizontalSails": 3,
     "requiredLevel": 16,
     "price": 90000,
-    "cultures": ["west_europe", "north_europe", "new_world"]
+    "cultures": ["west_europe", "north_europe", "new_world"],
+    "modelId": "carrack"
   },
   {
     "id": "galleon",
@@ -105,7 +109,8 @@
     "horizontalSails": 4,
     "requiredLevel": 24,
     "price": 190000,
-    "cultures": ["west_europe", "north_europe", "new_world"]
+    "cultures": ["west_europe", "north_europe", "new_world"],
+    "modelId": "galleon"
   },
   {
     "id": "treasure_galleon",
@@ -123,7 +128,8 @@
     "horizontalSails": 4,
     "requiredLevel": 31,
     "price": 310000,
-    "cultures": ["west_europe", "new_world"]
+    "cultures": ["west_europe", "new_world"],
+    "modelId": "galleon"
   },
   {
     "id": "pinnace",
@@ -142,6 +148,44 @@
     "requiredLevel": 4,
     "price": 11000,
     "cultures": ["north_europe", "west_europe"]
+  },
+  {
+    "id": "schooner",
+    "name": "スクーナー",
+    "nameEn": "Schooner",
+    "category": "small_sail",
+    "description": "縦帆を主体とする高速帆船。積載は控えめだが、沿岸航行と偵察に優れる。",
+    "capacity": 76,
+    "durability": { "min": 125, "max": 190 },
+    "crew": { "min": 12, "max": 32 },
+    "cannonSlots": 6,
+    "speed": 13,
+    "turnRate": 62,
+    "verticalSails": 2,
+    "horizontalSails": 0,
+    "requiredLevel": 10,
+    "price": 48000,
+    "cultures": ["north_europe", "west_europe", "new_world"],
+    "modelId": "schooner"
+  },
+  {
+    "id": "cog",
+    "name": "コグ",
+    "nameEn": "Cog",
+    "category": "medium_sail",
+    "description": "北海・バルト海の交易で使われる中型帆船。堅牢で積載に優れるが旋回は重い。",
+    "capacity": 135,
+    "durability": { "min": 165, "max": 260 },
+    "crew": { "min": 18, "max": 46 },
+    "cannonSlots": 6,
+    "speed": 7,
+    "turnRate": 34,
+    "verticalSails": 0,
+    "horizontalSails": 1,
+    "requiredLevel": 9,
+    "price": 46000,
+    "cultures": ["north_europe", "west_europe"],
+    "modelId": "cog"
   },
   {
     "id": "flyboat",
@@ -213,7 +257,8 @@
     "horizontalSails": 0,
     "requiredLevel": 10,
     "price": 42000,
-    "cultures": ["west_europe", "islamic"]
+    "cultures": ["west_europe", "islamic"],
+    "modelId": "galley"
   },
   {
     "id": "galleass",

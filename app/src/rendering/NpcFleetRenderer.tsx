@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber'
 import type { Group } from 'three'
 import { NPC_FLEETS } from '@/data/master/npcFleets.ts'
 import { getNpcFleetSnapshot } from '@/game/world/npcFleetSimulation.ts'
+import { useDataStore } from '@/stores/useDataStore.ts'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { useNpcFleetStore } from '@/stores/useNpcFleetStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
@@ -49,6 +50,7 @@ function getSceneDistance(a: NpcFleetRenderState, x: number, y: number, z: numbe
 
 export function NpcFleetRenderer() {
   const questFleets = useNpcFleetStore((s) => s.questFleets)
+  const getShip = useDataStore((s) => s.getShip)
   const fleets = useMemo(() => [...NPC_FLEETS, ...Object.values(questFleets)], [questFleets])
   const fleetCount = fleets.length
   const fleetRefs = useMemo(
@@ -135,7 +137,7 @@ export function NpcFleetRenderer() {
       {fleets.map((fleet, fleetIndex) => (
         <group key={fleet.id} ref={fleetRefs[fleetIndex]}>
           <Suspense fallback={<ShipRenderer heading={0} scale={1} />}>
-            <ShipModelRenderer heading={0} scale={1} />
+            <ShipModelRenderer heading={0} scale={1} modelId={getShip(fleet.shipTypeId)?.modelId} />
           </Suspense>
           <Html position={[0, 4.75, 0]} center distanceFactor={42} style={styles.label}>
             <div style={styles.labelInner}>

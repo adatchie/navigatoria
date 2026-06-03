@@ -1,0 +1,128 @@
+{
+  "source": "D:\\Downloads\\ChatGPT Image 2026年6月3日 23_17_42.png",
+  "source_size": [
+    1536,
+    1024
+  ],
+  "asset": "barsha-small-fishing-boat",
+  "source_title": "16世紀 バルシャ船（小型漁船）五面図",
+  "description": "Five-view small fishing boat sheet; text/background removed and split for web-side model generation.",
+  "orientation_policy": "Normalized side/top/bottom use bow-left, stern-right. No horizontal flip was applied.",
+  "background_removal": "Global neutral white/gray and pure-white alpha extraction was used so enclosed sail/rigging gaps are transparent.",
+  "generation": "No Hunyuan/API/image generation run; deterministic local crop, text mask, and alpha extraction only.",
+  "outputs": [
+    {
+      "id": "side_port",
+      "label": "Side / port",
+      "source_crop_box_xyxy": [
+        20,
+        38,
+        770,
+        630
+      ],
+      "raw_output": "C:\\dol\\app\\public\\generated\\ships\\barsha-small-fishing-boat\\web-input-20260603\\raw_views\\side_port_source_bow-left_stern-right.png",
+      "normalized_output": "C:\\dol\\app\\public\\generated\\ships\\barsha-small-fishing-boat\\web-input-20260603\\normalized_views\\01_side_port_bow-left_stern-right.png",
+      "orientation": "bow-left_stern-right",
+      "normalized_size": [
+        1024,
+        1024
+      ],
+      "flipped_for_normalized_output": false,
+      "erase_boxes_in_crop_xyxy": [
+        [
+          0,
+          0,
+          390,
+          88
+        ]
+      ],
+      "remaining_visible_near_white_pixels": 3687,
+      "note": "Source side view shows bow left, stern right. Title text was masked out."
+    },
+    {
+      "id": "front_bow",
+      "label": "Front / bow",
+      "source_crop_box_xyxy": [
+        845,
+        42,
+        1122,
+        625
+      ],
+      "raw_output": "C:\\dol\\app\\public\\generated\\ships\\barsha-small-fishing-boat\\web-input-20260603\\raw_views\\front_bow_source.png",
+      "normalized_output": "C:\\dol\\app\\public\\generated\\ships\\barsha-small-fishing-boat\\web-input-20260603\\normalized_views\\02_front_bow.png",
+      "orientation": "bow-facing",
+      "normalized_size": [
+        1024,
+        1024
+      ],
+      "flipped_for_normalized_output": false,
+      "erase_boxes_in_crop_xyxy": [],
+      "remaining_visible_near_white_pixels": 5276,
+      "note": "Bow/front view."
+    },
+    {
+      "id": "back_stern",
+      "label": "Back / stern",
+      "source_crop_box_xyxy": [
+        1215,
+        42,
+        1468,
+        625
+      ],
+      "raw_output": "C:\\dol\\app\\public\\generated\\ships\\barsha-small-fishing-boat\\web-input-20260603\\raw_views\\back_stern_source.png",
+      "normalized_output": "C:\\dol\\app\\public\\generated\\ships\\barsha-small-fishing-boat\\web-input-20260603\\normalized_views\\03_back_stern.png",
+      "orientation": "stern-facing",
+      "normalized_size": [
+        1024,
+        1024
+      ],
+      "flipped_for_normalized_output": false,
+      "erase_boxes_in_crop_xyxy": [],
+      "remaining_visible_near_white_pixels": 5396,
+      "note": "Stern/back view."
+    },
+    {
+      "id": "top",
+      "label": "Top",
+      "source_crop_box_xyxy": [
+        20,
+        675,
+        760,
+        895
+      ],
+      "raw_output": "C:\\dol\\app\\public\\generated\\ships\\barsha-small-fishing-boat\\web-input-20260603\\raw_views\\top_source_bow-left_stern-right.png",
+      "normalized_output": "C:\\dol\\app\\public\\generated\\ships\\barsha-small-fishing-boat\\web-input-20260603\\normalized_views\\04_top_bow-left_stern-right.png",
+      "orientation": "bow-left_stern-right",
+      "normalized_size": [
+        1024,
+        1024
+      ],
+      "flipped_for_normalized_output": false,
+      "erase_boxes_in_crop_xyxy": [],
+      "remaining_visible_near_white_pixels": 1030,
+      "note": "Source top view shows bow left, stern right."
+    },
+    {
+      "id": "bottom",
+      "label": "Bottom",
+      "source_crop_box_xyxy": [
+        790,
+        700,
+        1490,
+        890
+      ],
+      "raw_output": "C:\\dol\\app\\public\\generated\\ships\\barsha-small-fishing-boat\\web-input-20260603\\raw_views\\bottom_source_bow-left_stern-right.png",
+      "normalized_output": "C:\\dol\\app\\public\\generated\\ships\\barsha-small-fishing-boat\\web-input-20260603\\normalized_views\\05_bottom_bow-left_stern-right.png",
+      "orientation": "bow-left_stern-right",
+      "normalized_size": [
+        1024,
+        1024
+      ],
+      "flipped_for_normalized_output": false,
+      "erase_boxes_in_crop_xyxy": [],
+      "remaining_visible_near_white_pixels": 955,
+      "note": "Source bottom view appears consistent with side/top: bow left, stern right."
+    }
+  ],
+  "white_background_postprocess": "Applied near-pure neutral-white alpha cleanup after normalization: min(R,G,B)>=244 and channel spread<=16, across raw and normalized PNGs."
+}

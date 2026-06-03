@@ -131,6 +131,7 @@ export function buildInitialTacticalBattle(params: {
       id: ship.instanceId,
       side: 'player',
       name: ship.name,
+      modelId: shipType?.modelId,
       position: { x: PLAYER_START_X, y: getFormationY(index, list.length) },
       heading: 90,
       durability: ship.currentDurability,
@@ -144,10 +145,15 @@ export function buildInitialTacticalBattle(params: {
     }
   })
 
+  const enemyShipType = params.encounter.enemyShipTypeId
+    ? params.getShipType(params.encounter.enemyShipTypeId)
+    : undefined
+
   const enemyShip: TacticalShipState = {
     id: params.encounter.id + ':enemy-1',
     side: 'enemy',
     name: params.encounter.shipName,
+    modelId: enemyShipType?.modelId,
     position: { x: ENEMY_START_X, y: 50 },
     heading: 270,
     durability: params.encounter.enemyDurability,

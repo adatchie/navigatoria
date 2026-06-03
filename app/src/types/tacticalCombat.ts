@@ -14,6 +14,7 @@ export interface TacticalShipState {
   id: string
   side: TacticalShipSide
   name: string
+  modelId?: string
   position: Position2D
   heading: Heading
   durability: number

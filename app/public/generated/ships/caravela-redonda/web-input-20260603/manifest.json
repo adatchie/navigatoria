@@ -1,0 +1,122 @@
+{
+  "source": "D:\\Downloads\\ChatGPT Image 2026年6月3日 23_13_53.png",
+  "source_size": [
+    1536,
+    1024
+  ],
+  "asset": "caravela-redonda",
+  "description": "16th century Caravela Redonda five-view sheet; text/background removed and split for web-side model generation.",
+  "orientation_policy": "Normalized side/top/bottom use bow-left, stern-right. Bottom source was flipped horizontally for normalized output.",
+  "background_removal": "Global neutral white/gray background removal was used so enclosed sail/rigging gaps are transparent.",
+  "generation": "No Hunyuan/API/image generation run; deterministic local crop, text mask, and alpha extraction only.",
+  "outputs": [
+    {
+      "id": "side_port",
+      "label": "Side / port",
+      "source_crop_box_xyxy": [
+        175,
+        60,
+        870,
+        615
+      ],
+      "raw_output": "C:\\dol\\app\\public\\generated\\ships\\caravela-redonda\\web-input-20260603\\raw_views\\side_port_source_bow-left_stern-right.png",
+      "normalized_output": "C:\\dol\\app\\public\\generated\\ships\\caravela-redonda\\web-input-20260603\\normalized_views\\01_side_port_bow-left_stern-right.png",
+      "orientation": "bow-left_stern-right",
+      "normalized_size": [
+        1024,
+        1024
+      ],
+      "flipped_for_normalized_output": false,
+      "erase_boxes_in_crop_xyxy": [
+        [
+          0,
+          0,
+          168,
+          245
+        ]
+      ],
+      "note": "Source side view shows bow left, stern right. Top-left specification text was masked out."
+    },
+    {
+      "id": "front_bow",
+      "label": "Front / bow",
+      "source_crop_box_xyxy": [
+        890,
+        25,
+        1160,
+        615
+      ],
+      "raw_output": "C:\\dol\\app\\public\\generated\\ships\\caravela-redonda\\web-input-20260603\\raw_views\\front_bow_source.png",
+      "normalized_output": "C:\\dol\\app\\public\\generated\\ships\\caravela-redonda\\web-input-20260603\\normalized_views\\02_front_bow.png",
+      "orientation": "bow-facing",
+      "normalized_size": [
+        1024,
+        1024
+      ],
+      "flipped_for_normalized_output": false,
+      "erase_boxes_in_crop_xyxy": [],
+      "note": "Bow/front view."
+    },
+    {
+      "id": "back_stern",
+      "label": "Back / stern",
+      "source_crop_box_xyxy": [
+        1225,
+        50,
+        1475,
+        615
+      ],
+      "raw_output": "C:\\dol\\app\\public\\generated\\ships\\caravela-redonda\\web-input-20260603\\raw_views\\back_stern_source.png",
+      "normalized_output": "C:\\dol\\app\\public\\generated\\ships\\caravela-redonda\\web-input-20260603\\normalized_views\\03_back_stern.png",
+      "orientation": "stern-facing",
+      "normalized_size": [
+        1024,
+        1024
+      ],
+      "flipped_for_normalized_output": false,
+      "erase_boxes_in_crop_xyxy": [],
+      "note": "Stern/back view."
+    },
+    {
+      "id": "top",
+      "label": "Top",
+      "source_crop_box_xyxy": [
+        25,
+        660,
+        855,
+        910
+      ],
+      "raw_output": "C:\\dol\\app\\public\\generated\\ships\\caravela-redonda\\web-input-20260603\\raw_views\\top_source_bow-left_stern-right.png",
+      "normalized_output": "C:\\dol\\app\\public\\generated\\ships\\caravela-redonda\\web-input-20260603\\normalized_views\\04_top_bow-left_stern-right.png",
+      "orientation": "bow-left_stern_right",
+      "normalized_size": [
+        1024,
+        1024
+      ],
+      "flipped_for_normalized_output": false,
+      "erase_boxes_in_crop_xyxy": [],
+      "note": "Source top view shows bow left, stern right."
+    },
+    {
+      "id": "bottom",
+      "label": "Bottom",
+      "source_crop_box_xyxy": [
+        890,
+        690,
+        1525,
+        895
+      ],
+      "raw_output": "C:\\dol\\app\\public\\generated\\ships\\caravela-redonda\\web-input-20260603\\raw_views\\bottom_source_bow-right_stern-left.png",
+      "normalized_output": "C:\\dol\\app\\public\\generated\\ships\\caravela-redonda\\web-input-20260603\\normalized_views\\05_bottom_bow-left_stern-right.png",
+      "orientation": "source bow-right_stern-left; normalized bow-left_stern-right",
+      "normalized_size": [
+        1024,
+        1024
+      ],
+      "flipped_for_normalized_output": true,
+      "erase_boxes_in_crop_xyxy": [],
+      "note": "Source bottom view appears reversed relative to side/top, so normalized output is flipped horizontally."
+    }
+  ],
+  "white_background_postprocess": "Applied strict near-pure neutral-white alpha cleanup: min(R,G,B)>=246 and channel spread<=10, across raw and normalized PNGs."
+}

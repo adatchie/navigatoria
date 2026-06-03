@@ -1,0 +1,42 @@
+{
+  "ship": "carrack",
+  "coordinate_convention": {
+    "side_top_bottom": "bow-left, stern-right",
+    "front": "bow-facing view",
+    "back": "stern-facing view",
+    "do_not_mirror_front_and_back": true,
+    "bottom_note": "The extracted bottom view was visually opposite to the side/top convention, so the Hunyuan input version is horizontally flipped."
+  },
+  "views": [
+    {
+      "file": "01_side_port_bow-left_stern-right.png",
+      "source": "carrack-side-left.png",
+      "flipped_horizontal": false,
+      "orientation": "port side profile; bow is left, stern is right"
+    },
+    {
+      "file": "02_top_bow-left_stern-right.png",
+      "source": "carrack-top.png",
+      "flipped_horizontal": false,
+      "orientation": "top deck view; bow is left, stern is right"
+    },
+    {
+      "file": "03_bottom_bow-left_stern-right.png",
+      "source": "carrack-bottom.png",
+      "flipped_horizontal": true,
+      "orientation": "bottom/keel view; horizontally flipped so bow is left, stern is right"
+    },
+    {
+      "file": "04_front_bow.png",
+      "source": "carrack-front-bow.png",
+      "flipped_horizontal": false,
+      "orientation": "front view from bow"
+    },
+    {
+      "file": "05_back_stern.png",
+      "source": "carrack-rear-stern.png",
+      "flipped_horizontal": false,
+      "orientation": "rear view from stern"
+    }
+  ]
+}

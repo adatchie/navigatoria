@@ -679,7 +679,7 @@ function BattleShip3D(props: { ship: TacticalShipState; selected: boolean; targe
       </mesh>
       <group scale={opacity}>
         <Suspense fallback={<ShipRenderer heading={renderHeading} scale={scale} />}>
-          <ShipModelRenderer heading={renderHeading} scale={scale} />
+          <ShipModelRenderer heading={renderHeading} scale={scale} modelId={props.ship.modelId} />
         </Suspense>
       </group>
       <HeadingIndicator3D heading={props.ship.heading} color={ringColor} />

@@ -82,7 +82,7 @@ export function AssetPreview({ visible = true, onClose, standalone = false }: As
 }
 
 function GLBModel({ url }: { url: string }) {
-  const { scene } = useGLTF(url)
+  const { scene } = useGLTF(url, false, true)
   return <primitive object={scene} />
 }
 

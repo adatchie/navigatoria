@@ -1,0 +1,157 @@
+{
+  "source": "D:\\Downloads\\ChatGPT Image 2026年6月3日 20_28_22.png",
+  "purpose": "Cleaned transparent five-view carrack inputs for web-side Hunyuan3D regeneration",
+  "output_root": "C:\\dol\\app\\public\\generated\\ships\\carrack\\web-input-20260603",
+  "normalized_views": {
+    "side_port": "C:\\dol\\app\\public\\generated\\ships\\carrack\\web-input-20260603\\normalized_views\\01_side_port_bow-left_stern-right.png",
+    "front_bow": "C:\\dol\\app\\public\\generated\\ships\\carrack\\web-input-20260603\\normalized_views\\02_front_bow.png",
+    "back_stern": "C:\\dol\\app\\public\\generated\\ships\\carrack\\web-input-20260603\\normalized_views\\03_back_stern.png",
+    "top": "C:\\dol\\app\\public\\generated\\ships\\carrack\\web-input-20260603\\normalized_views\\04_top_bow-left_stern-right.png",
+    "bottom": "C:\\dol\\app\\public\\generated\\ships\\carrack\\web-input-20260603\\normalized_views\\05_bottom_bow-left_stern-right.png"
+  },
+  "orientation_rules": {
+    "side_port": "bow left, stern right",
+    "front_bow": "bow/front-facing view",
+    "back_stern": "stern/back-facing view",
+    "top": "bow left, stern right",
+    "bottom": "flipped from source so bow left, stern right; do not use raw bottom unless the target UI expects bow-right bottom input"
+  },
+  "reports": [
+    {
+      "id": "side_port",
+      "label": "side port",
+      "source_box_xyxy": [
+        45,
+        20,
+        900,
+        622
+      ],
+      "raw": "C:\\dol\\app\\public\\generated\\ships\\carrack\\web-input-20260603\\raw_views\\side_port_source.png",
+      "normalized": "C:\\dol\\app\\public\\generated\\ships\\carrack\\web-input-20260603\\normalized_views\\01_side_port_bow-left_stern-right.png",
+      "orientation": "port side view; bow left, stern right",
+      "flipped_for_normalized": false,
+      "raw_alpha_bbox": [
+        52,
+        31,
+        855,
+        597
+      ],
+      "normalized_alpha_bbox": [
+        71,
+        201,
+        952,
+        822
+      ],
+      "normalized_size_bytes": 551580
+    },
+    {
+      "id": "front_bow",
+      "label": "front bow",
+      "source_box_xyxy": [
+        930,
+        35,
+        1218,
+        622
+      ],
+      "raw": "C:\\dol\\app\\public\\generated\\ships\\carrack\\web-input-20260603\\raw_views\\front_bow_source.png",
+      "normalized": "C:\\dol\\app\\public\\generated\\ships\\carrack\\web-input-20260603\\normalized_views\\02_front_bow.png",
+      "orientation": "bow/front-facing view",
+      "flipped_for_normalized": false,
+      "raw_alpha_bbox": [
+        34,
+        8,
+        244,
+        582
+      ],
+      "normalized_alpha_bbox": [
+        351,
+        71,
+        673,
+        952
+      ],
+      "normalized_size_bytes": 433175
+    },
+    {
+      "id": "back_stern",
+      "label": "back stern",
+      "source_box_xyxy": [
+        1228,
+        35,
+        1492,
+        622
+      ],
+      "raw": "C:\\dol\\app\\public\\generated\\ships\\carrack\\web-input-20260603\\raw_views\\back_stern_source.png",
+      "normalized": "C:\\dol\\app\\public\\generated\\ships\\carrack\\web-input-20260603\\normalized_views\\03_back_stern.png",
+      "orientation": "stern/back-facing view",
+      "flipped_for_normalized": false,
+      "raw_alpha_bbox": [
+        38,
+        8,
+        255,
+        582
+      ],
+      "normalized_alpha_bbox": [
+        345,
+        71,
+        678,
+        952
+      ],
+      "normalized_size_bytes": 450976
+    },
+    {
+      "id": "top",
+      "label": "top",
+      "source_box_xyxy": [
+        28,
+        646,
+        855,
+        905
+      ],
+      "raw": "C:\\dol\\app\\public\\generated\\ships\\carrack\\web-input-20260603\\raw_views\\top_source.png",
+      "normalized": "C:\\dol\\app\\public\\generated\\ships\\carrack\\web-input-20260603\\normalized_views\\04_top_bow-left_stern-right.png",
+      "orientation": "top/deck view; bow left, stern right",
+      "flipped_for_normalized": false,
+      "raw_alpha_bbox": [
+        2,
+        24,
+        827,
+        259
+      ],
+      "normalized_alpha_bbox": [
+        71,
+        386,
+        952,
+        637
+      ],
+      "normalized_size_bytes": 307913
+    },
+    {
+      "id": "bottom",
+      "label": "bottom",
+      "source_box_xyxy": [
+        905,
+        676,
+        1498,
+        875
+      ],
+      "raw": "C:\\dol\\app\\public\\generated\\ships\\carrack\\web-input-20260603\\raw_views\\bottom_source_bow-right_stern-left.png",
+      "normalized": "C:\\dol\\app\\public\\generated\\ships\\carrack\\web-input-20260603\\normalized_views\\05_bottom_bow-left_stern-right.png",
+      "orientation": "bottom/keel view; normalized image is flipped so bow left, stern right",
+      "flipped_for_normalized": true,
+      "raw_alpha_bbox": [
+        11,
+        30,
+        593,
+        199
+      ],
+      "normalized_alpha_bbox": [
+        71,
+        384,
+        952,
+        640
+      ],
+      "normalized_size_bytes": 352859
+    }
+  ],
+  "contact_sheet": "C:\\dol\\app\\public\\generated\\ships\\carrack\\web-input-20260603\\contact-sheet.png"
+}

@@ -1,0 +1,128 @@
+{
+  "unit_id": "navigatoria_carrack_16c",
+  "purpose": "Tencent HY3D 3.1 multiview input for carrack model; game low-poly is produced by post-processing the returned GLB",
+  "model": "3.1",
+  "generation_notes": {
+    "successful_submit": "Model 3.1 multiview with front/left/right/back/top/bottom images",
+    "low_poly_api_options": "GenerateType/FaceCount were tried first but rejected by the API for this payload; the successful job did not include them.",
+    "game_low_poly_step": "The downloaded GLB is simplified and texture-compressed after download before being installed in the game."
+  },
+  "view_order": [
+    "front",
+    "left",
+    "back",
+    "right",
+    "top",
+    "bottom"
+  ],
+  "slots": {
+    "front": "C:\\dol\\app\\public\\generated\\ships\\carrack\\tencent-hy3d-input\\normalized_views\\front.png",
+    "back": "C:\\dol\\app\\public\\generated\\ships\\carrack\\tencent-hy3d-input\\normalized_views\\back.png",
+    "left": "C:\\dol\\app\\public\\generated\\ships\\carrack\\tencent-hy3d-input\\normalized_views\\left.png",
+    "right": "C:\\dol\\app\\public\\generated\\ships\\carrack\\tencent-hy3d-input\\normalized_views\\right.png",
+    "top": "C:\\dol\\app\\public\\generated\\ships\\carrack\\tencent-hy3d-input\\normalized_views\\top.png",
+    "bottom": "C:\\dol\\app\\public\\generated\\ships\\carrack\\tencent-hy3d-input\\normalized_views\\bottom.png"
+  },
+  "orientation_rules": {
+    "front": "bow-facing view",
+    "back": "stern-facing view",
+    "left": "port side; bow is left in image",
+    "right": "starboard side; mirrored from port side, bow is right in image",
+    "top": "deck view; bow is left in image",
+    "bottom": "keel view; flipped from extracted bottom, bow is left in image",
+    "warning": "Do not swap front/back. Do not use the unflipped extracted bottom as HY3D bottom input."
+  },
+  "reports": [
+    {
+      "view": "front",
+      "source": "C:\\dol\\app\\public\\generated\\ships\\carrack\\reference\\carrack-front-bow.png",
+      "raw": "C:\\dol\\app\\public\\generated\\ships\\carrack\\tencent-hy3d-input\\raw_views\\front.png",
+      "normalized": "C:\\dol\\app\\public\\generated\\ships\\carrack\\tencent-hy3d-input\\normalized_views\\front.png",
+      "flipped_horizontal": false,
+      "orientation": "bow/front view",
+      "normalized_alpha_bbox": [
+        338,
+        72,
+        686,
+        952
+      ],
+      "size_bytes": 478830
+    },
+    {
+      "view": "back",
+      "source": "C:\\dol\\app\\public\\generated\\ships\\carrack\\reference\\carrack-rear-stern.png",
+      "raw": "C:\\dol\\app\\public\\generated\\ships\\carrack\\tencent-hy3d-input\\raw_views\\back.png",
+      "normalized": "C:\\dol\\app\\public\\generated\\ships\\carrack\\tencent-hy3d-input\\normalized_views\\back.png",
+      "flipped_horizontal": false,
+      "orientation": "stern/back view",
+      "normalized_alpha_bbox": [
+        336,
+        72,
+        687,
+        952
+      ],
+      "size_bytes": 483776
+    },
+    {
+      "view": "left",
+      "source": "C:\\dol\\app\\public\\generated\\ships\\carrack\\reference\\carrack-side-left.png",
+      "raw": "C:\\dol\\app\\public\\generated\\ships\\carrack\\tencent-hy3d-input\\raw_views\\left.png",
+      "normalized": "C:\\dol\\app\\public\\generated\\ships\\carrack\\tencent-hy3d-input\\normalized_views\\left.png",
+      "flipped_horizontal": false,
+      "orientation": "port/left side view; bow is left, stern is right",
+      "normalized_alpha_bbox": [
+        72,
+        187,
+        952,
+        836
+      ],
+      "size_bytes": 773654
+    },
+    {
+      "view": "right",
+      "source": "C:\\dol\\app\\public\\generated\\ships\\carrack\\reference\\carrack-side-left.png",
+      "raw": "C:\\dol\\app\\public\\generated\\ships\\carrack\\tencent-hy3d-input\\raw_views\\right.png",
+      "normalized": "C:\\dol\\app\\public\\generated\\ships\\carrack\\tencent-hy3d-input\\normalized_views\\right.png",
+      "flipped_horizontal": true,
+      "orientation": "starboard/right side view, mirrored from port side; bow is right, stern is left",
+      "normalized_alpha_bbox": [
+        72,
+        187,
+        952,
+        836
+      ],
+      "size_bytes": 771524
+    },
+    {
+      "view": "top",
+      "source": "C:\\dol\\app\\public\\generated\\ships\\carrack\\reference\\carrack-top.png",
+      "raw": "C:\\dol\\app\\public\\generated\\ships\\carrack\\tencent-hy3d-input\\raw_views\\top.png",
+      "normalized": "C:\\dol\\app\\public\\generated\\ships\\carrack\\tencent-hy3d-input\\normalized_views\\top.png",
+      "flipped_horizontal": false,
+      "orientation": "top/deck view; bow is left, stern is right",
+      "normalized_alpha_bbox": [
+        72,
+        350,
+        952,
+        674
+      ],
+      "size_bytes": 347936
+    },
+    {
+      "view": "bottom",
+      "source": "C:\\dol\\app\\public\\generated\\ships\\carrack\\reference\\carrack-bottom.png",
+      "raw": "C:\\dol\\app\\public\\generated\\ships\\carrack\\tencent-hy3d-input\\raw_views\\bottom.png",
+      "normalized": "C:\\dol\\app\\public\\generated\\ships\\carrack\\tencent-hy3d-input\\normalized_views\\bottom.png",
+      "flipped_horizontal": true,
+      "orientation": "bottom/keel view; flipped so bow is left, stern is right",
+      "normalized_alpha_bbox": [
+        72,
+        385,
+        952,
+        638
+      ],
+      "size_bytes": 323288
+    }
+  ],
+  "contact_preview": "C:\\dol\\app\\public\\generated\\ships\\carrack\\tencent-hy3d-input\\hy3d-contact-preview.png"
+}

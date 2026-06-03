@@ -1,0 +1,158 @@
+{
+  "source": "D:\\Downloads\\ChatGPT Image 2026年6月3日 21_37_29.png",
+  "purpose": "Cleaned transparent five-view Hansa cog inputs for web-side Hunyuan3D generation",
+  "output_root": "C:\\dol\\app\\public\\generated\\ships\\hansa-cog\\web-input-20260603",
+  "normalized_views": {
+    "side_port": "C:\\dol\\app\\public\\generated\\ships\\hansa-cog\\web-input-20260603\\normalized_views\\01_side_port_bow-right_stern-left.png",
+    "front_bow": "C:\\dol\\app\\public\\generated\\ships\\hansa-cog\\web-input-20260603\\normalized_views\\02_front_bow.png",
+    "back_stern": "C:\\dol\\app\\public\\generated\\ships\\hansa-cog\\web-input-20260603\\normalized_views\\03_back_stern.png",
+    "top": "C:\\dol\\app\\public\\generated\\ships\\hansa-cog\\web-input-20260603\\normalized_views\\04_top_bow-right_stern-left.png",
+    "bottom": "C:\\dol\\app\\public\\generated\\ships\\hansa-cog\\web-input-20260603\\normalized_views\\05_bottom_bow-right_stern-left.png"
+  },
+  "orientation_rules": {
+    "side_port": "stern left, bow right; preserved from source",
+    "front_bow": "bow/front-facing view",
+    "back_stern": "stern/back-facing view",
+    "top": "stern left, bow right; preserved from source",
+    "bottom": "stern left, bow right; preserved from source",
+    "warning": "Do not mix these with carrack bow-left inputs. This Hansa cog set is bow-right for side/top/bottom."
+  },
+  "reports": [
+    {
+      "id": "side_port",
+      "label": "side port",
+      "source_box_xyxy": [
+        45,
+        18,
+        842,
+        618
+      ],
+      "raw": "C:\\dol\\app\\public\\generated\\ships\\hansa-cog\\web-input-20260603\\raw_views\\side_port_source_bow-right_stern-left.png",
+      "normalized": "C:\\dol\\app\\public\\generated\\ships\\hansa-cog\\web-input-20260603\\normalized_views\\01_side_port_bow-right_stern-left.png",
+      "orientation": "port/left-side source view; stern left, bow right",
+      "flipped_for_normalized": false,
+      "raw_alpha_bbox": [
+        14,
+        9,
+        790,
+        593
+      ],
+      "normalized_alpha_bbox": [
+        71,
+        180,
+        952,
+        843
+      ],
+      "normalized_size_bytes": 461229
+    },
+    {
+      "id": "front_bow",
+      "label": "front bow",
+      "source_box_xyxy": [
+        882,
+        42,
+        1198,
+        620
+      ],
+      "raw": "C:\\dol\\app\\public\\generated\\ships\\hansa-cog\\web-input-20260603\\raw_views\\front_bow_source.png",
+      "normalized": "C:\\dol\\app\\public\\generated\\ships\\hansa-cog\\web-input-20260603\\normalized_views\\02_front_bow.png",
+      "orientation": "bow/front-facing view",
+      "flipped_for_normalized": false,
+      "raw_alpha_bbox": [
+        11,
+        16,
+        300,
+        574
+      ],
+      "normalized_alpha_bbox": [
+        284,
+        71,
+        740,
+        952
+      ],
+      "normalized_size_bytes": 550366
+    },
+    {
+      "id": "back_stern",
+      "label": "back stern",
+      "source_box_xyxy": [
+        1204,
+        42,
+        1488,
+        620
+      ],
+      "raw": "C:\\dol\\app\\public\\generated\\ships\\hansa-cog\\web-input-20260603\\raw_views\\back_stern_source.png",
+      "normalized": "C:\\dol\\app\\public\\generated\\ships\\hansa-cog\\web-input-20260603\\normalized_views\\03_back_stern.png",
+      "orientation": "stern/back-facing view",
+      "flipped_for_normalized": false,
+      "raw_alpha_bbox": [
+        33,
+        16,
+        278,
+        575
+      ],
+      "normalized_alpha_bbox": [
+        319,
+        71,
+        705,
+        952
+      ],
+      "normalized_size_bytes": 494736
+    },
+    {
+      "id": "top",
+      "label": "top",
+      "source_box_xyxy": [
+        48,
+        656,
+        810,
+        908
+      ],
+      "raw": "C:\\dol\\app\\public\\generated\\ships\\hansa-cog\\web-input-20260603\\raw_views\\top_source_bow-right_stern-left.png",
+      "normalized": "C:\\dol\\app\\public\\generated\\ships\\hansa-cog\\web-input-20260603\\normalized_views\\04_top_bow-right_stern-left.png",
+      "orientation": "top/deck view; stern left, bow right",
+      "flipped_for_normalized": false,
+      "raw_alpha_bbox": [
+        0,
+        28,
+        762,
+        250
+      ],
+      "normalized_alpha_bbox": [
+        71,
+        383,
+        952,
+        640
+      ],
+      "normalized_size_bytes": 396238
+    },
+    {
+      "id": "bottom",
+      "label": "bottom",
+      "source_box_xyxy": [
+        835,
+        690,
+        1495,
+        875
+      ],
+      "raw": "C:\\dol\\app\\public\\generated\\ships\\hansa-cog\\web-input-20260603\\raw_views\\bottom_source_bow-right_stern-left.png",
+      "normalized": "C:\\dol\\app\\public\\generated\\ships\\hansa-cog\\web-input-20260603\\normalized_views\\05_bottom_bow-right_stern-left.png",
+      "orientation": "bottom/keel view; stern left, bow right",
+      "flipped_for_normalized": false,
+      "raw_alpha_bbox": [
+        10,
+        15,
+        660,
+        185
+      ],
+      "normalized_alpha_bbox": [
+        71,
+        397,
+        952,
+        627
+      ],
+      "normalized_size_bytes": 325400
+    }
+  ],
+  "contact_sheet": "C:\\dol\\app\\public\\generated\\ships\\hansa-cog\\web-input-20260603\\contact-sheet.png"
+}

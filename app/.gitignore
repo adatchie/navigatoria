@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+models-source
+public/models/*.glb
 *.local
 
 # Editor directories and files

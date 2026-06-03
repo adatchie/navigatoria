@@ -1,0 +1,33 @@
+{
+  "source": "D:\\Downloads\\ChatGPT Image 2026年6月4日 00_17_31.png",
+  "source_size": [
+    1536,
+    1024
+  ],
+  "asset": "carrack",
+  "view": "side_port_only",
+  "source_crop_box_xyxy": [
+    80,
+    28,
+    920,
+    650
+  ],
+  "orientation": "bow-left_stern-right",
+  "background_removal": "Connected exterior neutral-background alpha extraction plus strict pure-white cleanup; text masks narrowed to avoid removing sails. Added neutral paper cleanup for remaining opaque white chunks: min(R,G,B)>=230 and channel spread<=24.",
+  "generation": "No Hunyuan/API/image generation run; deterministic local crop, text mask, and alpha extraction only.",
+  "outputs": {
+    "raw": "C:\\dol\\app\\public\\generated\\ships\\carrack\\side-only-20260604\\raw_views\\side_port_source_bow-left_stern-right.png",
+    "normalized": "C:\\dol\\app\\public\\generated\\ships\\carrack\\side-only-20260604\\normalized_views\\01_side_port_bow-left_stern-right.png",
+    "preview": "C:\\dol\\app\\public\\generated\\ships\\carrack\\side-only-20260604\\side-preview.png"
+  },
+  "verification": {
+    "raw_white_removed_after_trim": 2213,
+    "normalized_white_removed_after_resize": 8551,
+    "remaining_visible_pure_white_pixels": 0,
+    "raw_neutral_paper_pixels_removed": 98272,
+    "normalized_neutral_paper_pixels_removed": 127486,
+    "small_dark_text_fragment_pixels_removed": 34,
+    "raw_neutral_paper_pixels_removed_final": 0,
+    "normalized_neutral_paper_pixels_removed_final": 16462
+  }
+}

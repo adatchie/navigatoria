@@ -317,7 +317,7 @@ function ShipPreviewCamera() {
   return null
 }
 
-function ShipModelPreview() {
+function ShipModelPreview({ modelId }: { modelId?: string }) {
   return (
     <div style={styles.shipModelViewport}>
       <Canvas camera={{ position: [5.8, 2.9, 7.2], fov: 42, near: 0.1, far: 100 }} dpr={[1, 1.5]}>
@@ -327,7 +327,7 @@ function ShipModelPreview() {
         <directionalLight position={[4, 7, 5]} intensity={2.1} />
         <directionalLight position={[-5, 3, -4]} intensity={0.65} color="#7dd3fc" />
         <Suspense fallback={<ShipRenderer position={SHIP_PREVIEW_POSITION} heading={34} scale={SHIP_PREVIEW_SCALE} />}>
-          <ShipModelRenderer position={SHIP_PREVIEW_POSITION} heading={34} scale={SHIP_PREVIEW_SCALE} />
+          <ShipModelRenderer position={SHIP_PREVIEW_POSITION} heading={34} scale={SHIP_PREVIEW_SCALE} modelId={modelId} />
         </Suspense>
       </Canvas>
     </div>
@@ -340,7 +340,7 @@ function SelectedShipConditionPanel({ ship, shipType, roleLabel }: { ship?: Ship
   }
   return (
     <div style={styles.selectedShipPanel}>
-      <ShipModelPreview />
+      <ShipModelPreview modelId={shipType?.modelId} />
       <div style={styles.selectedShipInfo}>
         <div style={styles.selectedShipTitleRow}>
           <span style={styles.featureBadge}>{roleLabel}</span>
