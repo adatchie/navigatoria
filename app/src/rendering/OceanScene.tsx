@@ -1,218 +1,188 @@
 // ============================================================
-// OceanScene — 海面メッシュ + カスタムシェーダー
+// OceanScene — Three.js examples Water surface
 // ============================================================
 
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Color, DoubleSide, type Mesh, ShaderMaterial, Vector2, Vector3 } from 'three'
+import type { ThreeEvent } from '@react-three/fiber'
+import {
+  Color,
+  DataTexture,
+  DoubleSide,
+  LinearFilter,
+  LinearMipmapLinearFilter,
+  PlaneGeometry,
+  RepeatWrapping,
+  RGBAFormat,
+  UnsignedByteType,
+  Vector3,
+  type ShaderMaterial,
+} from 'three'
+import { Water } from 'three/examples/jsm/objects/Water.js'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
-
-import oceanVertexShader from './shaders/ocean.vert'
-import oceanFragmentShader from './shaders/ocean.frag'
 
 interface OceanSceneProps {
   size?: number
   segments?: number
+  position?: [number, number, number]
+  reflectionTextureSize?: number
+  onClick?: (event: ThreeEvent<MouseEvent>) => void
 }
 
-interface OceanColorStage {
-  deep: Color
-  shallow: Color
-  sun: Color
+const WATER_NORMAL_SIZE = 256
+const DAY_WATER = new Color(0x137299)
+const DUSK_WATER = new Color(0x1a5876)
+const NIGHT_WATER = new Color(0x1a4661)
+const DAY_SUN = new Color(0xfff5e0)
+const DUSK_SUN = new Color(0xff9a64)
+const NIGHT_SUN = new Color(0xbfd1ff)
+
+function createWaterNormalTexture(): DataTexture {
+  const data = new Uint8Array(WATER_NORMAL_SIZE * WATER_NORMAL_SIZE * 4)
+  const tau = Math.PI * 2
+  const waves = [
+    { x: 3, y: 2, phase: 0.4, amp: 0.22 },
+    { x: -4, y: 3, phase: 1.8, amp: 0.17 },
+    { x: 6, y: -1, phase: 2.7, amp: 0.11 },
+    { x: 2, y: -5, phase: 4.2, amp: 0.09 },
+    { x: 9, y: 5, phase: 5.4, amp: 0.05 },
+  ] as const
+
+  for (let y = 0; y < WATER_NORMAL_SIZE; y += 1) {
+    for (let x = 0; x < WATER_NORMAL_SIZE; x += 1) {
+      const index = (y * WATER_NORMAL_SIZE + x) * 4
+      const u = (x / WATER_NORMAL_SIZE) * tau
+      const v = (y / WATER_NORMAL_SIZE) * tau
+      let slopeX = 0
+      let slopeY = 0
+
+      for (const wave of waves) {
+        const phase = u * wave.x + v * wave.y + wave.phase
+        const gradient = Math.cos(phase) * wave.amp
+        slopeX += gradient * wave.x
+        slopeY += gradient * wave.y
+      }
+
+      const strength = 32
+      data[index] = Math.max(0, Math.min(255, Math.round(128 - slopeX * strength)))
+      data[index + 1] = Math.max(0, Math.min(255, Math.round(128 - slopeY * strength)))
+      data[index + 2] = 255
+      data[index + 3] = 255
+    }
+  }
+
+  const texture = new DataTexture(data, WATER_NORMAL_SIZE, WATER_NORMAL_SIZE, RGBAFormat, UnsignedByteType)
+  texture.wrapS = RepeatWrapping
+  texture.wrapT = RepeatWrapping
+  texture.generateMipmaps = true
+  texture.minFilter = LinearMipmapLinearFilter
+  texture.magFilter = LinearFilter
+  texture.needsUpdate = true
+  return texture
 }
 
-const OCEAN_DAY_START_DEEP = new Color(0x0c6f95)
-const OCEAN_DAY_END_DEEP = new Color(0x0b5d82)
-const OCEAN_DAY_START_SHALLOW = new Color(0x2f9fc0)
-const OCEAN_DAY_END_SHALLOW = new Color(0x247fa5)
-const OCEAN_DAY_SUN = new Color(0xfff5e0)
-const OCEAN_DUSK_START_DEEP = new Color(0x006994)
-const OCEAN_DUSK_END_DEEP = new Color(0x253a5a)
-const OCEAN_DUSK_START_SHALLOW = new Color(0x40a4c8)
-const OCEAN_DUSK_END_SHALLOW = new Color(0x8b3a62)
-const OCEAN_DUSK_START_SUN = new Color(0xff8844)
-const OCEAN_DUSK_END_SUN = new Color(0x8a6f7a)
-const OCEAN_NIGHT: OceanColorStage = {
-  deep: new Color(0x244760),
-  shallow: new Color(0x4c7191),
-  sun: new Color(0xbfd1ff),
-}
-const COLOR_STEP = 12
-const SUN_STEP = 24
-const WIND_DIRECTION_EPSILON = 0.25
-const WIND_SPEED_EPSILON = 0.1
-const LOD_NEAR_DISTANCE = 70
-const LOD_FAR_DISTANCE = 260
-const INNER_OCEAN_SIZE_RATIO = 0.44
-const OUTER_OCEAN_Y_OFFSET = -0.06
-
-function quantizeHour(hour: number, stepsPerDay: number): number {
-  return Math.round(hour * stepsPerDay) / stepsPerDay
+function getWaterColor(hour: number, target: Color): Color {
+  if (hour >= 6 && hour < 18) return target.copy(DAY_WATER)
+  if (hour >= 18 && hour < 20) return target.copy(DAY_WATER).lerp(DUSK_WATER, (hour - 18) / 2)
+  return target.copy(NIGHT_WATER)
 }
 
-function applyOceanColors(hour: number, target: OceanColorStage) {
-  if (hour >= 6 && hour < 18) {
-    const dayProgress = (hour - 6) / 12
-    target.deep.copy(OCEAN_DAY_START_DEEP).lerp(OCEAN_DAY_END_DEEP, dayProgress * 0.3)
-    target.shallow.copy(OCEAN_DAY_START_SHALLOW).lerp(OCEAN_DAY_END_SHALLOW, dayProgress * 0.3)
-    target.sun.copy(OCEAN_DAY_SUN)
-    return
-  }
-
-  if (hour >= 18 && hour < 20) {
-    const duskProgress = (hour - 18) / 2
-    target.deep.copy(OCEAN_DUSK_START_DEEP).lerp(OCEAN_DUSK_END_DEEP, duskProgress)
-    target.shallow.copy(OCEAN_DUSK_START_SHALLOW).lerp(OCEAN_DUSK_END_SHALLOW, duskProgress)
-    target.sun.copy(OCEAN_DUSK_START_SUN).lerp(OCEAN_DUSK_END_SUN, duskProgress)
-    return
-  }
-
-  target.deep.copy(OCEAN_NIGHT.deep)
-  target.shallow.copy(OCEAN_NIGHT.shallow)
-  target.sun.copy(OCEAN_NIGHT.sun)
+function getSunColor(hour: number, target: Color): Color {
+  if (hour >= 6 && hour < 18) return target.copy(DAY_SUN)
+  if (hour >= 18 && hour < 20) return target.copy(DAY_SUN).lerp(DUSK_SUN, (hour - 18) / 2)
+  return target.copy(NIGHT_SUN)
 }
 
-function createUniforms(detailStrength: number, foamStrength: number) {
-  return {
-    uTime: { value: 0 },
-    uWaveHeight: { value: 0.08 },
-    uWaveFrequency: { value: 0.04 },
-    uWindDirection: { value: new Vector2(1, 0) },
-    uDetailStrength: { value: detailStrength },
-    uDeepColor: { value: new Color(0x006994) },
-    uShallowColor: { value: new Color(0x40a4c8) },
-    uSunDirection: { value: new Vector3(0.5, 0.8, 0.3) },
-    uSunColor: { value: new Color(0xfff5e0) },
-    uFresnelPower: { value: 2.5 },
-    uFoamStrength: { value: foamStrength },
-    uWindIntensity: { value: 0.2 },
-    uLodNear: { value: LOD_NEAR_DISTANCE },
-    uLodFar: { value: LOD_FAR_DISTANCE },
-  }
+function getSunDirection(hour: number, target: Vector3): Vector3 {
+  const sunAngle = ((hour - 6) / 12) * Math.PI
+  return target.set(Math.cos(sunAngle) * 0.5, Math.sin(sunAngle) * 0.82 + 0.18, 0.32).normalize()
 }
 
-function syncOceanMaterial(
-  mat: ShaderMaterial,
-  delta: number,
-  wind: { direction: number; speed: number },
-  hour: number,
-  colorBuffer: OceanColorStage,
-  trackers: {
-    lastColorHour: number | null
-    lastSunHour: number | null
-    lastWindDirection: number | null
-    lastWindSpeed: number | null
-  },
-) {
-  mat.uniforms.uTime!.value += delta
-
-  const windDirectionChanged =
-    trackers.lastWindDirection === null ||
-    Math.abs(trackers.lastWindDirection - wind.direction) >= WIND_DIRECTION_EPSILON
-  const windSpeedChanged =
-    trackers.lastWindSpeed === null ||
-    Math.abs(trackers.lastWindSpeed - wind.speed) >= WIND_SPEED_EPSILON
-
-  if (windDirectionChanged) {
-    const windRad = (wind.direction * Math.PI) / 180
-    mat.uniforms.uWindDirection!.value.set(Math.sin(windRad), Math.cos(windRad))
-    trackers.lastWindDirection = wind.direction
-  }
-
-  if (windSpeedChanged) {
-    const windIntensity = Math.min(1, Math.max(0, wind.speed / 36))
-    mat.uniforms.uWaveHeight!.value = 0.035 + windIntensity * 0.22
-    mat.uniforms.uWaveFrequency!.value = 0.032 + windIntensity * 0.026
-    mat.uniforms.uWindIntensity!.value = windIntensity
-    trackers.lastWindSpeed = wind.speed
-  }
-
-  const quantizedColorHour = quantizeHour(hour, COLOR_STEP)
-  if (trackers.lastColorHour !== quantizedColorHour) {
-    applyOceanColors(quantizedColorHour, colorBuffer)
-    mat.uniforms.uDeepColor!.value.copy(colorBuffer.deep)
-    mat.uniforms.uShallowColor!.value.copy(colorBuffer.shallow)
-    mat.uniforms.uSunColor!.value.copy(colorBuffer.sun)
-    trackers.lastColorHour = quantizedColorHour
-  }
-
-  const quantizedSunHour = quantizeHour(hour, SUN_STEP)
-  if (trackers.lastSunHour !== quantizedSunHour) {
-    const sunAngle = ((quantizedSunHour - 6) / 12) * Math.PI
-    mat.uniforms.uSunDirection!.value
-      .set(Math.cos(sunAngle) * 0.5, Math.sin(sunAngle) * 0.8 + 0.2, 0.3)
-      .normalize()
-    trackers.lastSunHour = quantizedSunHour
-  }
+function getWaterMaterial(water: Water): ShaderMaterial {
+  return water.material as ShaderMaterial
 }
 
-export function OceanScene({ size = 500, segments = 128 }: OceanSceneProps) {
-  const innerMeshRef = useRef<Mesh>(null)
-  const outerMeshRef = useRef<Mesh>(null)
+function reduceWaterReflection(material: ShaderMaterial): void {
+  material.fragmentShader = material.fragmentShader
+    .replace(
+      'vec3 reflectionSample = vec3( texture2D( mirrorSampler, mirrorCoord.xy / mirrorCoord.w + distortion ) );',
+      `vec3 reflectionSample = waterColor;
+					float rippleTone = clamp( 0.52 + noise.x * 0.3 + noise.y * 0.22, 0.0, 1.0 );
+					float crestMask = smoothstep( 0.72, 0.95, rippleTone );
+					vec3 deepTone = mix( waterColor * 0.72, vec3( 0.025, 0.12, 0.18 ), 0.24 );
+					vec3 midTone = mix( waterColor * 1.18, vec3( 0.055, 0.31, 0.42 ), 0.22 );
+					vec3 crestTone = mix( waterColor * 1.46, vec3( 0.2, 0.54, 0.62 ), 0.18 );
+					vec3 waveColor = mix( deepTone, midTone, smoothstep( 0.18, 0.78, rippleTone ) );
+					waveColor = mix( waveColor, crestTone, crestMask * 0.42 );`,
+    )
+    .replace(
+      'vec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * getShadowMask(), reflectionSample + specularLight, reflectance );',
+      'vec3 albedo = waveColor + scatter * 0.14 + diffuseLight * sunColor * 0.026 + specularLight * 0.012;',
+    )
+  material.needsUpdate = true
+}
+
+export function OceanScene({
+  size = 500,
+  segments = 1,
+  position = [0, 0, 0],
+  reflectionTextureSize = 96,
+  onClick,
+}: OceanSceneProps) {
   const { wind } = useNavigationStore()
   const hour = useGameStore((s) => s.timeState.hour)
-
-  const innerUniforms = useMemo(() => createUniforms(1, 0.28), [])
-  const outerUniforms = useMemo(() => createUniforms(0.22, 0.06), [])
-  const innerColorBuffer = useMemo<OceanColorStage>(
-    () => ({ deep: new Color(), shallow: new Color(), sun: new Color() }),
-    [],
+  const waterColor = useMemo(() => new Color(), [])
+  const sunColor = useMemo(() => new Color(), [])
+  const sunDirection = useMemo(() => new Vector3(), [])
+  const eyePosition = useMemo(() => new Vector3(), [])
+  const waterNormals = useMemo(() => createWaterNormalTexture(), [])
+  const geometry = useMemo(
+    () => new PlaneGeometry(size, size, Math.max(1, segments), Math.max(1, segments)),
+    [segments, size],
   )
-  const outerColorBuffer = useMemo<OceanColorStage>(
-    () => ({ deep: new Color(), shallow: new Color(), sun: new Color() }),
-    [],
-  )
-  const innerTrackersRef = useRef({
-    lastColorHour: null as number | null,
-    lastSunHour: null as number | null,
-    lastWindDirection: null as number | null,
-    lastWindSpeed: null as number | null,
+  const water = useMemo(() => {
+    const instance = new Water(geometry, {
+      textureWidth: reflectionTextureSize,
+      textureHeight: reflectionTextureSize,
+      waterNormals,
+      alpha: 1,
+      sunDirection: getSunDirection(12, new Vector3()),
+      sunColor: getSunColor(12, new Color()),
+      waterColor: getWaterColor(12, new Color()),
+      distortionScale: 2.35,
+      side: DoubleSide,
+      fog: false,
+    })
+
+    instance.rotation.x = -Math.PI / 2
+    instance.frustumCulled = false
+    instance.name = 'official-three-water'
+    instance.onBeforeRender = () => {}
+    reduceWaterReflection(getWaterMaterial(instance))
+    return instance
+  }, [geometry, reflectionTextureSize, waterNormals])
+
+  useEffect(() => () => {
+    geometry.dispose()
+    getWaterMaterial(water).dispose()
+  }, [geometry, water])
+
+  useEffect(() => () => {
+    waterNormals.dispose()
+  }, [waterNormals])
+
+  useFrame(({ camera }, delta) => {
+    const material = getWaterMaterial(water)
+    camera.getWorldPosition(eyePosition)
+    material.uniforms.time!.value += delta * (0.42 + Math.min(1, wind.speed / 34) * 0.48)
+    material.uniforms.size!.value = 1.4 + Math.min(1, wind.speed / 36) * 1.2
+    material.uniforms.distortionScale!.value = 1.55 + Math.min(1, wind.speed / 34) * 2.1
+    material.uniforms.waterColor!.value.copy(getWaterColor(hour, waterColor))
+    material.uniforms.sunColor!.value.copy(getSunColor(hour, sunColor))
+    material.uniforms.sunDirection!.value.copy(getSunDirection(hour, sunDirection))
+    material.uniforms.eye!.value.copy(eyePosition)
   })
-  const outerTrackersRef = useRef({
-    lastColorHour: null as number | null,
-    lastSunHour: null as number | null,
-    lastWindDirection: null as number | null,
-    lastWindSpeed: null as number | null,
-  })
 
-  const innerSize = size * INNER_OCEAN_SIZE_RATIO
-  const innerSegments = Math.max(24, segments)
-  const outerSegments = Math.max(24, Math.floor(segments * 0.45))
-
-  useFrame((_, delta) => {
-    const innerMaterial = innerMeshRef.current?.material
-    if (innerMaterial instanceof ShaderMaterial) {
-      syncOceanMaterial(innerMaterial, delta, wind, hour, innerColorBuffer, innerTrackersRef.current)
-    }
-
-    const outerMaterial = outerMeshRef.current?.material
-    if (outerMaterial instanceof ShaderMaterial) {
-      syncOceanMaterial(outerMaterial, delta, wind, hour, outerColorBuffer, outerTrackersRef.current)
-    }
-  })
-
-  return (
-    <group>
-      <mesh ref={outerMeshRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, OUTER_OCEAN_Y_OFFSET, 0]}>
-        <planeGeometry args={[size, size, outerSegments, outerSegments]} />
-        <shaderMaterial
-          vertexShader={oceanVertexShader}
-          fragmentShader={oceanFragmentShader}
-          uniforms={outerUniforms}
-          side={DoubleSide}
-        />
-      </mesh>
-
-      <mesh ref={innerMeshRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-        <planeGeometry args={[innerSize, innerSize, innerSegments, innerSegments]} />
-        <shaderMaterial
-          vertexShader={oceanVertexShader}
-          fragmentShader={oceanFragmentShader}
-          uniforms={innerUniforms}
-          side={DoubleSide}
-        />
-      </mesh>
-    </group>
-  )
+  return <primitive object={water} position={position} onClick={onClick} />
 }

@@ -15,7 +15,7 @@ import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import type { Position2D } from '@/types/common.ts'
 import { windSpeedFactor } from '@/game/utils/math.ts'
-import { isPointOnLand } from '@/data/master/landmasses.ts'
+import { isPointOnLand, snapPointToNearestSea } from '@/data/master/landmasses.ts'
 import { useUIStore } from '@/stores/useUIStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
 import { updateStopTimer } from '@/stores/useUIStore.ts'
@@ -29,6 +29,8 @@ declare global {
     __CREW_NOTICE__?: number
   }
 }
+
+const GROUNDING_RECOVERY_CLEARANCE = 1.2
 
 // --- 停止理由列挙と通知メッセージ --- //
 export const StopReason = {
@@ -104,6 +106,11 @@ function clampWorldPosition(x: number, y: number): Position2D {
 
 function isSailable(position: Position2D): boolean {
   return !isPointOnLand([position.x, position.y])
+}
+
+function moveToNearestSailablePosition(position: Position2D): Position2D {
+  const [x, y] = snapPointToNearestSea([position.x, position.y], GROUNDING_RECOVERY_CLEARANCE)
+  return clampWorldPosition(x, y)
 }
 
 // ユーティリティ：2点間の距離
@@ -201,11 +208,15 @@ export class NavigationSystem implements GameSystem {
     const playerStore = usePlayerStore.getState()
     const { speed } = useGameStore.getState()
     const w = window as Window & { __LAND_NOTICE__?: number }
+    const uiStore = useUIStore.getState()
 
-    // 航行不能フラグで移動をブロック
-    if (nav.mode === 'docked' || nav.mode === 'combat' || useUIStore.getState().isStopped) {
+    // 航行不能フラグで移動をブロック。座礁だけは、海側へ復帰できるよう更新を通す。
+    if (nav.mode === 'docked' || nav.mode === 'combat' || (uiStore.isStopped && uiStore.stopReason !== StopReason.STRUCK_GROUND)) {
       if (nav.currentSpeed !== 0) nav.setSpeed(0)
       return
+    }
+    if (uiStore.isStopped && uiStore.stopReason === StopReason.STRUCK_GROUND && isSailable(nav.position)) {
+      uiStore.setResumed()
     }
     if (isVoyageGloballySuspended()) return
 
@@ -280,6 +291,15 @@ export class NavigationSystem implements GameSystem {
     // 帆走モードへ
     if (nav.mode !== 'sailing') nav.setMode('sailing')
 
+    let currentPosition = nav.position
+    if (!isSailable(currentPosition)) {
+      const recoveryPosition = moveToNearestSailablePosition(currentPosition)
+      currentPosition = recoveryPosition
+      nav.setPosition(recoveryPosition)
+      playerStore.setPosition(recoveryPosition)
+      useUIStore.getState().setResumed()
+    }
+
     const baseSpeed = (shipType?.speed ?? 8) * riggingSpeedFactor
     const verticalSails = shipType?.verticalSails ?? 1
     const horizontalSails = shipType?.horizontalSails ?? 1
@@ -311,14 +331,14 @@ export class NavigationSystem implements GameSystem {
 
     const nx = Math.sin(headingRad)
     const ny = Math.cos(headingRad)
-    const rawX = nav.position.x + nx * stepMap
-    const rawY = nav.position.y + ny * stepMap
+    const rawX = currentPosition.x + nx * stepMap
+    const rawY = currentPosition.y + ny * stepMap
     const nextPosition = clampWorldPosition(rawX, rawY)
 
     const isBlockedByLand = !isSailable(nextPosition)
     if (isBlockedByLand) {
       const slidePosition = trySlideAlongCoast(
-        nav.position,
+        currentPosition,
         nx * stepMap,
         ny * stepMap,
         Math.sign(headingDiff),
@@ -334,8 +354,19 @@ export class NavigationSystem implements GameSystem {
         return
       }
 
+      const recoveryPosition = moveToNearestSailablePosition(nextPosition)
+      if (isSailable(recoveryPosition)) {
+        nav.setPosition(recoveryPosition)
+        nav.addDistance(stepKm)
+        playerStore.setPosition(recoveryPosition)
+        playerStore.setHeading(newHeading)
+        playerStore.updatePlayer({ currentPortId: undefined })
+        useUIStore.getState().setResumed()
+        return
+      }
+
       nav.setSpeed(0)
-      if (nav.mode !== 'anchored') nav.setMode('anchored')
+      if (nav.mode !== 'sailing') nav.setMode('sailing')
       playerStore.setHeading(newHeading)
       const now = performance.now()
       if (now - (w.__LAND_NOTICE__ ?? 0) > 3000) {

@@ -46,6 +46,7 @@ const SEA_SEARCH_ANGLE_STEPS = 48
 const DEPARTURE_CLEARANCE_STEP = 0.6
 const DEPARTURE_CLEARANCE_SAMPLES = 8
 const DEPARTURE_CLEARANCE_TRIES = 12
+const DEPARTURE_SEARCH_ANGLE_STEPS = 72
 
 function projectRing(ring: number[][]): [number, number][] {
   const projected = ring.map(([lon, lat]) => projectGeoPairToWorld([lon, lat]))
@@ -234,6 +235,51 @@ function isSeaCorridorClear(origin: [number, number], direction: [number, number
   return true
 }
 
+function getHeadingFromDirection(direction: [number, number]): number {
+  return (((Math.atan2(direction[0], direction[1]) * 180) / Math.PI) + 360) % 360
+}
+
+function findSafeDeparturePoint(point: [number, number], offset: number): { point: [number, number]; direction: [number, number] } | null {
+  const coast = findNearestCoastPoint(point)
+  const fallbackSeaPoint = findNearestSeaAroundCoast(point, coast, offset)
+  const preferredDirection = normalizeVector(fallbackSeaPoint[0] - coast[0], fallbackSeaPoint[1] - coast[1])
+    ?? normalizeVector(fallbackSeaPoint[0] - point[0], fallbackSeaPoint[1] - point[1])
+
+  const candidates: { point: [number, number]; direction: [number, number]; score: number }[] = []
+
+  const considerCandidate = (candidate: [number, number], direction: [number, number], bias = 0) => {
+    if (isPointOnLand(candidate)) return
+    if (!isSeaCorridorClear(candidate, direction)) return
+
+    const alignment = preferredDirection
+      ? direction[0] * preferredDirection[0] + direction[1] * preferredDirection[1]
+      : 0
+    const score = distanceSq(point, candidate) - alignment * 0.35 + bias
+    candidates.push({ point: candidate, direction, score })
+  }
+
+  const pointFromCoastDirection = normalizeVector(point[0] - coast[0], point[1] - coast[1])
+  if (pointFromCoastDirection) considerCandidate(point, pointFromCoastDirection, -0.2)
+
+  const fallbackDirection = normalizeVector(fallbackSeaPoint[0] - coast[0], fallbackSeaPoint[1] - coast[1])
+    ?? preferredDirection
+  if (fallbackDirection) considerCandidate(fallbackSeaPoint, fallbackDirection, -0.1)
+
+  for (let radiusStep = 0; radiusStep <= DEPARTURE_CLEARANCE_TRIES; radiusStep++) {
+    const radius = offset + DEPARTURE_CLEARANCE_STEP * radiusStep
+    for (let angleStep = 0; angleStep < DEPARTURE_SEARCH_ANGLE_STEPS; angleStep++) {
+      const angle = (angleStep / DEPARTURE_SEARCH_ANGLE_STEPS) * Math.PI * 2
+      const direction: [number, number] = [Math.cos(angle), Math.sin(angle)]
+      considerCandidate([point[0] + direction[0] * radius, point[1] + direction[1] * radius], direction)
+      considerCandidate([coast[0] + direction[0] * radius, coast[1] + direction[1] * radius], direction, 0.08)
+    }
+  }
+
+  if (candidates.length === 0) return null
+  const best = candidates.reduce((currentBest, candidate) => (candidate.score < currentBest.score ? candidate : currentBest))
+  return { point: best.point, direction: best.direction }
+}
+
 /**
  * 港座標を海岸線に吸着し、最小限だけ海側へオフセットする。
  * 座標系の差があっても、港マーカーが海岸線から大きく離れないようにする。
@@ -289,6 +335,14 @@ export function snapPointToNearestSea(point: [number, number], offset = PORT_SEA
 export function getSeawardDeparture(point: [number, number], offset = DEPARTURE_SEA_OFFSET): { point: [number, number]; heading: number } {
   const coast = findNearestCoastPoint(point)
   const fallbackSeaPoint = findNearestSeaAroundCoast(point, coast, offset)
+  const safeDeparture = findSafeDeparturePoint(point, offset)
+  if (safeDeparture) {
+    return {
+      point: safeDeparture.point,
+      heading: getHeadingFromDirection(safeDeparture.direction),
+    }
+  }
+
   const direction = normalizeVector(point[0] - coast[0], point[1] - coast[1])
 
   const seaPoint: [number, number] = direction
@@ -313,10 +367,8 @@ export function getSeawardDeparture(point: [number, number], offset = DEPARTURE_
     }
   }
 
-  const heading = (Math.atan2(safeDirection[0], safeDirection[1]) * 180) / Math.PI
-
   return {
     point: departurePoint,
-    heading: (heading + 360) % 360,
+    heading: getHeadingFromDirection(safeDirection),
   }
 }

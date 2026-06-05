@@ -37,9 +37,49 @@ const jobs = [
     output: 'public/models/ships/galleon.glb',
   },
   {
+    id: 'heavy_galleon',
+    inputs: ['models-source/ships/heavy_galleon.source.glb', 'dist/models/heavy_galleon.glb'],
+    output: 'public/models/ships/heavy_galleon.glb',
+  },
+  {
+    id: 'treasure_galleon',
+    inputs: ['models-source/ships/treasure_galleon.source.glb', 'public/models/treasure_galleon.glb', 'dist/models/treasure_galleon.glb'],
+    output: 'public/models/ships/treasure_galleon.glb',
+  },
+  {
+    id: 'galleass',
+    inputs: ['models-source/ships/galleass.source.glb', 'public/models/galleass.glb', 'dist/models/galleass.glb'],
+    output: 'public/models/ships/galleass.glb',
+  },
+  {
+    id: 'galeazza',
+    inputs: ['models-source/ships/galeazza.source.glb', 'dist/models/galeazza.glb'],
+    output: 'public/models/ships/galeazza.glb',
+  },
+  {
+    id: 'xebec',
+    inputs: ['models-source/ships/xebec.source.glb', 'dist/models/xebec.glb', 'dist/models/xebeck.glb'],
+    output: 'public/models/ships/xebec.glb',
+  },
+  {
+    id: 'dhow',
+    inputs: ['models-source/ships/dhow.source.glb', 'dist/models/dhow.glb', 'dist/models/dau.glb'],
+    output: 'public/models/ships/dhow.glb',
+  },
+  {
+    id: 'sambuk',
+    inputs: ['models-source/ships/sambuk.source.glb', 'dist/models/sambuk.glb', 'dist/models/samubuc.glb'],
+    output: 'public/models/ships/sambuk.glb',
+  },
+  {
     id: 'schooner',
     inputs: ['models-source/ships/schooner.source.glb', 'public/models/schooner.glb', 'dist/models/schooner.glb'],
     output: 'public/models/ships/schooner.glb',
+  },
+  {
+    id: 'pinnace',
+    inputs: ['models-source/ships/pinnace.source.glb', 'dist/models/pinnace.glb'],
+    output: 'public/models/ships/pinnace.glb',
   },
 ]
 

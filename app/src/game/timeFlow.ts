@@ -4,6 +4,8 @@ import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { useNpcFleetStore } from '@/stores/useNpcFleetStore.ts'
 import { useUIStore } from '@/stores/useUIStore.ts'
 
+const GROUNDING_STOP_REASON = '座礁'
+
 export function isVoyageGloballySuspended(): boolean {
   const game = useGameStore.getState()
   if (game.phase !== 'playing' || game.paused || game.speed === 0) return true
@@ -20,7 +22,8 @@ export function canUpdateVoyageNavigation(): boolean {
   const navigation = useNavigationStore.getState()
   if (navigation.mode === 'docked' || navigation.mode === 'combat') return false
 
-  return !useUIStore.getState().isStopped
+  const ui = useUIStore.getState()
+  return !ui.isStopped || ui.stopReason === GROUNDING_STOP_REASON
 }
 
 export function isVoyageTimeRunning(): boolean {
@@ -34,16 +37,18 @@ export function useVoyageTimeRunning(): boolean {
   const speed = useGameStore((s) => s.speed)
   const navigationMode = useNavigationStore((s) => s.mode)
   const isStopped = useUIStore((s) => s.isStopped)
+  const stopReason = useUIStore((s) => s.stopReason)
   const activeEncounter = useEncounterStore((s) => s.activeEncounter)
   const combatState = useEncounterStore((s) => s.combatState)
   const pendingAttackFleetId = useNpcFleetStore((s) => s.pendingAttackFleetId)
+  const groundingRecovery = isStopped && stopReason === GROUNDING_STOP_REASON
 
   return (
     phase === 'playing' &&
     !paused &&
     speed !== 0 &&
     navigationMode === 'sailing' &&
-    !isStopped &&
+    (!isStopped || groundingRecovery) &&
     !activeEncounter &&
     !combatState &&
     !pendingAttackFleetId

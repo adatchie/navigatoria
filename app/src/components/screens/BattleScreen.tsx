@@ -8,6 +8,7 @@ import { useDataStore } from '@/stores/useDataStore.ts'
 import { useEncounterStore } from '@/stores/useEncounterStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
+import { OceanScene } from '@/rendering/OceanScene.tsx'
 import { ShipModelRenderer, ShipRenderer } from '@/rendering/ShipRenderer.tsx'
 import { useResponsiveUiMetrics } from '@/ui/responsive.ts'
 import {
@@ -332,9 +333,10 @@ function BattleField3D(props: {
       <BattleCamera />
       <color attach="background" args={['#071b2d']} />
       <fog attach="fog" args={['#071b2d', 160, 620]} />
-      <ambientLight intensity={1.18} />
-      <directionalLight position={[-42, 64, 28]} intensity={1.45} />
-      <directionalLight position={[38, 26, -34]} intensity={0.34} />
+      <ambientLight color="#dbeafe" intensity={1.38} />
+      <hemisphereLight color="#a7dcff" groundColor="#16405c" intensity={0.82} />
+      <directionalLight position={[-42, 64, 28]} color="#fff4dc" intensity={1.7} />
+      <directionalLight position={[38, 42, -34]} color="#8bd3ff" intensity={0.62} />
       <BattleSea onSelectTarget={props.onSelectTarget} />
       <BattlefieldBoundary />
       <WindArrow3D direction={props.wind.direction} />
@@ -388,17 +390,16 @@ function BattleCamera() {
 
 function BattleSea(props: { onSelectTarget: (position: Position2D) => void }) {
   return (
-    <mesh
-      rotation={[-Math.PI / 2, 0, 0]}
+    <OceanScene
+      size={900}
+      segments={1}
       position={[0, -0.04, 0]}
+      reflectionTextureSize={64}
       onClick={(event: ThreeEvent<MouseEvent>) => {
         event.stopPropagation()
         props.onSelectTarget(sceneToBattlePosition(event.point))
       }}
-    >
-      <planeGeometry args={[900, 900, 1, 1]} />
-      <meshStandardMaterial color="#0b4163" roughness={0.82} metalness={0.03} emissive="#061f35" emissiveIntensity={0.52} />
-    </mesh>
+    />
   )
 }
 

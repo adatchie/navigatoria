@@ -128,7 +128,7 @@ export function GameCanvas() {
 
       {/* 海面は船に追従（無限海面の錯覚） */}
       <OceanFollower>
-        <OceanScene size={600} segments={96} />
+        <OceanScene size={600} segments={1} reflectionTextureSize={96} />
       </OceanFollower>
       <WakeRenderer />
 
@@ -346,6 +346,7 @@ function PortMarker({ port }: { port: Port }) {
 
     if (nav.mode === 'docked') {
       // 停泊中 → 出航
+      useUIStore.getState().setResumed()
       const dx = port.position.x - nav.position.x
       const dy = port.position.y - nav.position.y
       const heading = (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01)
@@ -354,6 +355,7 @@ function PortMarker({ port }: { port: Port }) {
       nav.departPort(heading)
     } else {
       // 航海中（sailing/anchored） → 直接入港
+      useUIStore.getState().setResumed()
       nav.setMode('docked')
       nav.setPosition(port.position)
       nav.setDockedPort(port.id)

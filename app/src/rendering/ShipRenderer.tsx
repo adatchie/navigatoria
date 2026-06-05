@@ -27,12 +27,14 @@ import { useDataStore } from '@/stores/useDataStore.ts'
 import { isPointOnLand, snapPointToNearestSea } from '@/data/master/landmasses.ts'
 import { getEffectiveGameSpeed, TIME_CONFIG, WORLD_DISTANCE_SCALE } from '@/config/gameConfig.ts'
 import { SCENE_WORLD_SCALE, worldToScene } from '@/rendering/worldTransform.ts'
+import { isVoyageTimeRunning } from '@/game/timeFlow.ts'
 
 interface ShipRendererProps {
   position?: [number, number, number]
   heading?: number
   scale?: number
   modelId?: string
+  animateOars?: boolean
 }
 
 interface ShipPartDefinition {
@@ -51,6 +53,8 @@ const sharedGeometries = {
   mainSail: new PlaneGeometry(2, 2.5),
   foreSail: new PlaneGeometry(1.5, 1.8),
   flag: new PlaneGeometry(0.6, 0.3),
+  oarShaft: new CylinderGeometry(0.018, 0.018, 1, 6),
+  oarBlade: new BoxGeometry(0.28, 0.045, 0.32),
 }
 
 const sharedMaterials = {
@@ -59,6 +63,7 @@ const sharedMaterials = {
   mast: new MeshStandardMaterial({ color: 0x4a3728 }),
   sail: new MeshStandardMaterial({ color: 0xf5e6c8, side: DoubleSide, roughness: 0.9 }),
   flag: new MeshStandardMaterial({ color: 0xcc2222, side: DoubleSide }),
+  oar: new MeshStandardMaterial({ color: 0x5d3b20, roughness: 0.76 }),
 }
 
 const shipParts: ShipPartDefinition[] = [
@@ -119,7 +124,15 @@ const SHIP_MODEL_URLS: Record<string, string> = {
   caravel: `${import.meta.env.BASE_URL}models/ships/caravel.glb`,
   carrack: `${import.meta.env.BASE_URL}models/ships/carrack.glb`,
   galleon: `${import.meta.env.BASE_URL}models/ships/galleon.glb`,
+  heavy_galleon: `${import.meta.env.BASE_URL}models/ships/heavy_galleon.glb`,
+  treasure_galleon: `${import.meta.env.BASE_URL}models/ships/treasure_galleon.glb`,
+  galleass: `${import.meta.env.BASE_URL}models/ships/galleass.glb`,
+  galeazza: `${import.meta.env.BASE_URL}models/ships/galeazza.glb`,
+  xebec: `${import.meta.env.BASE_URL}models/ships/xebec.glb`,
+  dhow: `${import.meta.env.BASE_URL}models/ships/dhow.glb?v=20260605-dhow-source-fix`,
+  sambuk: `${import.meta.env.BASE_URL}models/ships/sambuk.glb`,
   schooner: `${import.meta.env.BASE_URL}models/ships/schooner.glb`,
+  pinnace: `${import.meta.env.BASE_URL}models/ships/pinnace.glb`,
   barca: `${import.meta.env.BASE_URL}models/ships/barsha.glb`,
   balca: `${import.meta.env.BASE_URL}models/ships/barsha.glb`,
 }
@@ -132,7 +145,34 @@ const SHIP_MODEL_SIZE_SCALE: Record<string, number> = {
   cog: 0.82,
   carrack: 1.34,
   galleon: 1.55,
+  heavy_galleon: 1.62,
+  treasure_galleon: 1.62,
+  galleass: 1.55,
+  galeazza: 1.55,
+  xebec: 1,
+  dhow: 0.72,
+  sambuk: 0.78,
   schooner: 1.55,
+  pinnace: 1.08,
+}
+const SHIP_MODEL_HEADING_OFFSET: Record<string, number> = {
+  barsha: Math.PI,
+  barca: Math.PI,
+  balca: Math.PI,
+  caravel: Math.PI,
+  cog: Math.PI,
+  carrack: Math.PI,
+  galleon: Math.PI,
+  heavy_galleon: Math.PI,
+  treasure_galleon: Math.PI,
+  galleass: Math.PI,
+  galeazza: Math.PI,
+  xebec: Math.PI,
+  dhow: Math.PI,
+  sambuk: Math.PI,
+  schooner: Math.PI,
+  galley: Math.PI,
+  pinnace: Math.PI,
 }
 const TARGET_MODEL_LENGTH = 5.2
 
@@ -152,6 +192,58 @@ interface NormalizedModelLayout {
   scale: number
   offset: [number, number, number]
   rotationY: number
+}
+
+interface RowingOarLayout {
+  rows: number
+  beam: number
+  oarLength: number
+  zMin: number
+  zMax: number
+  y: number
+  strokeAmplitude: number
+  liftAmplitude: number
+  restDip: number
+  speed: number
+}
+
+const ROWING_OAR_LAYOUTS: Record<string, RowingOarLayout> = {
+  galley: {
+    rows: 9,
+    beam: 0.72,
+    oarLength: 1.55,
+    zMin: -1.85,
+    zMax: 1.7,
+    y: 0.48,
+    strokeAmplitude: 0.34,
+    liftAmplitude: 0.08,
+    restDip: 0.08,
+    speed: 4.2,
+  },
+  galleass: {
+    rows: 12,
+    beam: 1.04,
+    oarLength: 2.05,
+    zMin: -2.75,
+    zMax: 2.55,
+    y: 0.62,
+    strokeAmplitude: 0.3,
+    liftAmplitude: 0.07,
+    restDip: 0.07,
+    speed: 3.6,
+  },
+  galeazza: {
+    rows: 13,
+    beam: 1.08,
+    oarLength: 2.1,
+    zMin: -2.85,
+    zMax: 2.65,
+    y: 0.62,
+    strokeAmplitude: 0.3,
+    liftAmplitude: 0.07,
+    restDip: 0.07,
+    speed: 3.55,
+  },
 }
 
 function getShipScale(category?: string): number {
@@ -175,19 +267,27 @@ function resolveShipModelSizeScale(modelId?: string): number {
   return SHIP_MODEL_SIZE_SCALE[resolveShipModelId(modelId)] ?? 1
 }
 
+function resolveShipModelHeadingOffset(modelId?: string): number {
+  return SHIP_MODEL_HEADING_OFFSET[resolveShipModelId(modelId)] ?? 0
+}
+
+function resolveRowingOarLayout(modelId?: string): RowingOarLayout | null {
+  return ROWING_OAR_LAYOUTS[resolveShipModelId(modelId)] ?? null
+}
+
 function getFleetModelScale(category?: string, modelId?: string): number {
   if (modelId && SHIP_MODEL_URLS[modelId]) return 1
   return getShipScale(category)
 }
 
-function useNormalizedModelLayout(scene: Group, sizeScale: number): NormalizedModelLayout {
+function useNormalizedModelLayout(scene: Group, sizeScale: number, headingOffset: number): NormalizedModelLayout {
   return useMemo<NormalizedModelLayout>(() => {
     const boundsBox = new Box3().setFromObject(scene)
     const boundsSize = boundsBox.getSize(new Vector3())
     const boundsCenter = boundsBox.getCenter(new Vector3())
     const dominantLength = Math.max(boundsSize.x, boundsSize.z, 0.0001)
     const modelScale = (TARGET_MODEL_LENGTH * sizeScale) / dominantLength
-    const rotationY = (boundsSize.x > boundsSize.z ? Math.PI / 2 : 0) + Math.PI
+    const rotationY = (boundsSize.x > boundsSize.z ? Math.PI / 2 : 0) + Math.PI + headingOffset
 
     return {
       scale: modelScale,
@@ -198,20 +298,89 @@ function useNormalizedModelLayout(scene: Group, sizeScale: number): NormalizedMo
       ],
       rotationY,
     }
-  }, [scene, sizeScale])
+  }, [headingOffset, scene, sizeScale])
+}
+
+function AnimatedRowingOars({ modelId, active }: { modelId?: string, active: boolean }) {
+  const layout = resolveRowingOarLayout(modelId)
+  const oarRefs = useRef<(Group | null)[]>([])
+  const oars = useMemo(() => {
+    if (!layout) return []
+    const zStep = layout.rows > 1 ? (layout.zMax - layout.zMin) / (layout.rows - 1) : 0
+    return Array.from({ length: layout.rows }).flatMap((_, row) => {
+      const z = layout.zMin + zStep * row
+      return [
+        { key: `${row}-starboard`, row, side: 1, z },
+        { key: `${row}-port`, row, side: -1, z },
+      ]
+    })
+  }, [layout])
+
+  useFrame((state) => {
+    if (!layout) return
+    const strokeEnabled = active && isVoyageTimeRunning()
+    oarRefs.current.forEach((oar, index) => {
+      if (!oar) return
+      const row = Math.floor(index / 2)
+      const side = index % 2 === 0 ? 1 : -1
+      const phase = state.clock.elapsedTime * layout.speed + row * 0.28
+      const stroke = strokeEnabled ? Math.sin(phase) * layout.strokeAmplitude : 0
+      const lift = strokeEnabled ? Math.max(0, Math.cos(phase)) * layout.liftAmplitude : 0
+      oar.rotation.y = side * stroke
+      oar.rotation.z = -side * (layout.restDip + lift)
+    })
+  })
+
+  if (!layout || !active || oars.length === 0) return null
+
+  return (
+    <group>
+      {oars.map((oar, index) => (
+        <group
+          key={oar.key}
+          ref={(ref) => {
+            oarRefs.current[index] = ref
+          }}
+          position={[oar.side * layout.beam, layout.y, oar.z]}
+        >
+          <mesh
+            geometry={sharedGeometries.oarShaft}
+            material={sharedMaterials.oar}
+            position={[oar.side * (layout.oarLength / 2), 0, 0]}
+            rotation={[0, 0, Math.PI / 2]}
+            scale={[1, layout.oarLength, 1]}
+          />
+          <mesh
+            geometry={sharedGeometries.oarBlade}
+            material={sharedMaterials.oar}
+            position={[oar.side * layout.oarLength, 0, 0]}
+          />
+        </group>
+      ))}
+    </group>
+  )
 }
 
 function ShipModelClone({ modelId }: { modelId?: string }) {
   const { scene } = useGLTF(resolveShipModelUrl(modelId), false, true)
-  const modelLayout = useNormalizedModelLayout(scene, resolveShipModelSizeScale(modelId))
+  const navigationMode = useNavigationStore((s) => s.mode)
+  const modelLayout = useNormalizedModelLayout(
+    scene,
+    resolveShipModelSizeScale(modelId),
+    resolveShipModelHeadingOffset(modelId),
+  )
+  const rowingActive = navigationMode === 'sailing'
 
   return (
-    <group
-      position={modelLayout.offset}
-      rotation={[0, modelLayout.rotationY, 0]}
-      scale={modelLayout.scale}
-    >
-      <Clone object={scene} />
+    <group>
+      <group
+        position={modelLayout.offset}
+        rotation={[0, modelLayout.rotationY, 0]}
+        scale={modelLayout.scale}
+      >
+        <Clone object={scene} />
+      </group>
+      <AnimatedRowingOars modelId={modelId} active={rowingActive} />
     </group>
   )
 }
@@ -619,10 +788,15 @@ export function ShipModelRenderer({
   heading = 0,
   scale = 1,
   modelId,
+  animateOars = false,
 }: ShipRendererProps) {
   const { scene } = useGLTF(resolveShipModelUrl(modelId), false, true)
   const motionGroupRef = useRef<Group>(null)
-  const modelLayout = useNormalizedModelLayout(scene, resolveShipModelSizeScale(modelId))
+  const modelLayout = useNormalizedModelLayout(
+    scene,
+    resolveShipModelSizeScale(modelId),
+    resolveShipModelHeadingOffset(modelId),
+  )
 
   useFrame((state) => {
     if (!motionGroupRef.current) return
@@ -644,6 +818,7 @@ export function ShipModelRenderer({
         >
           <Clone object={scene} />
         </group>
+        <AnimatedRowingOars modelId={modelId} active={animateOars} />
       </group>
     </group>
   )

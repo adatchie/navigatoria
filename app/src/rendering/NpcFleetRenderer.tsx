@@ -137,7 +137,7 @@ export function NpcFleetRenderer() {
       {fleets.map((fleet, fleetIndex) => (
         <group key={fleet.id} ref={fleetRefs[fleetIndex]}>
           <Suspense fallback={<ShipRenderer heading={0} scale={1} />}>
-            <ShipModelRenderer heading={0} scale={1} modelId={getShip(fleet.shipTypeId)?.modelId} />
+            <ShipModelRenderer heading={0} scale={1} modelId={getShip(fleet.shipTypeId)?.modelId} animateOars />
           </Suspense>
           <Html position={[0, 4.75, 0]} center distanceFactor={42} style={styles.label}>
             <div style={styles.labelInner}>

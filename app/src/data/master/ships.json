@@ -129,7 +129,7 @@
     "requiredLevel": 31,
     "price": 310000,
     "cultures": ["west_europe", "new_world"],
-    "modelId": "galleon"
+    "modelId": "treasure_galleon"
   },
   {
     "id": "pinnace",
@@ -147,7 +147,8 @@
     "horizontalSails": 2,
     "requiredLevel": 4,
     "price": 11000,
-    "cultures": ["north_europe", "west_europe"]
+    "cultures": ["north_europe", "west_europe"],
+    "modelId": "pinnace"
   },
   {
     "id": "schooner",
@@ -276,7 +277,8 @@
     "horizontalSails": 1,
     "requiredLevel": 21,
     "price": 135000,
-    "cultures": ["west_europe", "islamic"]
+    "cultures": ["west_europe", "islamic"],
+    "modelId": "galeazza"
   },
   {
     "id": "xebec",
@@ -294,7 +296,8 @@
     "horizontalSails": 0,
     "requiredLevel": 15,
     "price": 58000,
-    "cultures": ["islamic", "west_europe"]
+    "cultures": ["islamic", "west_europe"],
+    "modelId": "xebec"
   },
   {
     "id": "dhow",
@@ -312,7 +315,8 @@
     "horizontalSails": 0,
     "requiredLevel": 3,
     "price": 9000,
-    "cultures": ["islamic", "indian", "africa"]
+    "cultures": ["islamic", "indian", "africa"],
+    "modelId": "dhow"
   },
   {
     "id": "sambuk",
@@ -330,7 +334,8 @@
     "horizontalSails": 0,
     "requiredLevel": 7,
     "price": 21000,
-    "cultures": ["islamic", "indian"]
+    "cultures": ["islamic", "indian"],
+    "modelId": "sambuk"
   },
   {
     "id": "baghlah",

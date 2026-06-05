@@ -51,6 +51,8 @@ const BANK_AMOUNTS = [1000, 5000]
 const CREW_HIRE_AMOUNTS = [1, 5, 10]
 const SUPPLY_STEP = 12
 const EMERGENCY_REPAIR_REQUEST = 12
+const TOWN_ACTION_NOTICE_DURATION_MS = 2600
+const TOWN_ACTION_WARNING_NOTICE_DURATION_MS = 4200
 const SHIP_PREVIEW_POSITION: [number, number, number] = [0, -0.62, 0]
 const SHIP_PREVIEW_SCALE = 0.56
 const SECTION_LABELS: Record<TownSection, string> = {
@@ -428,12 +430,12 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const turnInQuest = useQuestStore((s) => s.turnInQuest)
   const lastQuestNotice = useQuestStore((s) => s.lastQuestNotice)
   const clearQuestNotice = useQuestStore((s) => s.clearQuestNotice)
-  const addNotification = useUIStore((s) => s.addNotification)
 
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [tradeMessageState, setTradeMessageState] = useState<{ portId: string | null; message: string | null; ok?: boolean }>({ portId: null, message: null })
   const [activeSection, setActiveSection] = useState<TownSection>('overview')
   const questBoardPortRef = useRef<string | null>(null)
+  const actionNoticeTimeoutRef = useRef<number | null>(null)
   const [repairTargetShipId, setRepairTargetShipId] = useState<string | null>(null)
   const [tavernTargetShipId, setTavernTargetShipId] = useState<string | null>(null)
   const [shipyardTargetShipId, setShipyardTargetShipId] = useState<string | null>(null)
@@ -484,6 +486,13 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
     ensurePortQuests(port.id, day)
   }, [day, ensurePortQuests, port?.id])
 
+  useEffect(() => () => {
+    if (actionNoticeTimeoutRef.current !== null) {
+      window.clearTimeout(actionNoticeTimeoutRef.current)
+      actionNoticeTimeoutRef.current = null
+    }
+  }, [])
+
   const marketRows = (market?.items ?? [])
     .map((item) => {
       const good = getTradeGood(item.goodId)
@@ -532,8 +541,20 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const setQuantity = (goodId: string, nextValue: number) => setQuantities((current) => ({ ...current, [goodId]: Math.max(1, Math.min(200, Math.floor(nextValue) || 1)) }))
   const handleAction = (result: ActionResult) => {
     clearQuestNotice()
+    if (actionNoticeTimeoutRef.current !== null) {
+      window.clearTimeout(actionNoticeTimeoutRef.current)
+    }
     setTradeMessageState({ portId: port.id, message: result.message, ok: result.ok })
-    addNotification(result.message, result.ok === false ? 'warning' : 'info', result.ok === false ? 4600 : 3200)
+    const noticePortId = port.id
+    const noticeMessage = result.message
+    actionNoticeTimeoutRef.current = window.setTimeout(() => {
+      setTradeMessageState((current) => (
+        current.portId === noticePortId && current.message === noticeMessage
+          ? { portId: null, message: null }
+          : current
+      ))
+      actionNoticeTimeoutRef.current = null
+    }, result.ok === false ? TOWN_ACTION_WARNING_NOTICE_DURATION_MS : TOWN_ACTION_NOTICE_DURATION_MS)
   }
   const beginHireDialogue = (officer: Officer) => {
     clearQuestNotice()
@@ -907,11 +928,6 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                         <button style={styles.secondaryButton} onClick={() => handleAction(resupplyShip('water', SUPPLY_STEP))}>水 +{SUPPLY_STEP}</button>
                         <button style={styles.primaryButton} onClick={() => handleAction(resupplyShip('all'))}>{uiText.town.labels.fullResupply} {fullResupplyCost} d</button>
                       </div>
-                      {actionNotice && (
-                        <div style={actionNotice.ok === false ? { ...styles.inlineNotice, ...styles.inlineNoticeWarning } : styles.inlineNotice}>
-                          {actionNotice.message}
-                        </div>
-                      )}
                       {fullResupplyShortage > 0 && (
                         <div style={styles.serviceNote}>一括補給にはあと {fullResupplyShortage} d 必要です。食料/水の個別補給なら所持金の範囲で実行できます。</div>
                       )}
@@ -933,6 +949,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                     <div style={styles.departRow}>
                       <button style={styles.leaveButton} onClick={() => {
                         const nav = useNavigationStore.getState()
+                        useUIStore.getState().setResumed()
                         nav.setPosition(port.position)
                         nav.departPort(nav.heading)
                         const departedNav = useNavigationStore.getState()
@@ -1428,8 +1445,6 @@ const styles: Record<string, React.CSSProperties> = {
   compactFigure: { minWidth: 72, textAlign: 'right', color: '#eef4ff', fontSize: 12 },
   emptyState: { color: '#7b8fab', fontSize: 13, padding: '14px 4px' },
   serviceGrid: { display: 'flex', flexWrap: 'wrap', gap: 10 },
-  inlineNotice: { marginTop: 10, padding: '9px 11px', borderRadius: 10, background: 'rgba(37, 99, 235, 0.14)', border: '1px solid rgba(147, 197, 253, 0.18)', color: '#dbeafe', fontSize: 12, lineHeight: 1.5 },
-  inlineNoticeWarning: { background: 'rgba(120, 53, 15, 0.22)', border: '1px solid rgba(251, 191, 36, 0.34)', color: '#fde68a' },
   inlineButtonGroup: { display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end' },
   serviceColumns: { display: 'grid', gridTemplateColumns: '1fr', gap: 16 },
   facilityTargetRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: 12, borderRadius: 14, border: '1px solid rgba(96, 165, 250, 0.24)', background: 'rgba(37, 99, 235, 0.08)' },
