@@ -298,7 +298,6 @@ export const useEconomyStore = create<EconomyStoreState>()((set, get) => ({
       player: state.player ? {
         ...state.player,
         money: state.player.money - quote.totalPrice,
-        stats: { ...state.player.stats, tradeExp: state.player.stats.tradeExp + rewards.tradeExp },
       } : state.player,
       ships: state.ships.map((ship) => ship.instanceId !== resolvedShipId ? ship : {
         ...ship,
@@ -307,6 +306,7 @@ export const useEconomyStore = create<EconomyStoreState>()((set, get) => ({
       }),
     }))
 
+    usePlayerStore.getState().grantExperience({ trade: rewards.tradeExp })
     set((state) => ({
       purchaseHistory: {
         ...state.purchaseHistory,
@@ -357,7 +357,6 @@ export const useEconomyStore = create<EconomyStoreState>()((set, get) => ({
         money: state.player.money + totalPrice,
         stats: {
           ...state.player.stats,
-          tradeExp: state.player.stats.tradeExp + rewards.tradeExp,
           fame: state.player.stats.fame + rewards.fame,
         },
       } : state.player,
@@ -368,6 +367,7 @@ export const useEconomyStore = create<EconomyStoreState>()((set, get) => ({
       }),
     }))
 
+    usePlayerStore.getState().grantExperience({ trade: rewards.tradeExp })
     set((state) => {
       const currentMarket = state.markets[portId]
       const existingItem = currentMarket?.items.find((entry) => entry.goodId === goodId)
@@ -395,9 +395,10 @@ export const useEconomyStore = create<EconomyStoreState>()((set, get) => ({
       player: {
         ...state.player,
         money: state.player.money - amount,
-        stats: { ...state.player.stats, tradeExp: state.player.stats.tradeExp + Math.max(2, Math.round(amount / 60)), fame: state.player.stats.fame + Math.max(1, Math.round(amount / 400)) },
+        stats: { ...state.player.stats, fame: state.player.stats.fame + Math.max(1, Math.round(amount / 400)) },
       },
     }) : state)
+    usePlayerStore.getState().grantExperience({ trade: Math.max(2, Math.round(amount / 60)) })
 
     useWorldStore.getState().updatePort(portId, (currentPort) => ({
       ...currentPort,

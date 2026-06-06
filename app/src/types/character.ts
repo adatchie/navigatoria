@@ -60,6 +60,7 @@ export interface Player {
   deposit: number
   debt: number
   inventory: PlayerItemStack[]
+  discoveredDiscoveryIds?: string[]
   currentPortId?: string
   position: Position2D
   heading: number

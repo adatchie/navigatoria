@@ -12,6 +12,7 @@ import { StatusBar } from './HUD/StatusBar.tsx'
 import { SailControl } from './HUD/SailControl.tsx'
 import { EncounterOverlay } from './EncounterOverlay.tsx'
 import { NpcFleetAttackDialog } from './NpcFleetAttackDialog.tsx'
+import { QuestAchievementOverlay } from './QuestAchievementOverlay.tsx'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { useUIStore } from '@/stores/useUIStore.ts'
@@ -58,6 +59,8 @@ export function App() {
   const updateTime = useGameStore((s) => s.updateTime)
   const setFrameStats = useGameStore((s) => s.setFrameStats)
   const initPlayer = usePlayerStore((s) => s.initPlayer)
+  const lastProgressionNotice = usePlayerStore((s) => s.lastProgressionNotice)
+  const clearProgressionNotice = usePlayerStore((s) => s.clearProgressionNotice)
   const initializeMarkets = useEconomyStore((s) => s.initializeMarkets)
   const ensurePortQuests = useQuestStore((s) => s.ensurePortQuests)
   const lastQuestNotice = useQuestStore((s) => s.lastQuestNotice)
@@ -201,6 +204,12 @@ export function App() {
     addNotification(lastQuestNotice!, 'warning', 6200)
   }, [addNotification, lastQuestNotice])
 
+  useEffect(() => {
+    if (!lastProgressionNotice) return
+    addNotification(lastProgressionNotice, 'info', 4200)
+    clearProgressionNotice()
+  }, [addNotification, clearProgressionNotice, lastProgressionNotice])
+
   const handleStart = useCallback(() => {
     initPlayer('航海者')
     initializeMarkets()
@@ -313,6 +322,7 @@ export function App() {
         </Suspense>
       )}
       {phase === 'port' && <Suspense fallback={<LoadingScreen message="港へ入港中..." />}><TownScreen onManualSave={() => void handleManualSave()} onLoadLatest={() => void handleLoadLatest()} /></Suspense>}
+      <QuestAchievementOverlay />
       {notificationMessage && (
         <div
           style={{

@@ -3,6 +3,13 @@ import type { Quest, QuestRank, QuestReward, TradeQuestCategory } from '@/types/
 import type { TradeGood } from '@/types/trade.ts'
 import { WORLD_DISTANCE_SCALE } from '@/config/gameConfig.ts'
 import { getTradeCatalog } from '@/game/trade/tradeCatalog.ts'
+import {
+  getDistanceRequiredLevel,
+  getQuestDistanceFitScore,
+  getQuestDistanceRewardMultiplier,
+  getRankRewardMultiplier,
+  isQuestDistanceAllowedForLevel,
+} from '@/game/quest/questBalance.ts'
 
 type GeneratedTradeQuestCategory = Extract<TradeQuestCategory, 'trade_delivery' | 'trade_procurement'>
 
@@ -25,7 +32,7 @@ const QUEST_CATEGORY_BUFFER_DAYS: Record<TradeQuestCategory, number> = {
   trade_procurement: 2,
   trade_sales: 1,
 }
-const QUEST_DEADLINE_MULTIPLIER = 1.5
+const QUEST_DEADLINE_MULTIPLIER = 3
 
 function hashSeed(input: string): number {
   let hash = 0
@@ -43,16 +50,69 @@ function hasMarket(port: Port): boolean {
   return port.facilities.some((facility) => facility.type === 'market' && facility.available)
 }
 
-function pickDeliveryDestination(sourcePort: Port, ports: Port[], seed: number): Port | null {
-  const nonSourcePorts = ports.filter((port) => port.id !== sourcePort.id)
-  const guildPorts = nonSourcePorts.filter((port) => hasGuild(port))
-  const candidates = guildPorts.length > 0 ? guildPorts : nonSourcePorts
-  return candidates[seed % candidates.length] ?? null
+function hasLocalSupply(port: Port, good: TradeGood): boolean {
+  return port.specialProducts.includes(good.id) || good.origins.includes(port.id)
 }
 
-function pickProcurementSource(giverPort: Port, ports: Port[], goods: TradeGood[], seed: number): Port | null {
-  const candidates = ports.filter((port) => port.id !== giverPort.id && hasMarket(port) && getTradeCatalog(port, goods).length > 0)
-  return candidates[seed % candidates.length] ?? null
+function pickRankedPort(candidates: Port[], seed: number, getScore: (port: Port) => number): Port | null {
+  if (candidates.length === 0) return null
+
+  const ranked = candidates
+    .map((port) => ({
+      port,
+      score: getScore(port) + (hashSeed(`${seed}:${port.id}`) % 100) / 100,
+    }))
+    .sort((a, b) => b.score - a.score)
+  const topBand = ranked.slice(0, Math.min(12, ranked.length))
+  return topBand[seed % topBand.length]?.port ?? null
+}
+
+function getTradeCounterLabel(port: Port): string {
+  if (hasGuild(port)) return '交易ギルド'
+  if (hasMarket(port)) return '交易所'
+  return '港役人'
+}
+
+function filterDistanceCandidates<T>(candidates: T[], level: number, getDistance: (candidate: T) => number): T[] {
+  return candidates.filter((candidate) => isQuestDistanceAllowedForLevel(getDistance(candidate), level))
+}
+
+function pickDeliveryDestination(sourcePort: Port, ports: Port[], goods: TradeGood[], good: TradeGood, seed: number, tradeLevel: number): Port | null {
+  const baseCandidates = ports.filter((port) => (
+    port.id !== sourcePort.id
+    && hasMarket(port)
+    && getTradeCatalog(port, goods).length > 0
+  ))
+  const candidates = filterDistanceCandidates(baseCandidates, tradeLevel, (port) => getRouteDistanceKm(sourcePort, port))
+
+  return pickRankedPort(candidates, seed, (port) => {
+    const distanceKm = getRouteDistanceKm(sourcePort, port)
+    const distanceScore = getQuestDistanceFitScore(distanceKm, tradeLevel) * 3.2
+    const demandScore = hasLocalSupply(port, good) ? -3.5 : 5
+    const cultureScore = port.culture === sourcePort.culture ? 0 : 2
+    const zoneScore = port.zoneId === sourcePort.zoneId ? -0.5 : 1
+    const newMarketScore = hasGuild(port) ? 0 : 1.6
+    return demandScore + cultureScore + zoneScore + distanceScore + newMarketScore + port.prosperity / 80
+  })
+}
+
+function pickProcurementSource(giverPort: Port, ports: Port[], goods: TradeGood[], seed: number, tradeLevel: number): Port | null {
+  const giverGoodIds = new Set(getTradeCatalog(giverPort, goods).map((good) => good.id))
+  const baseCandidates = ports.filter((port) => {
+    if (port.id === giverPort.id || !hasMarket(port)) return false
+    return getTradeCatalog(port, goods).some((good) => !giverGoodIds.has(good.id))
+  })
+  const candidates = filterDistanceCandidates(baseCandidates, tradeLevel, (port) => getRouteDistanceKm(giverPort, port) * 2)
+
+  return pickRankedPort(candidates, seed, (port) => {
+    const sourceCatalog = getTradeCatalog(port, goods)
+    const distinctiveGoods = sourceCatalog.filter((good) => !giverGoodIds.has(good.id) && hasLocalSupply(port, good))
+    const rareScore = distinctiveGoods.reduce((sum, good) => sum + good.rarity, 0) / Math.max(1, distinctiveGoods.length)
+    const distanceKm = getRouteDistanceKm(giverPort, port) * 2
+    const distanceScore = getQuestDistanceFitScore(distanceKm, tradeLevel) * 3.2
+    const cultureScore = port.culture === giverPort.culture ? 0 : 1.5
+    return distinctiveGoods.length * 1.4 + rareScore + distanceScore + cultureScore + port.prosperity / 100
+  })
 }
 
 function pickGoodForPort(sourcePort: Port, goods: TradeGood[], seed: number): TradeGood | null {
@@ -95,7 +155,7 @@ function getTravelDays(distanceKm: number, shipSpeedKnots = DEFAULT_QUEST_SHIP_S
 }
 
 function getRewardMultiplier(rank: QuestRank, category: TradeQuestCategory): number {
-  const rankBonus = rank === 'premium' ? 1.45 : rank === 'urgent' ? 1.2 : 1
+  const rankBonus = getRankRewardMultiplier(rank)
   const categoryBonus = category === 'trade_procurement' ? 1.15 : category === 'trade_sales' ? 1.1 : 1
   return rankBonus * categoryBonus
 }
@@ -111,11 +171,11 @@ function isHighDifficultyQuest(rank: QuestRank, quantity: number, distanceKm: nu
 }
 
 function getRequiredLevel(rank: QuestRank, quantity: number, distanceKm: number): number | undefined {
-  if (!isHighDifficultyQuest(rank, quantity, distanceKm)) return undefined
-
-  const distanceGate = distanceKm >= 12000 ? 8 : distanceKm >= 8000 ? 6 : distanceKm >= 4500 ? 4 : 0
+  const levelGate = getDistanceRequiredLevel(distanceKm)
+  if (!isHighDifficultyQuest(rank, quantity, distanceKm)) return levelGate
+  const legacyDistanceGate = distanceKm >= 12000 ? 8 : distanceKm >= 8000 ? 6 : distanceKm >= 4500 ? 4 : 0
   const cargoGate = quantity >= 16 ? 5 : quantity >= 14 ? 3 : 0
-  return Math.max(3, distanceGate, cargoGate)
+  return Math.max(3, legacyDistanceGate, cargoGate, levelGate ?? 0)
 }
 
 function getRequiredFame(rank: QuestRank, category: TradeQuestCategory, quantity: number, distanceKm: number): number {
@@ -160,9 +220,10 @@ function buildQuestDetails(params: {
   const { category, sourcePort, destination, good, quantity } = params
 
   if (category === 'trade_procurement') {
+    const counterLabel = getTradeCounterLabel(destination)
     return {
       title: `${good.name} 仕入依頼`,
-      description: `${destination.name} の交易ギルドより。${sourcePort.name} で販売されている ${good.name} を ${quantity} 個買い付け、${destination.name} へ持ち帰って納品してください。`,
+      description: `${destination.name} の${counterLabel}より。${sourcePort.name} で販売されている ${good.name} を ${quantity} 個買い付け、${destination.name} へ持ち帰って納品してください。`,
       reportPortId: destination.id,
       objectives: [
         {
@@ -177,23 +238,24 @@ function buildQuestDetails(params: {
           target: good.id,
           count: quantity,
           current: 0,
-          description: `${destination.name} のギルドへ ${good.name} を ${quantity} 個納める`,
+          description: `${destination.name} の${counterLabel}へ ${good.name} を ${quantity} 個納める`,
         },
         {
           type: 'visit_port',
           target: destination.id,
           count: 1,
           current: 0,
-          description: `${destination.name} のギルドに報告する`,
+          description: `${destination.name} の${counterLabel}に報告する`,
         },
       ],
     }
   }
 
   if (category === 'trade_sales') {
+    const counterLabel = getTradeCounterLabel(destination)
     return {
       title: `${good.name} 売り込み依頼`,
-      description: `${sourcePort.name} の交易ギルドより。${destination.name} で ${good.name} を ${quantity} 個売り込んでください。`,
+      description: `${sourcePort.name} の交易ギルドより。${destination.name} の${counterLabel}で ${good.name} を ${quantity} 個売り込んでください。`,
       reportPortId: destination.id,
       objectives: [
         {
@@ -208,15 +270,16 @@ function buildQuestDetails(params: {
           target: destination.id,
           count: 1,
           current: 0,
-          description: `${destination.name} のギルドに報告する`,
+          description: `${destination.name} の${counterLabel}に報告する`,
         },
       ],
     }
   }
 
+  const counterLabel = getTradeCounterLabel(destination)
   return {
     title: `${good.name} 納品依頼`,
-    description: `${sourcePort.name} の交易ギルドより。${sourcePort.name} で販売されている ${good.name} を ${quantity} 個仕入れ、${destination.name} へ納品してください。`,
+    description: `${sourcePort.name} の交易ギルドより。${sourcePort.name} で販売されている ${good.name} を ${quantity} 個仕入れ、${destination.name} の${counterLabel}へ納品してください。`,
     reportPortId: destination.id,
     objectives: [
       {
@@ -231,7 +294,7 @@ function buildQuestDetails(params: {
         target: destination.id,
         count: 1,
         current: 0,
-        description: `${destination.name} のギルドに報告する`,
+        description: `${destination.name} の${counterLabel}に報告する`,
       },
     ],
   }
@@ -252,14 +315,16 @@ export function generateTradeQuestsForPort(params: {
   for (let index = 0; index < questCount; index++) {
     const seed = hashSeed(`${port.id}:${day}:${index}`)
     const category = getQuestCategory(index)
-    const sourcePort = category === 'trade_procurement' ? pickProcurementSource(port, ports, goods, seed + 11) : port
-    const destination = category === 'trade_procurement' ? port : pickDeliveryDestination(port, ports, seed + 7)
-    if (!sourcePort || !destination || sourcePort.id === destination.id) continue
+    const sourcePort = category === 'trade_procurement' ? pickProcurementSource(port, ports, goods, seed + 11, tradeLevel) : port
+    if (!sourcePort) continue
 
     const good = category === 'trade_procurement'
       ? pickProcurementGood(sourcePort, port, goods, seed)
       : pickGoodForPort(sourcePort, goods, seed)
     if (!good) continue
+
+    const destination = category === 'trade_procurement' ? port : pickDeliveryDestination(port, ports, goods, good, seed + 7, tradeLevel)
+    if (!destination || sourcePort.id === destination.id) continue
 
     const quantity = Math.max(3, Math.min(18, 4 + (seed % 5) * 2 + tradeLevel))
     const sameCulture = destination.culture === sourcePort.culture
@@ -268,7 +333,7 @@ export function generateTradeQuestsForPort(params: {
       ? getRouteDistanceKm(port, sourcePort) + getRouteDistanceKm(sourcePort, port)
       : getRouteDistanceKm(sourcePort, destination)
     const deadlineDay = day + getDeadlineOffset(rank, category, distanceKm, shipSpeedKnots)
-    const rewardMultiplier = getRewardMultiplier(rank, category)
+    const rewardMultiplier = getRewardMultiplier(rank, category) * getQuestDistanceRewardMultiplier(distanceKm)
     const moneyReward = Math.round((DELIVERY_REWARD_BASE + good.basePrice * quantity * 0.22) * (sameCulture ? 1 : 1.25) * rewardMultiplier)
     const expReward = Math.max(15, Math.round(moneyReward / 5))
     const fameReward = Math.max(1, Math.round(moneyReward / 140))

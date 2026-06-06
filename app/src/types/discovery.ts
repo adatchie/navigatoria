@@ -1,35 +1,27 @@
-// ============================================================
-// 発見物型定義 [STUB] — Phase 2以降で実装
-// ============================================================
+import type { PortId, Position2D, SkillId } from './common.ts'
 
-import type { Position2D, SkillId } from './common.ts'
+export type DiscoveryCategory = 'geography' | 'ruins' | 'treasure' | 'natural' | 'legend'
+export type DiscoveryMethod = 'sighting' | 'search'
 
-/** 発見物カテゴリ */
-export type DiscoveryCategory =
-  | 'geography' // 地理
-  | 'biology' // 生物
-  | 'archaeology' // 考古学
-  | 'religion' // 宗教遺物
-  | 'art' // 美術品
-  | 'treasure' // 財宝
-
-/** 発見物マスタデータ */
-export interface DiscoveryItem {
-  id: string
-  name: string
-  category: DiscoveryCategory
-  description: string
-  position: Position2D // 発見地点
-  difficulty: number // 発見難度 (1-10)
-  requiredSkill: SkillId // 必要スキル
-  requiredRank: number // 必要スキルランク
-  fame: number // 発見時名声
-  cardPrice: number // カード売却額
+export interface DiscoverySkillRequirement {
+  skillId: SkillId
+  rank: number
 }
 
-/** 発見済み記録 */
-export interface DiscoveryRecord {
-  itemId: string
-  discoveredAt: number // ゲーム内日数
-  reportedTo?: string // 報告先ギルド
+export interface Discovery {
+  id: string
+  name: string
+  nameEn: string
+  category: DiscoveryCategory
+  method: DiscoveryMethod
+  description: string
+  position: Position2D
+  radiusKm: number
+  rank: number
+  requiredSkill: DiscoverySkillRequirement
+  appraisalSkill?: DiscoverySkillRequirement
+  reportPortId: PortId
+  exp: number
+  fame: number
+  hints: string[]
 }

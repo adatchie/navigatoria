@@ -2,21 +2,25 @@
 // DataLoader — マスタデータ読み込み + Zodバリデーション + HMR
 // ============================================================
 
-import { ShipTypeSchema, PortSchema, TradeGoodSchema, SkillSchema } from './schemas.ts'
+import { ShipTypeSchema, PortSchema, TradeGoodSchema, SkillSchema, DiscoverySchema } from './schemas.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import type { ShipType } from '@/types/ship.ts'
 import type { Port } from '@/types/port.ts'
 import type { TradeGood } from '@/types/trade.ts'
 import type { Skill } from '@/types/character.ts'
+import type { Discovery } from '@/types/discovery.ts'
 import { z } from 'zod/v4'
 import { PORT_GEO_COORDINATES } from '@/data/master/portGeography.ts'
+import { DISCOVERY_GEO_COORDINATES } from '@/data/master/discoveryGeography.ts'
 import { getPortWorldPosition } from '@/data/master/portWorldPosition.ts'
+import { projectGeoToWorld } from '@/data/master/worldMapProjection.ts'
 
 // JSON imports (Vite handles these as modules)
 import shipsRaw from '@/data/master/ships.json'
 import portsRaw from '@/data/master/ports.json'
 import tradeGoodsRaw from '@/data/master/tradeGoods.json'
 import skillsRaw from '@/data/master/skills.json'
+import discoveriesRaw from '@/data/master/discoveries.json'
 
 /** バリデーションエラー情報 */
 interface ValidationError {
@@ -62,8 +66,19 @@ export async function loadAllMasterData(): Promise<LoadResult> {
   if (skillsResult.errors.length > 0) errors.push(skillsResult.errors[0]!)
   const skills = skillsResult.data as Skill[]
 
+  const discoveriesResult = validateArray(discoveriesRaw, DiscoverySchema, 'discoveries.json')
+  if (discoveriesResult.errors.length > 0) errors.push(discoveriesResult.errors[0]!)
+  const discoveries = (discoveriesResult.data as Discovery[]).map((discovery) => {
+    const geo = DISCOVERY_GEO_COORDINATES[discovery.id]
+    if (!geo) return discovery
+    return {
+      ...discovery,
+      position: projectGeoToWorld(geo),
+    }
+  })
+
   // ストアにセット
-  store.setMasterData({ ships, ports, tradeGoods, skills })
+  store.setMasterData({ ships, ports, tradeGoods, skills, discoveries })
   store.setLoaded(true)
   store.incrementVersion()
 
@@ -74,7 +89,7 @@ export async function loadAllMasterData(): Promise<LoadResult> {
   } else {
     store.setError(null)
     console.log('[DataLoader] All master data loaded successfully')
-    console.log(`  Ships: ${ships.length}, Ports: ${ports.length}, TradeGoods: ${tradeGoods.length}, Skills: ${skills.length}`)
+    console.log(`  Ships: ${ships.length}, Ports: ${ports.length}, TradeGoods: ${tradeGoods.length}, Skills: ${skills.length}, Discoveries: ${discoveries.length}`)
   }
 
   return { success: errors.length === 0, errors }
@@ -113,6 +128,7 @@ if (import.meta.hot) {
       '@/data/master/ports.json',
       '@/data/master/tradeGoods.json',
       '@/data/master/skills.json',
+      '@/data/master/discoveries.json',
     ],
     () => {
       console.log('[DataLoader] HMR detected, reloading master data...')

@@ -7,6 +7,7 @@ import type { ShipType } from '@/types/ship.ts'
 import type { Port } from '@/types/port.ts'
 import type { TradeGood } from '@/types/trade.ts'
 import type { Skill } from '@/types/character.ts'
+import type { Discovery } from '@/types/discovery.ts'
 
 /** マスタデータの構造 */
 export interface MasterData {
@@ -14,6 +15,7 @@ export interface MasterData {
   ports: Port[]
   tradeGoods: TradeGood[]
   skills: Skill[]
+  discoveries: Discovery[]
 }
 
 /** データオーバーライド (デバッグ用パッチ) */
@@ -47,6 +49,7 @@ interface DataStoreState {
   getShip: (id: string) => ShipType | undefined
   getPort: (id: string) => Port | undefined
   getTradeGood: (id: string) => TradeGood | undefined
+  getDiscovery: (id: string) => Discovery | undefined
 }
 
 const EMPTY_MASTER_DATA: MasterData = {
@@ -54,6 +57,7 @@ const EMPTY_MASTER_DATA: MasterData = {
   ports: [],
   tradeGoods: [],
   skills: [],
+  discoveries: [],
 }
 
 export const useDataStore = create<DataStoreState>()((set, get) => ({
@@ -101,6 +105,11 @@ export const useDataStore = create<DataStoreState>()((set, get) => ({
   getTradeGood: (id) => {
     const { masterData } = get()
     return masterData.tradeGoods.find((g) => g.id === id)
+  },
+
+  getDiscovery: (id) => {
+    const { masterData } = get()
+    return masterData.discoveries.find((discovery) => discovery.id === id)
   },
 }))
 

@@ -9,6 +9,7 @@ import { useEncounterStore } from '@/stores/useEncounterStore.ts'
 import { useNpcFleetStore } from '@/stores/useNpcFleetStore.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { localizeOfficerName } from '@/game/officers/officerGenerator.ts'
+import { normalizePlayerProgression } from '@/game/player/progression.ts'
 import type { Port } from '@/types/port.ts'
 import { DEFAULT_GAME_SPEED } from '@/config/gameConfig.ts'
 
@@ -115,17 +116,28 @@ export function restoreGameState(snapshot: GameSnapshot): void {
       name: localizeOfficerName(officer.name, index),
     })),
     officerSalaryProgress: snapshot.player.officerSalaryProgress ?? 0,
-    ships: snapshot.player.ships.map((ship) => ({
-      ...ship,
-      captainOfficerId: ship.instanceId === snapshot.player.activeShipId ? undefined : ship.captainOfficerId,
-    })),
+    ships: snapshot.player.ships.map((ship) => {
+      const officerAssignments = {
+        ...(ship.officerAssignments ?? {}),
+        ...(ship.captainOfficerId ? { captain: ship.captainOfficerId } : {}),
+      }
+      if (ship.instanceId === snapshot.player.activeShipId) delete officerAssignments.captain
+      return {
+        ...ship,
+        officerAssignments: Object.keys(officerAssignments).length > 0 ? officerAssignments : undefined,
+        captainOfficerId: ship.instanceId === snapshot.player.activeShipId ? undefined : officerAssignments.captain,
+      }
+    }),
     player: dockedPort && snapshot.player.player
-      ? {
+      ? normalizePlayerProgression({
         ...snapshot.player.player,
+        discoveredDiscoveryIds: snapshot.player.player.discoveredDiscoveryIds ?? [],
         currentPortId: dockedPort.id,
         position: dockedPort.position,
-      }
-      : snapshot.player.player,
+      })
+      : snapshot.player.player
+        ? normalizePlayerProgression({ ...snapshot.player.player, discoveredDiscoveryIds: snapshot.player.player.discoveredDiscoveryIds ?? [] })
+        : snapshot.player.player,
   }
 
   const worldState = {

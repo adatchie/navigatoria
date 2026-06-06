@@ -5,6 +5,8 @@
 import type { CharacterId, ShipId, Range } from './common.ts'
 
 export type ShipCategory = 'small_sail' | 'medium_sail' | 'large_sail' | 'galley' | 'oriental'
+export type OfficerRoleSlot = 'captain' | 'navigator' | 'quartermaster' | 'gunner' | 'shipwright' | 'firstMate'
+export type ShipOfficerAssignments = Partial<Record<OfficerRoleSlot, CharacterId>>
 
 export interface ShipType {
   id: ShipId
@@ -88,6 +90,7 @@ export interface ShipInstance {
   supplies: ShipSupplies
   reinforceCount: number
   maxReinforce: number
+  officerAssignments?: ShipOfficerAssignments
   captainOfficerId?: CharacterId
   upgrades?: {
     rigging: number

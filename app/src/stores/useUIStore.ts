@@ -8,6 +8,17 @@ import type { StopReason } from '@/game/systems/NavigationSystem.ts'
 
 type DebugFlag = 'showDebugPanel' | 'wireframe' | 'showFPS' | 'showPortMarkers' | 'showWindArrows'
 export type NotificationLevel = 'info' | 'warning' | 'error'
+export type QuestAchievementKind = 'discovery' | 'combat' | 'trade'
+
+export interface QuestAchievement {
+  id: string
+  kind: QuestAchievementKind
+  title: string
+  subject: string
+  subtitle?: string
+  discoveryId?: string
+  goodId?: string
+}
 
 interface UIStoreState {
   debugFlags: Record<DebugFlag, boolean>
@@ -25,9 +36,13 @@ interface UIStoreState {
   notificationLevel: NotificationLevel
   /** 通知継続時間（ms） */
   notificationDuration: number
+  /** クエスト達成演出 */
+  questAchievement: QuestAchievement | null
   /** 通知を設定（duration経過で自動クリア） */
   setNotification: (message: string, duration: number, level?: NotificationLevel) => void
   addNotification: (message: string, level?: NotificationLevel, duration?: number) => void
+  showQuestAchievement: (achievement: Omit<QuestAchievement, 'id'>) => void
+  clearQuestAchievement: () => void
   setDebugFlag: (flag: DebugFlag, value: boolean) => void
   /** 停止状態を設定 */
   setStopped: (reason: StopReason, duration?: number) => void
@@ -53,6 +68,7 @@ export const useUIStore = create<UIStoreState>()(
     notificationMessage: '',
     notificationLevel: 'info',
     notificationDuration: 0,
+    questAchievement: null,
 
     setNotification: (message, duration, level = 'info') => {
       set({ notificationMessage: message, notificationDuration: duration, notificationLevel: level })
@@ -77,6 +93,17 @@ export const useUIStore = create<UIStoreState>()(
     addNotification: (message, level = 'info', duration = 3000) => {
       useUIStore.getState().setNotification(message, duration, level)
     },
+
+    showQuestAchievement: (achievement) => {
+      set({
+        questAchievement: {
+          ...achievement,
+          id: `${achievement.kind}:${achievement.subject}:${Date.now()}`,
+        },
+      })
+    },
+
+    clearQuestAchievement: () => set({ questAchievement: null }),
 
     setDebugFlag: (flag, value) =>
       set((state) => ({

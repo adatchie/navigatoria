@@ -9,16 +9,19 @@ import { useDataStore } from '@/stores/useDataStore.ts'
 import { useEconomyStore } from '@/stores/useEconomyStore.ts'
 import { MAX_ACTIVE_QUESTS, useQuestStore } from '@/stores/useQuestStore.ts'
 import { VOYAGE_CONFIG } from '@/config/gameConfig.ts'
-import { formatOfficerStats, getAssignedOfficer, getOfficerShipEffects } from '@/game/officers/officerEffects.ts'
+import { OFFICER_ROLE_DEFINITIONS, formatOfficerRoleEffect, formatOfficerStats, getAssignedOfficer, getAssignedOfficerForRole, getOfficerAssignmentLabel, getOfficerShipEffects } from '@/game/officers/officerEffects.ts'
 import { generateTavernOfficerOffers, getOfficerSpecialtyLabel, localizeOfficerName } from '@/game/officers/officerGenerator.ts'
 import { isQuestDeadlineNotice } from '@/game/quest/questNotices.ts'
+import { EXPERIENCE_TRACKS, getExperienceForNextLevel } from '@/game/player/progression.ts'
 import { ShipModelRenderer, ShipRenderer } from '@/rendering/ShipRenderer.tsx'
 import { TradeGoodIcon } from '@/components/TradeGoodIcon.tsx'
+import { AdventureQuestIcon, DiscoveryIcon } from '@/components/DiscoveryIcon.tsx'
 import { useResponsiveUiMetrics } from '@/ui/responsive.ts'
 import type { Officer, OfficerStats } from '@/types/character.ts'
+import type { Discovery, DiscoveryCategory } from '@/types/discovery.ts'
 import type { Port } from '@/types/port.ts'
 import type { Quest, QuestCategory, QuestRank, QuestReward, TradeQuestCategory } from '@/types/quest.ts'
-import type { ShipInstance, ShipType } from '@/types/ship.ts'
+import type { OfficerRoleSlot, ShipInstance, ShipType } from '@/types/ship.ts'
 import { uiText } from '@/i18n/uiText.ts'
 
 interface TownScreenProps {
@@ -117,10 +120,19 @@ function formatQuestRank(rank?: QuestRank): string {
 }
 
 function formatQuestCategory(category?: QuestCategory): string {
+  if (category === 'adventure_discovery') return '冒険'
   if (category === 'combat_bounty') return '討伐'
   if (category === 'trade_procurement') return '仕入'
   if (category === 'trade_sales') return '売却'
   return '納品'
+}
+
+function formatDiscoveryCategory(category: DiscoveryCategory): string {
+  if (category === 'geography') return '地理'
+  if (category === 'ruins') return '遺跡'
+  if (category === 'treasure') return '財宝'
+  if (category === 'natural') return '自然'
+  return '伝承'
 }
 
 function formatQuestRequirement(value?: number): string {
@@ -150,7 +162,21 @@ function getPortName(ports: Port[], portId?: string): string {
   return ports.find((port) => port.id === portId)?.name ?? portId
 }
 
+function isDiscoveryQuestFound(quest: Quest): boolean {
+  return quest.status === 'ready_to_turn_in' || quest.objectives.some((objective) => objective.type === 'discover' && objective.current >= objective.count)
+}
+
+function getAdventureQuestSubject(quest: Quest): string {
+  const method = quest.metadata?.discoveryMethod === 'search' ? '探索' : '視認'
+  const target = isDiscoveryQuestFound(quest) ? quest.metadata?.discoveryName ?? '発見物' : '未確認の発見物'
+  return `${target} / ${method}`
+}
+
 function formatTradeQuestRoute(quest: Quest, ports: Port[]): string {
+  if (quest.metadata?.category === 'adventure_discovery') {
+    const target = isDiscoveryQuestFound(quest) ? quest.metadata.discoveryName ?? '発見物' : '手がかりの示す発見物'
+    return `調査対象 ${target} / 報告先 ${getPortName(ports, getQuestReportPortId(quest))}`
+  }
   if (quest.metadata?.category === 'combat_bounty') {
     const appearanceName = getPortName(ports, quest.metadata.combatTargetAppearancePortId)
     const patrolName = getPortName(ports, quest.metadata.combatTargetPatrolPortId)
@@ -169,6 +195,10 @@ function formatTradeQuestRoute(quest: Quest, ports: Port[]): string {
 }
 
 function formatTradeQuestInstruction(quest: Quest, ports: Port[], goodName?: string): string {
+  if (quest.metadata?.category === 'adventure_discovery') {
+    const method = quest.metadata.discoveryMethod === 'search' ? '探索' : '視認'
+    return `${quest.metadata.discoveryHint ?? '手がかりの示す海域へ向かう'} 周辺で${method}を行う`
+  }
   if (quest.metadata?.category === 'combat_bounty') {
     const targetName = quest.metadata.combatTargetName ?? '討伐対象'
     const appearanceName = getPortName(ports, quest.metadata.combatTargetAppearancePortId)
@@ -197,6 +227,7 @@ function formatObjectiveLabel(type: string): string {
   if (type === 'buy_item') return '買い付け'
   if (type === 'sell_item') return '売却'
   if (type === 'deliver_item' || type === 'deliver_cargo') return '納品'
+  if (type === 'discover') return '発見'
   if (type === 'defeat_enemy') return '討伐'
   if (type === 'visit_port') return '目的港到着'
   return type
@@ -211,6 +242,26 @@ function formatMorale(morale?: number): string {
   if (morale >= 80) return `${morale.toFixed(0)} 高い`
   if (morale >= 45) return `${morale.toFixed(0)} 安定`
   return `${morale.toFixed(0)} 低い`
+}
+
+function formatExpProgress(current: number, required: number): string {
+  if (required <= 0) return 'MAX'
+  return `${Math.floor(current)} / ${required}`
+}
+
+function formatFactorBonus(factor: number, inverse = false): string {
+  const value = inverse ? (1 - factor) * 100 : (factor - 1) * 100
+  return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`
+}
+
+function getOfficerRoleSelectValue(officerId?: string): string {
+  return officerId ?? ''
+}
+
+function getRoleOfficerId(ship: ShipInstance | undefined, role: OfficerRoleSlot): string | undefined {
+  if (!ship) return undefined
+  if (role === 'captain') return ship.officerAssignments?.captain ?? ship.captainOfficerId
+  return ship.officerAssignments?.[role]
 }
 
 function getGaugeRatio(current?: number, max?: number): number {
@@ -399,6 +450,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const getShip = useDataStore((s) => s.getShip)
   const getTradeGood = useDataStore((s) => s.getTradeGood)
   const shipCatalog = useDataStore((s) => s.masterData.ships)
+  const discoveries = useDataStore((s) => s.masterData.discoveries)
   const market = useEconomyStore((s) => (portId ? s.markets[portId] : undefined))
   const getBuyQuote = useEconomyStore((s) => s.getBuyQuote)
   const getSellQuote = useEconomyStore((s) => s.getSellQuote)
@@ -415,6 +467,8 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const hireOfficer = usePlayerStore((s) => s.hireOfficer)
   const assignOfficerToShip = usePlayerStore((s) => s.assignOfficerToShip)
   const unassignOfficer = usePlayerStore((s) => s.unassignOfficer)
+  const assignOfficerToRole = usePlayerStore((s) => s.assignOfficerToRole)
+  const unassignOfficerRole = usePlayerStore((s) => s.unassignOfficerRole)
   const repairShip = usePlayerStore((s) => s.repairShip)
   const repairFleet = usePlayerStore((s) => s.repairFleet)
   const purchaseShip = usePlayerStore((s) => s.purchaseShip)
@@ -535,6 +589,12 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
       .sort((a, b) => b.totalValue - a.totalValue)
   }, [getTradeGood, player?.inventory])
   const inventoryTotalValue = inventoryRows.reduce((sum, entry) => sum + entry.totalValue, 0)
+  const discoveredDiscoveries = useMemo<Discovery[]>(() => {
+    const discoveredIds = player?.discoveredDiscoveryIds ?? []
+    return discoveredIds
+      .map((discoveryId) => discoveries.find((discovery) => discovery.id === discoveryId))
+      .filter((discovery): discovery is Discovery => Boolean(discovery))
+  }, [discoveries, player?.discoveredDiscoveryIds])
 
   if (!port) return <div style={styles.container}><div style={styles.card}>港が選択されていません。</div></div>
 
@@ -606,7 +666,9 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const activeQuestInstruction = selectedQuest ? formatTradeQuestInstruction(selectedQuest, ports, questGood?.name) : ''
   const activeQuestSubject = selectedQuestCategory === 'combat_bounty'
     ? `${selectedQuest?.metadata?.combatTargetName ?? '討伐対象'} / 報告不要`
-    : `${questGood?.name ?? '-'} x ${selectedQuest?.metadata?.quantity ?? 0}`
+    : selectedQuestCategory === 'adventure_discovery'
+      ? getAdventureQuestSubject(selectedQuest)
+      : `${questGood?.name ?? '-'} x ${selectedQuest?.metadata?.quantity ?? 0}`
   const availableSections = ([
     'overview',
     'departure',
@@ -644,6 +706,20 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const hiredOfficerIds = new Set(officers.map((officer) => officer.id))
   const consortShips = ships.filter((ship) => ship.instanceId !== activeShipId)
   const officerMonthlySalary = officers.reduce((sum, officer) => sum + officer.salary, 0)
+  const progressionRows = player
+    ? EXPERIENCE_TRACKS.map((track) => {
+        const level = player.stats[track.levelKey]
+        const exp = player.stats[track.expKey]
+        return {
+          id: track.id,
+          label: track.label,
+          level,
+          exp,
+          requiredExp: getExperienceForNextLevel(level),
+        }
+      })
+    : []
+  const flagshipOfficerEffects = getOfficerShipEffects(activeShip, officers)
   const captainLevel = Math.max(player?.stats.tradeLevel ?? 0, player?.stats.combatLevel ?? 0, player?.stats.adventureLevel ?? 0)
   const ownedShipTypeIds = new Set(ships.map((ship) => ship.typeId))
   const shipyardOffers = shipCatalog
@@ -731,6 +807,9 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
             <>
               <div style={styles.bannerFacts}>
                 {questGood && <TradeGoodIcon goodId={questGood.id} label={questGood.name} size={36} />}
+                {selectedQuestCategory === 'adventure_discovery' && (
+                  <AdventureQuestIcon method={selectedQuest.metadata?.discoveryMethod} size={36} />
+                )}
                 <span>{activeQuestRoute}</span>
                 <span>{activeQuestSubject}</span>
                 <span>{rewardSummary}</span>
@@ -835,8 +914,36 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                 <section style={styles.panel}>
                   <div style={styles.infoGridCompact}>
                     <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.port}</span><strong>{port.nationality} / 発展度 {port.prosperity}</strong><small>{summarizeFacilities(facilities)}</small></div>
-                    <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.captain}</span><strong>{player?.name ?? uiText.town.labels.unknown}</strong><small>交易経験 {player?.stats.tradeExp ?? 0} / 名声 {player?.stats.fame ?? 0}</small></div>
+                    <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.captain}</span><strong>{player?.name ?? uiText.town.labels.unknown}</strong><small>名声 {player?.stats.fame ?? 0} / 悪名 {player?.stats.notoriety ?? 0}</small></div>
                     <div style={styles.infoBlock}><span style={styles.infoLabel}>艦隊</span><strong>{ships.length}/5 隻 / 旗艦 {shipType?.name ?? activeShip?.name ?? uiText.town.labels.none}</strong><small>船体 {fleetStats.durability}/{fleetStats.maxDurability} / 士気 {formatMorale(fleetMorale)}</small></div>
+                  </div>
+                </section>
+                <section style={styles.panel}>
+                  <div style={styles.panelHeader}>
+                    <h3 style={styles.sectionTitle}>成長と役職効果</h3>
+                    <span style={styles.panelHint}>経験値と旗艦補正</span>
+                  </div>
+                  <div style={styles.progressGrid}>
+                    {progressionRows.map((row) => (
+                      <div key={row.id} style={styles.progressCard}>
+                        <div style={styles.progressHeader}>
+                          <span>{row.label}</span>
+                          <strong>Lv.{row.level}</strong>
+                        </div>
+                        <div style={styles.progressTrack}>
+                          <div style={{ ...styles.progressFill, width: row.requiredExp > 0 ? `${Math.min(100, (row.exp / row.requiredExp) * 100)}%` : '100%' }} />
+                        </div>
+                        <span style={styles.tradeSub}>次Lv {formatExpProgress(row.exp, row.requiredExp)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={styles.effectGrid}>
+                    <span>速力 {formatFactorBonus(flagshipOfficerEffects.speedFactor)}</span>
+                    <span>旋回 {formatFactorBonus(flagshipOfficerEffects.turnFactor)}</span>
+                    <span>売買 {formatFactorBonus(flagshipOfficerEffects.tradePriceFactor)}</span>
+                    <span>砲術 {formatFactorBonus(flagshipOfficerEffects.gunneryFactor)}</span>
+                    <span>修理 {formatFactorBonus(flagshipOfficerEffects.repairFactor)}</span>
+                    <span>士気低下 {formatFactorBonus(flagshipOfficerEffects.moraleLossFactor, true)}</span>
                   </div>
                 </section>
               </div>
@@ -850,12 +957,14 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                     {availableQuests.map((quest) => {
                       const daysRemaining = getDaysRemaining(quest, day)
                       const boardQuestGood = quest.metadata?.goodId ? getTradeGood(quest.metadata.goodId) : null
+                      const isAdventureQuest = quest.metadata?.category === 'adventure_discovery'
                       const routeSummary = formatTradeQuestRoute(quest, ports)
                       const questInstruction = formatTradeQuestInstruction(quest, ports, boardQuestGood?.name)
                       return (
                           <div key={quest.id} style={compactActionRowStyle}>
                           <div style={styles.tradeGoodSummary}>
                             {boardQuestGood && <TradeGoodIcon goodId={boardQuestGood.id} label={boardQuestGood.name} size={42} />}
+                            {isAdventureQuest && <AdventureQuestIcon method={quest.metadata?.discoveryMethod} size={42} />}
                             <div style={styles.tradeMeta}>
                               <div style={styles.questTitleRow}>
                                 <span style={styles.questCategoryBadge}>{formatQuestCategory(quest.metadata?.category)}</span>
@@ -960,6 +1069,31 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                       }}>{uiText.town.labels.depart}</button>
                     </div>
                   </div>
+                </section>
+                <section style={styles.panel}>
+                  <div style={styles.panelHeader}>
+                    <h3 style={styles.sectionTitle}>発見記録</h3>
+                    <span style={styles.panelHint}>発見済みの発見物のみ表示</span>
+                  </div>
+                  {discoveredDiscoveries.length > 0 ? (
+                    <div style={styles.discoveryGrid}>
+                      {discoveredDiscoveries.map((discovery) => (
+                        <div key={discovery.id} style={styles.discoveryCard}>
+                          <DiscoveryIcon discoveryId={discovery.id} label={discovery.name} size={54} />
+                          <div style={styles.discoveryMeta}>
+                            <div style={styles.questTitleRow}>
+                              <span style={styles.discoveryCategoryBadge}>{formatDiscoveryCategory(discovery.category)}</span>
+                              <strong>{discovery.name}</strong>
+                            </div>
+                            <span style={styles.tradeSub}>{discovery.description}</span>
+                            <span style={styles.tradeSub}>報告先 {getPortName(ports, discovery.reportPortId)} / ランク {discovery.rank}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={styles.emptyState}>発見済みの発見物はありません。</div>
+                  )}
                 </section>
               </div>
             )}
@@ -1129,27 +1263,64 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                       </div>
                     </div>
                     <div>
+                      <p style={styles.serviceLabel}>旗艦役職任命</p>
+                      <div style={styles.roleSlotGrid}>
+                        {OFFICER_ROLE_DEFINITIONS.map((role) => {
+                          const assignedOfficer = getAssignedOfficerForRole(activeShip, officers, role.id)
+                          return (
+                            <div key={role.id} style={styles.roleSlotCard}>
+                              <div style={styles.roleSlotHeader}>
+                                <strong>{role.label}</strong>
+                                <span>{role.effectSummary}</span>
+                              </div>
+                              <select
+                                style={styles.roleSelect}
+                                value={getOfficerRoleSelectValue(assignedOfficer?.id)}
+                                disabled={!activeShip || officers.length === 0}
+                                onChange={(event) => {
+                                  const nextOfficerId = event.target.value
+                                  handleAction(nextOfficerId
+                                    ? assignOfficerToRole(nextOfficerId, role.id, activeShip?.instanceId)
+                                    : unassignOfficerRole(role.id, activeShip?.instanceId))
+                                }}
+                              >
+                                <option value="">未任命</option>
+                                {officers.map((officer) => (
+                                  <option key={`${role.id}-${officer.id}`} value={officer.id}>
+                                    {formatOfficerName(officer)} / {getOfficerAssignmentLabel(officer.id, ships)}
+                                  </option>
+                                ))}
+                              </select>
+                              <span style={styles.tradeSub}>{assignedOfficer ? formatOfficerRoleEffect(role.id, assignedOfficer) : role.description}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      {officers.length === 0 && <div style={styles.emptyState}>役職に任命できる航海士がいません。</div>}
+                    </div>
+                    <div>
                       <p style={styles.serviceLabel}>僚艦船長任命</p>
                       <div style={styles.list}>
                         {officers.length === 0 && <div style={styles.emptyState}>雇用済みの航海士はいません。</div>}
                         {officers.map((officer) => {
-                          const assignedShip = ships.find((ship) => ship.captainOfficerId === officer.id)
+                          const assignmentLabel = getOfficerAssignmentLabel(officer.id, ships)
+                          const assigned = assignmentLabel !== '未任命'
                           const officerName = formatOfficerName(officer)
                           return (
                             <div key={officer.id} style={compactActionRowStyle}>
                               <div style={styles.assignedOfficerSummary}>
                                 <OfficerPortrait officer={officer} />
                                 <div style={styles.tradeMeta}>
-                                  <strong>{officerName} / 現在 {assignedShip?.name ?? '未任命'}</strong>
+                                  <strong>{officerName} / 現在 {assignmentLabel}</strong>
                                   <span style={styles.tradeSub}>{getOfficerSpecialtyLabel(officer.specialty)} / {formatOfficerStats(officer)}</span>
                                   <span style={styles.tradeSub}>効果: 航海=速力・旋回 / 交易=売買価格・積載補助 / 砲術=戦術砲門 / 修理=修理効率 / 統率=士気低下軽減</span>
                                 </div>
                               </div>
                               <div style={styles.inlineButtonGroup}>
                                 {consortShips.map((ship) => (
-                                  <button key={`${officer.id}-${ship.instanceId}`} style={ship.captainOfficerId === officer.id ? styles.secondaryButton : styles.primaryButton} disabled={ship.captainOfficerId === officer.id} onClick={() => handleAction(assignOfficerToShip(officer.id, ship.instanceId))}>{ship.name}</button>
+                                  <button key={`${officer.id}-${ship.instanceId}`} style={getRoleOfficerId(ship, 'captain') === officer.id ? styles.secondaryButton : styles.primaryButton} disabled={getRoleOfficerId(ship, 'captain') === officer.id} onClick={() => handleAction(assignOfficerToShip(officer.id, ship.instanceId))}>{ship.name}</button>
                                 ))}
-                                <button style={styles.secondaryButton} disabled={!assignedShip} onClick={() => handleAction(unassignOfficer(officer.id))}>任を解く</button>
+                                <button style={styles.secondaryButton} disabled={!assigned} onClick={() => handleAction(unassignOfficer(officer.id))}>任を解く</button>
                               </div>
                             </div>
                           )
@@ -1393,6 +1564,12 @@ const styles: Record<string, React.CSSProperties> = {
   infoGridCompact: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 },
   infoBlock: { display: 'flex', flexDirection: 'column', gap: 4, padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.03)' },
   infoLabel: { color: '#8ca4c4', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em' },
+  progressGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10 },
+  progressCard: { display: 'grid', gap: 7, padding: 12, borderRadius: 14, background: 'rgba(15, 23, 42, 0.42)', border: '1px solid rgba(148, 163, 184, 0.14)' },
+  progressHeader: { display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', color: '#dbeafe', fontSize: 12 },
+  progressTrack: { height: 8, borderRadius: 999, background: 'rgba(148, 163, 184, 0.18)', overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, #38bdf8, #facc15)' },
+  effectGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginTop: 12, color: '#bfdbfe', fontSize: 12 },
   selectedShipPanel: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, alignItems: 'stretch', padding: 12, borderRadius: 16, background: 'rgba(15, 23, 42, 0.42)', border: '1px solid rgba(125, 211, 252, 0.16)' },
   shipModelViewport: { minHeight: 210, borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(148, 163, 184, 0.18)', background: '#071323' },
   selectedShipInfo: { display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 12, minWidth: 0 },
@@ -1426,6 +1603,10 @@ const styles: Record<string, React.CSSProperties> = {
   officerStatRow: { display: 'grid', gridTemplateColumns: '42px 1fr', alignItems: 'center', gap: 8, color: '#b8c7dc', fontSize: 12 },
   officerCostBox: { display: 'flex', flexDirection: 'column', gap: 5, color: '#dbeafe', fontSize: 12, padding: 10, borderRadius: 12, background: 'rgba(15, 23, 42, 0.34)', border: '1px solid rgba(148, 163, 184, 0.12)' },
   assignedOfficerSummary: { display: 'grid', gridTemplateColumns: '104px minmax(0, 1fr)', gap: 10, alignItems: 'center', minWidth: 0 },
+  roleSlotGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10 },
+  roleSlotCard: { display: 'grid', gap: 8, padding: 12, borderRadius: 14, background: 'rgba(15, 23, 42, 0.38)', border: '1px solid rgba(125, 211, 252, 0.14)' },
+  roleSlotHeader: { display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', color: '#dbeafe', fontSize: 12 },
+  roleSelect: { width: '100%', padding: '9px 10px', borderRadius: 10, border: '1px solid rgba(147, 197, 253, 0.34)', background: '#10233d', color: '#edf3fb' },
   dialogueOverlay: { position: 'fixed', inset: 0, zIndex: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px min(5vw, 56px)', background: 'rgba(2, 6, 23, 0.58)', backdropFilter: 'blur(2px)', cursor: 'pointer' },
   dialogueStage: { width: 'min(940px, 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '18px 18px 14px', borderRadius: 20, background: 'linear-gradient(180deg, rgba(4, 12, 24, 0.42), rgba(7, 16, 31, 0.28))', border: '1px solid rgba(191, 219, 254, 0.16)', boxShadow: '0 28px 90px rgba(0,0,0,0.48)' },
   dialogueStack: { width: 'min(920px, 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 },
@@ -1439,6 +1620,10 @@ const styles: Record<string, React.CSSProperties> = {
   tradeSub: { color: '#93a8c4', fontSize: 12 },
   questTitleRow: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   questCategoryBadge: { padding: '3px 8px', borderRadius: 999, background: 'rgba(245, 158, 11, 0.2)', border: '1px solid rgba(245, 158, 11, 0.35)', color: '#fde68a', fontSize: 11, lineHeight: 1.3 },
+  discoveryGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10 },
+  discoveryCard: { display: 'grid', gridTemplateColumns: '54px minmax(0, 1fr)', gap: 10, alignItems: 'start', padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(244, 201, 130, 0.14)' },
+  discoveryMeta: { display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 },
+  discoveryCategoryBadge: { padding: '3px 8px', borderRadius: 999, background: 'rgba(56, 189, 248, 0.16)', border: '1px solid rgba(125, 211, 252, 0.28)', color: '#bae6fd', fontSize: 11, lineHeight: 1.3 },
   marketRowDense: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 10, alignItems: 'center', padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.035)' },
   tradeControlsDense: { display: 'flex', alignItems: 'center', gap: 8 },
   quantityInput: { width: 60, padding: '7px 8px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.06)', color: '#fff' },

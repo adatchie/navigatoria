@@ -98,10 +98,34 @@ export const SkillSchema = z.object({
   maxRank: z.number().int().min(1),
 })
 
+const DiscoverySkillRequirementSchema = z.object({
+  skillId: z.string(),
+  rank: z.number().int().min(1),
+})
+
+export const DiscoverySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  nameEn: z.string(),
+  category: z.enum(['geography', 'ruins', 'treasure', 'natural', 'legend']),
+  method: z.enum(['sighting', 'search']),
+  description: z.string(),
+  position: Position2DSchema,
+  radiusKm: z.number().positive(),
+  rank: z.number().int().min(1),
+  requiredSkill: DiscoverySkillRequirementSchema,
+  appraisalSkill: DiscoverySkillRequirementSchema.optional(),
+  reportPortId: z.string(),
+  exp: z.number().int().min(0),
+  fame: z.number().int().min(0),
+  hints: z.array(z.string()),
+})
+
 /** マスタデータ全体 */
 export const MasterDataSchema = z.object({
   ships: z.array(ShipTypeSchema),
   ports: z.array(PortSchema),
   tradeGoods: z.array(TradeGoodSchema),
   skills: z.array(SkillSchema),
+  discoveries: z.array(DiscoverySchema),
 })

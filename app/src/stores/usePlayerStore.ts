@@ -5,13 +5,14 @@
 import { create } from 'zustand'
 import type { Officer, Player } from '@/types/character.ts'
 import type { WeatherType } from '@/types/common.ts'
-import type { CargoSlot, ShipInstance, ShipSupplies, ShipType } from '@/types/ship.ts'
+import type { CargoSlot, OfficerRoleSlot, ShipInstance, ShipOfficerAssignments, ShipSupplies, ShipType } from '@/types/ship.ts'
 import { INITIAL_PLAYER, VOYAGE_CONFIG } from '@/config/gameConfig.ts'
 import { createShipId, type CharacterId, type Position2D } from '@/types/common.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { getPortWorldPosition } from '@/data/master/portWorldPosition.ts'
 import { getOfficerShipEffects } from '@/game/officers/officerEffects.ts'
 import { localizeOfficerName } from '@/game/officers/officerGenerator.ts'
+import { applyExperienceToPlayer, formatLevelUpNotice, normalizePlayerProgression, type ExperienceTrack, type LevelUpEntry } from '@/game/player/progression.ts'
 
 type TavernService = 'meal' | 'rounds' | 'recruit'
 type RepairMode = 'emergency' | 'standard' | 'overhaul'
@@ -39,6 +40,7 @@ interface PlayerStoreState {
   officerSalaryProgress: number
   activeShipId: string | null
   lastVoyageNotice: string | null
+  lastProgressionNotice: string | null
   lastVoyageEventDay: number
 
   initPlayer: (name: string) => void
@@ -60,6 +62,8 @@ interface PlayerStoreState {
   hireOfficer: (officer: Officer) => PortActionResult
   assignOfficerToShip: (officerId: string, targetShipId: string) => PortActionResult
   unassignOfficer: (officerId: string) => PortActionResult
+  assignOfficerToRole: (officerId: string, role: OfficerRoleSlot, targetShipId?: string) => PortActionResult
+  unassignOfficerRole: (role: OfficerRoleSlot, targetShipId?: string) => PortActionResult
   visitTavern: (service: TavernService, amount?: number, tavernLevel?: number, targetShipId?: string) => PortActionResult
   repairShip: (mode?: RepairMode, amount?: number, facilityLevel?: number, targetShipId?: string) => PortActionResult
   repairFleet: (mode?: RepairMode, amount?: number, facilityLevel?: number) => PortActionResult
@@ -67,6 +71,8 @@ interface PlayerStoreState {
   resolveVoyageEvent: (currentDay: number, weatherType: WeatherType) => void
   logEncounterEvent: (message: string) => void
   clearVoyageNotice: () => void
+  grantExperience: (gains: Partial<Record<ExperienceTrack, number>>, options?: { applyProfessionModifier?: boolean }) => LevelUpEntry[]
+  clearProgressionNotice: () => void
   debugSetLevel: (type: 'adventure' | 'trade' | 'combat', level: number) => void
 }
 
@@ -292,6 +298,51 @@ function getShipyardRequirement(shipType: ShipType): number {
   return 4
 }
 
+function getShipAssignments(ship: ShipInstance): ShipOfficerAssignments {
+  return {
+    ...(ship.officerAssignments ?? {}),
+    ...(ship.captainOfficerId ? { captain: ship.captainOfficerId } : {}),
+  }
+}
+
+function withShipAssignments(ship: ShipInstance, assignments: ShipOfficerAssignments): ShipInstance {
+  const nextAssignments = { ...assignments }
+  const captainOfficerId = nextAssignments.captain
+  if (!captainOfficerId) delete nextAssignments.captain
+  return {
+    ...ship,
+    captainOfficerId,
+    officerAssignments: Object.keys(nextAssignments).length > 0 ? nextAssignments : undefined,
+  }
+}
+
+function removeOfficerFromShipAssignments(ship: ShipInstance, officerId: string): ShipInstance {
+  const assignments = getShipAssignments(ship)
+  for (const [role, assignedOfficerId] of Object.entries(assignments) as [OfficerRoleSlot, string][]) {
+    if (assignedOfficerId === officerId) delete assignments[role]
+  }
+  return withShipAssignments(ship, assignments)
+}
+
+function assignOfficerRoleToShip(ship: ShipInstance, role: OfficerRoleSlot, officerId: string): ShipInstance {
+  return withShipAssignments(ship, { ...getShipAssignments(ship), [role]: officerId })
+}
+
+function unassignOfficerRoleFromShip(ship: ShipInstance, role: OfficerRoleSlot): ShipInstance {
+  const assignments = getShipAssignments(ship)
+  delete assignments[role]
+  return withShipAssignments(ship, assignments)
+}
+
+function getRoleLabel(role: OfficerRoleSlot): string {
+  if (role === 'captain') return '船長'
+  if (role === 'navigator') return '航海長'
+  if (role === 'quartermaster') return '主計長'
+  if (role === 'gunner') return '砲術長'
+  if (role === 'shipwright') return '船大工'
+  return '副官'
+}
+
 
 export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
   player: null,
@@ -300,6 +351,7 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
   officerSalaryProgress: 0,
   activeShipId: null,
   lastVoyageNotice: null,
+  lastProgressionNotice: null,
   lastVoyageEventDay: -1,
 
   initPlayer: (name) => {
@@ -359,11 +411,12 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
       deposit: 0,
       debt: 0,
       inventory: [],
+      discoveredDiscoveryIds: [],
       currentPortId: INITIAL_PLAYER.START_PORT,
       position: START_PORT_POSITION,
       heading: 0,
     }
-    set({ player, ships: starterShips, officers: [], officerSalaryProgress: 0, activeShipId: starterShips[0].instanceId, lastVoyageNotice: null, lastVoyageEventDay: -1 })
+    set({ player, ships: starterShips, officers: [], officerSalaryProgress: 0, activeShipId: starterShips[0].instanceId, lastVoyageNotice: null, lastProgressionNotice: null, lastVoyageEventDay: -1 })
   },
 
   setPosition: (position) => {
@@ -407,7 +460,7 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
     set((state) => state.ships.some((ship) => ship.instanceId === instanceId)
       ? {
         activeShipId: instanceId,
-        ships: state.ships.map((ship) => ship.instanceId === instanceId ? { ...ship, captainOfficerId: undefined } : ship),
+        ships: state.ships.map((ship) => ship.instanceId === instanceId ? unassignOfficerRoleFromShip(ship, 'captain') : ship),
       }
       : state)
   },
@@ -628,9 +681,9 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
 
     set((current) => ({
       ships: current.ships.map((entry) => {
-        if (entry.captainOfficerId === officer.id) return { ...entry, captainOfficerId: undefined }
-        if (entry.instanceId === targetShipId) return { ...entry, captainOfficerId: officer.id }
-        return entry
+        const cleared = removeOfficerFromShipAssignments(entry, officer.id)
+        if (cleared.instanceId === targetShipId) return assignOfficerRoleToShip(cleared, 'captain', officer.id)
+        return cleared
       }),
     }))
 
@@ -641,15 +694,53 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
     const state = get()
     const officer = state.officers.find((entry) => entry.id === officerId)
     if (!officer) return { ok: false, message: '航海士が見つかりません。' }
-    const assigned = state.ships.some((ship) => ship.captainOfficerId === officerId)
+    const assigned = state.ships.some((ship) => Object.values(getShipAssignments(ship)).some((assignedOfficerId) => assignedOfficerId === officerId))
     const officerName = localizeOfficerName(officer.name)
-    if (!assigned) return { ok: false, message: `${officerName} は船長に任命されていません。` }
+    if (!assigned) return { ok: false, message: `${officerName} は任命されていません。` }
 
     set((current) => ({
-      ships: current.ships.map((ship) => ship.captainOfficerId === officerId ? { ...ship, captainOfficerId: undefined } : ship),
+      ships: current.ships.map((ship) => removeOfficerFromShipAssignments(ship, officerId)),
     }))
 
-    return { ok: true, message: `${officerName} の船長任命を解除しました。` }
+    return { ok: true, message: `${officerName} の任命を解除しました。` }
+  },
+
+  assignOfficerToRole: (officerId, role, targetShipId) => {
+    const state = get()
+    const officer = state.officers.find((entry) => entry.id === officerId)
+    const targetId = targetShipId ?? state.activeShipId
+    const ship = state.ships.find((entry) => entry.instanceId === targetId)
+    if (!officer) return { ok: false, message: '航海士が見つかりません。' }
+    if (!ship) return { ok: false, message: '任命先の船が見つかりません。' }
+    if (role === 'captain' && ship.instanceId === state.activeShipId) return { ok: false, message: '旗艦はプレイヤーが指揮しています。航海士は僚艦の船長に任命してください。' }
+
+    const officerName = localizeOfficerName(officer.name)
+    const roleLabel = getRoleLabel(role)
+
+    set((current) => ({
+      ships: current.ships.map((entry) => {
+        const cleared = removeOfficerFromShipAssignments(entry, officer.id)
+        if (cleared.instanceId !== ship.instanceId) return cleared
+        return assignOfficerRoleToShip(cleared, role, officer.id)
+      }),
+    }))
+
+    return { ok: true, message: `${officerName} を ${ship.name} の${roleLabel}に任命しました。` }
+  },
+
+  unassignOfficerRole: (role, targetShipId) => {
+    const state = get()
+    const targetId = targetShipId ?? state.activeShipId
+    const ship = state.ships.find((entry) => entry.instanceId === targetId)
+    if (!ship) return { ok: false, message: '任命先の船が見つかりません。' }
+    const assignments = getShipAssignments(ship)
+    if (!assignments[role]) return { ok: false, message: `${ship.name} の${getRoleLabel(role)}は未任命です。` }
+
+    set((current) => ({
+      ships: current.ships.map((entry) => entry.instanceId === ship.instanceId ? unassignOfficerRoleFromShip(entry, role) : entry),
+    }))
+
+    return { ok: true, message: `${ship.name} の${getRoleLabel(role)}任命を解除しました。` }
   },
 
   visitTavern: (service, amount = 0, tavernLevel = 1, targetShipId) => {
@@ -1004,6 +1095,20 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
     },
 
   clearVoyageNotice: () => set({ lastVoyageNotice: null }),
+
+  grantExperience: (gains, options) => {
+    const state = get()
+    if (!state.player) return []
+    const result = applyExperienceToPlayer(state.player, gains, options)
+    const notice = formatLevelUpNotice(result.levelUps)
+    set({
+      player: normalizePlayerProgression(result.player),
+      lastProgressionNotice: notice ? `レベルアップ: ${notice}` : state.lastProgressionNotice,
+    })
+    return result.levelUps
+  },
+
+  clearProgressionNotice: () => set({ lastProgressionNotice: null }),
 
   debugSetLevel: (type, level) => {
     const { player } = get()

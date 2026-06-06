@@ -4,13 +4,15 @@
 
 import type { PortId, SkillId } from './common.ts'
 import type { NpcFleetDefinition } from './npcFleet.ts'
+import type { DiscoveryMethod } from './discovery.ts'
 
 export type QuestType = 'main' | 'guild' | 'side' | 'delivery' | 'discovery' | 'combat'
 export type QuestStatus = 'available' | 'active' | 'completed' | 'failed' | 'ready_to_turn_in'
 export type QuestRank = 'standard' | 'urgent' | 'premium'
 export type TradeQuestCategory = 'trade_delivery' | 'trade_procurement' | 'trade_sales'
 export type CombatQuestCategory = 'combat_bounty'
-export type QuestCategory = TradeQuestCategory | CombatQuestCategory
+export type AdventureQuestCategory = 'adventure_discovery'
+export type QuestCategory = TradeQuestCategory | CombatQuestCategory | AdventureQuestCategory
 
 export interface Quest {
   id: string
@@ -75,5 +77,11 @@ export interface QuestMetadata {
   combatTargetPatrolPortId?: string
   combatTargetExisting?: boolean
   combatTargetFleet?: NpcFleetDefinition
+  discoveryId?: string
+  discoveryName?: string
+  discoveryMethod?: DiscoveryMethod
+  discoveryHint?: string
+  discoveryRadiusKm?: number
+  discoverySkillId?: SkillId
 }
 

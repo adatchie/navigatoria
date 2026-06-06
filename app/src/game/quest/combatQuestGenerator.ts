@@ -1,5 +1,12 @@
 import { NPC_FLEETS } from '@/data/master/npcFleets.ts'
 import { WORLD_DISTANCE_SCALE } from '@/config/gameConfig.ts'
+import {
+  getDistanceRequiredLevel,
+  getQuestDistanceFitScore,
+  getQuestDistanceRewardMultiplier,
+  isQuestDistanceAllowedForLevel,
+  scaleQuestDeadlineDays,
+} from '@/game/quest/questBalance.ts'
 import { createShipId } from '@/types/common.ts'
 import type { NpcFleetDefinition, NpcFleetRole } from '@/types/npcFleet.ts'
 import type { Port } from '@/types/port.ts'
@@ -91,6 +98,10 @@ const GENERATED_TARGET_PROFILES: GeneratedCombatProfile[] = [
   },
 ]
 
+const DEFAULT_QUEST_SHIP_SPEED_KNOTS = 8
+const QUEST_SUSTAINED_SPEED_FACTOR = 0.7
+const QUEST_ROUTE_DISTANCE_FACTOR = 1.45
+
 function hashSeed(input: string): number {
   let hash = 0
   for (let i = 0; i < input.length; i++) {
@@ -107,11 +118,19 @@ function getPortName(ports: Port[], portId?: string): string {
   return ports.find((port) => port.id === portId)?.name ?? '不明港'
 }
 
-function pickPatrolPort(appearancePort: Port, ports: Port[], seed: number): Port | null {
-  const candidates = ports
+function pickPatrolPort(appearancePort: Port, ports: Port[], seed: number, combatLevel: number): Port | null {
+  const baseCandidates = ports
     .filter((port) => port.id !== appearancePort.id)
-    .sort((a, b) => distanceKm(appearancePort, a) - distanceKm(appearancePort, b))
-    .slice(0, 4)
+  const allowed = baseCandidates.filter((port) => isQuestDistanceAllowedForLevel(distanceKm(appearancePort, port) * 2, combatLevel))
+  const candidates = (allowed.length > 0 ? allowed : baseCandidates)
+    .map((port) => ({ port, distance: distanceKm(appearancePort, port) * 2 }))
+    .sort((a, b) => {
+      const scoreDelta = getQuestDistanceFitScore(b.distance, combatLevel) - getQuestDistanceFitScore(a.distance, combatLevel)
+      if (Math.abs(scoreDelta) > 0.01) return scoreDelta
+      return a.distance - b.distance
+    })
+    .slice(0, 6)
+    .map((entry) => entry.port)
   return candidates[seed % candidates.length] ?? null
 }
 
@@ -140,16 +159,23 @@ function getRank(seed: number, combatLevel: number): QuestRank {
   return 'standard'
 }
 
-function getDeadlineOffset(rank: QuestRank, distanceKmValue: number): number {
-  const routeDays = Math.ceil(distanceKmValue / (8 * 1.852 * 24) * 1.45)
-  const buffer = rank === 'premium' ? 12 : rank === 'urgent' ? 10 : 14
-  return Math.max(rank === 'premium' ? 18 : 14, routeDays + buffer)
+function getTravelDays(distanceKmValue: number, shipSpeedKnots = DEFAULT_QUEST_SHIP_SPEED_KNOTS): number {
+  const sustainedSpeedKnots = Math.max(3, shipSpeedKnots * QUEST_SUSTAINED_SPEED_FACTOR)
+  const kmPerDay = sustainedSpeedKnots * 1.852 * 24
+  return Math.ceil((distanceKmValue * QUEST_ROUTE_DISTANCE_FACTOR) / kmPerDay)
 }
 
-function getRequiredLevel(rank: QuestRank, existingTarget: boolean): number | undefined {
-  if (!existingTarget && rank === 'standard') return undefined
-  if (existingTarget) return rank === 'premium' ? 8 : 6
-  return rank === 'premium' ? 5 : 3
+function getDeadlineOffset(rank: QuestRank, distanceKmValue: number, shipSpeedKnots?: number): number {
+  const routeDays = getTravelDays(distanceKmValue, shipSpeedKnots)
+  const buffer = rank === 'premium' ? 12 : rank === 'urgent' ? 10 : 14
+  return scaleQuestDeadlineDays(Math.max(rank === 'premium' ? 18 : 14, routeDays + buffer))
+}
+
+function getRequiredLevel(rank: QuestRank, existingTarget: boolean, distanceKmValue: number): number | undefined {
+  const distanceGate = getDistanceRequiredLevel(distanceKmValue)
+  if (!existingTarget && rank === 'standard') return distanceGate
+  if (existingTarget) return Math.max(rank === 'premium' ? 8 : 6, distanceGate ?? 0)
+  return Math.max(rank === 'premium' ? 5 : 3, distanceGate ?? 0)
 }
 
 function buildRewards(params: {
@@ -161,7 +187,8 @@ function buildRewards(params: {
 }): QuestReward[] {
   const rankMultiplier = params.rank === 'premium' ? 1.75 : params.rank === 'urgent' ? 1.3 : 1
   const targetMultiplier = params.existingTarget ? 1.55 : 1
-  const money = Math.round((420 + params.combatLevel * 80 + params.distanceKmValue * 0.035) * rankMultiplier * targetMultiplier)
+  const distanceMultiplier = getQuestDistanceRewardMultiplier(params.distanceKmValue)
+  const money = Math.round((420 + params.combatLevel * 80 + params.distanceKmValue * 0.035) * rankMultiplier * targetMultiplier * distanceMultiplier)
   const exp = Math.max(24, Math.round((money / 6) * (params.existingTarget ? 1.15 : 1)))
   const fame = Math.max(1, Math.round(money / 180))
   return [
@@ -202,16 +229,25 @@ function buildGeneratedFleet(params: {
   }
 }
 
-function pickFamousFleet(port: Port, ports: Port[], seed: number): NpcFleetDefinition | null {
+function pickFamousFleet(port: Port, ports: Port[], seed: number, combatLevel: number): NpcFleetDefinition | null {
   const portById = new Map(ports.map((entry) => [entry.id, entry]))
   const candidates = NPC_FLEETS
     .filter((fleet) => fleet.interactionTags.includes('battle'))
     .map((fleet) => {
       const appearancePort = portById.get(fleet.appearancePortId ?? fleet.routePortIds[0])
-      return { fleet, appearancePort, distance: appearancePort ? distanceKm(port, appearancePort) : Number.POSITIVE_INFINITY }
+      const patrolPort = portById.get(fleet.patrolPortId ?? fleet.routePortIds[1])
+      const distance = appearancePort && patrolPort
+        ? distanceKm(port, appearancePort) + distanceKm(appearancePort, patrolPort)
+        : Number.POSITIVE_INFINITY
+      return { fleet, appearancePort, distance }
     })
     .filter((entry) => Number.isFinite(entry.distance))
-    .sort((a, b) => a.distance - b.distance)
+    .filter((entry) => isQuestDistanceAllowedForLevel(entry.distance, combatLevel))
+    .sort((a, b) => {
+      const scoreDelta = getQuestDistanceFitScore(b.distance, combatLevel) - getQuestDistanceFitScore(a.distance, combatLevel)
+      if (Math.abs(scoreDelta) > 0.01) return scoreDelta
+      return a.distance - b.distance
+    })
     .slice(0, 6)
   return candidates[seed % candidates.length]?.fleet ?? null
 }
@@ -221,10 +257,11 @@ function buildCombatQuest(params: {
   ports: Port[]
   day: number
   combatLevel: number
+  shipSpeedKnots?: number
   index: number
   existingFleet?: NpcFleetDefinition
 }): Quest | null {
-  const { port, ports, day, combatLevel, index, existingFleet } = params
+  const { port, ports, day, combatLevel, shipSpeedKnots, index, existingFleet } = params
   const seed = hashSeed(`${port.id}:${day}:combat:${index}`)
   const rank = getRank(seed, combatLevel)
   const portById = new Map(ports.map((entry) => [entry.id, entry]))
@@ -235,7 +272,7 @@ function buildCombatQuest(params: {
 
   const patrolPort = existingFleet
     ? portById.get(existingFleet.patrolPortId ?? existingFleet.routePortIds[1])
-    : pickPatrolPort(appearancePort, ports, seed + 17)
+    : pickPatrolPort(appearancePort, ports, seed + 17, combatLevel)
   if (!patrolPort || appearancePort.id === patrolPort.id) return null
 
   const target = createGeneratedTarget(seed, index)
@@ -249,8 +286,10 @@ function buildCombatQuest(params: {
   if (!targetFleet) return null
 
   const targetName = targetFleet.commander
-  const distanceKmValue = distanceKm(appearancePort, patrolPort) * 2
-  const deadlineDay = day + getDeadlineOffset(rank, distanceKmValue)
+  const patrolDistance = distanceKm(appearancePort, patrolPort)
+  const distanceKmValue = existingFleet ? distanceKm(port, appearancePort) + patrolDistance : patrolDistance * 2
+  if (!isQuestDistanceAllowedForLevel(distanceKmValue, combatLevel)) return null
+  const deadlineDay = day + getDeadlineOffset(rank, distanceKmValue, shipSpeedKnots)
   const existingTarget = Boolean(existingFleet)
   const appearancePortName = getPortName(ports, appearancePort.id)
 
@@ -264,7 +303,7 @@ function buildCombatQuest(params: {
     status: 'available',
     rank,
     deadlineDay,
-    requiredLevel: getRequiredLevel(rank, existingTarget),
+    requiredLevel: getRequiredLevel(rank, existingTarget, distanceKmValue),
     requiredFame: existingTarget ? 18 : rank === 'premium' ? 8 : 0,
     rewards: buildRewards({ rank, combatLevel, distanceKmValue, reportPortId: port.id, existingTarget }),
     objectives: [
@@ -294,21 +333,22 @@ export function generateCombatQuestsForPort(params: {
   ports: Port[]
   day: number
   combatLevel: number
+  shipSpeedKnots?: number
 }): Quest[] {
-  const { port, ports, day, combatLevel } = params
+  const { port, ports, day, combatLevel, shipSpeedKnots } = params
   const quests: Quest[] = []
   const seed = hashSeed(`${port.id}:${day}:combat`)
   const shouldOfferFamous = combatLevel >= 6 && seed % 3 === 0
-  const famousFleet = shouldOfferFamous ? pickFamousFleet(port, ports, seed + 29) : null
+  const famousFleet = shouldOfferFamous ? pickFamousFleet(port, ports, seed + 29, combatLevel) : null
 
-  const first = buildCombatQuest({ port, ports, day, combatLevel, index: 0 })
+  const first = buildCombatQuest({ port, ports, day, combatLevel, shipSpeedKnots, index: 0 })
   if (first) quests.push(first)
 
   if (famousFleet) {
-    const second = buildCombatQuest({ port, ports, day, combatLevel, index: 1, existingFleet: famousFleet })
+    const second = buildCombatQuest({ port, ports, day, combatLevel, shipSpeedKnots, index: 1, existingFleet: famousFleet })
     if (second) quests.push(second)
   } else if (combatLevel >= 4) {
-    const second = buildCombatQuest({ port, ports, day, combatLevel, index: 1 })
+    const second = buildCombatQuest({ port, ports, day, combatLevel, shipSpeedKnots, index: 1 })
     if (second) quests.push(second)
   }
 

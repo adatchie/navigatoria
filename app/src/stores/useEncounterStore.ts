@@ -104,14 +104,16 @@ function applyEncounterOutcome(outcome: EncounterOutcome, combatState?: Encounte
           ...state.player.stats,
           fame: Math.max(0, state.player.stats.fame + outcome.fameDelta),
           notoriety: Math.max(0, state.player.stats.notoriety + outcome.notorietyDelta),
-          tradeExp: state.player.stats.tradeExp + outcome.tradeExpDelta,
-          combatExp: state.player.stats.combatExp + outcome.combatExpDelta,
-          adventureExp: state.player.stats.adventureExp + outcome.adventureExpDelta,
         },
         inventory: nextInventory,
       },
       ships,
     }
+  })
+  usePlayerStore.getState().grantExperience({
+    trade: outcome.tradeExpDelta,
+    combat: outcome.combatExpDelta,
+    adventure: outcome.adventureExpDelta,
   })
 
   const playerAfter = usePlayerStore.getState()

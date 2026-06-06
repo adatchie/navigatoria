@@ -1,12 +1,16 @@
 import { create } from 'zustand'
+import { generateAdventureQuestsForPort } from '@/game/quest/adventureQuestGenerator.ts'
 import { generateCombatQuestsForPort } from '@/game/quest/combatQuestGenerator.ts'
 import { generateTradeQuestsForPort } from '@/game/quest/tradeQuestGenerator.ts'
+import { WORLD_DISTANCE_SCALE } from '@/config/gameConfig.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { useNpcFleetStore } from '@/stores/useNpcFleetStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
+import { useUIStore } from '@/stores/useUIStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
+import type { Discovery, DiscoveryMethod } from '@/types/discovery.ts'
 import type { Quest, QuestCategory, QuestReward } from '@/types/quest.ts'
 
 interface QuestStoreState {
@@ -24,6 +28,7 @@ interface QuestStoreState {
   deliverTradeQuestCargo: () => { ok: boolean; message: string }
   turnInQuest: () => { ok: boolean; message: string }
   completeCombatQuestForFleet: (fleetId: string) => { ok: boolean; message: string }
+  attemptDiscovery: (method: DiscoveryMethod) => { ok: boolean; message: string }
   recordPurchasedGoods: (portId: string, goodId: string, quantity: number) => void
   recordSoldGoods: (portId: string, goodId: string, quantity: number) => void
   failExpiredQuests: (currentDay: number) => void
@@ -58,8 +63,73 @@ function getReportPortId(quest: Quest): string | undefined {
   return quest.metadata?.reportPortId ?? quest.metadata?.destinationPortId ?? quest.giverPort
 }
 
+function getPortName(ports: { id: string; name: string }[], portId?: string): string {
+  if (!portId) return '不明港'
+  return ports.find((port) => port.id === portId)?.name ?? portId
+}
+
 function getQuestCategory(quest: Quest): QuestCategory | undefined {
   return quest.metadata?.category
+}
+
+function showQuestAchievement(params: {
+  kind: 'discovery' | 'combat' | 'trade'
+  title: string
+  subject: string
+  subtitle?: string
+  discoveryId?: string
+  goodId?: string
+}): void {
+  useUIStore.getState().showQuestAchievement(params)
+}
+
+function getDiscoveryMethodLabel(method?: DiscoveryMethod): string {
+  return method === 'search' ? '探索' : '視認'
+}
+
+function getCompletedDiscoveryIds(): string[] {
+  return usePlayerStore.getState().player?.discoveredDiscoveryIds ?? []
+}
+
+function getActiveDiscoveryIds(quests: Quest[]): string[] {
+  return quests
+    .map((quest) => quest.metadata?.discoveryId)
+    .filter((id): id is string => Boolean(id))
+}
+
+function getDistanceKmToDiscovery(discovery: Discovery): number {
+  const position = useNavigationStore.getState().position
+  return Math.hypot(discovery.position.x - position.x, discovery.position.y - position.y) * WORLD_DISTANCE_SCALE
+}
+
+function getEffectiveSkillRank(skillId: string | undefined): number {
+  const player = usePlayerStore.getState().player
+  if (!player || !skillId) return 0
+  const learnedRank = player.skills.find((skill) => skill.skillId === skillId)?.rank ?? 0
+  if (learnedRank > 0) return learnedRank
+  return Math.max(1, Math.floor(player.stats.adventureLevel / 2) + 1)
+}
+
+function recordDiscoveryForPlayer(discovery: Discovery, expFactor = 0): void {
+  let adventureExp = 0
+  usePlayerStore.setState((state) => {
+    if (!state.player) return state
+    const discovered = state.player.discoveredDiscoveryIds ?? []
+    if (discovered.includes(discovery.id)) return state
+    adventureExp = Math.round(discovery.exp * expFactor)
+    const fame = Math.round(discovery.fame * expFactor)
+    return {
+      player: {
+        ...state.player,
+        discoveredDiscoveryIds: [...discovered, discovery.id],
+        stats: {
+          ...state.player.stats,
+          fame: state.player.stats.fame + fame,
+        },
+      },
+    }
+  })
+  if (adventureExp > 0) usePlayerStore.getState().grantExperience({ adventure: adventureExp })
 }
 
 function appendUnique(items: string[], next: string): string[] {
@@ -136,6 +206,18 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
     const player = usePlayerStore.getState().player
     if (!port || !player) return
 
+    const activeQuests = getActiveQuests(get())
+    const activeQuestIds = new Set(activeQuests.map((quest) => quest.id))
+    const adventureQuests = generateAdventureQuestsForPort({
+      port,
+      ports: masterData.ports,
+      discoveries: masterData.discoveries,
+      day: currentDay,
+      adventureLevel: player.stats.adventureLevel,
+      completedDiscoveryIds: getCompletedDiscoveryIds(),
+      activeDiscoveryIds: getActiveDiscoveryIds(activeQuests),
+      shipSpeedKnots: getQuestShipSpeedKnots(),
+    })
     const tradeQuests = generateTradeQuestsForPort({
       port,
       ports: masterData.ports,
@@ -149,9 +231,9 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
       ports: masterData.ports,
       day: currentDay,
       combatLevel: player.stats.combatLevel,
+      shipSpeedKnots: getQuestShipSpeedKnots(),
     })
-    const activeQuestIds = new Set(getActiveQuests(get()).map((quest) => quest.id))
-    const quests = [...tradeQuests, ...combatQuests]
+    const quests = [...adventureQuests, ...tradeQuests, ...combatQuests]
       .filter((quest) => !activeQuestIds.has(quest.id) && !get().completedQuestIds.includes(quest.id) && !get().failedQuestIds.includes(quest.id))
 
     set((state) => ({
@@ -171,11 +253,18 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
     const currentDay = getCurrentDay()
     if (!quest || !player || !activeShip) return { ok: false, message: 'クエストが見つかりません。' }
     const category = getQuestCategory(quest)
-    const requiredLevelStat = category === 'combat_bounty' ? player.stats.combatLevel : player.stats.tradeLevel
+    const requiredLevelStat = category === 'combat_bounty'
+      ? player.stats.combatLevel
+      : category === 'adventure_discovery'
+        ? player.stats.adventureLevel
+        : player.stats.tradeLevel
     if ((quest.requiredLevel ?? 0) > requiredLevelStat) {
-      return { ok: false, message: category === 'combat_bounty' ? '戦闘レベルが足りません。' : '交易レベルが足りません。' }
+      return { ok: false, message: category === 'combat_bounty' ? '戦闘レベルが足りません。' : category === 'adventure_discovery' ? '冒険レベルが足りません。' : '交易レベルが足りません。' }
     }
     if ((quest.requiredFame ?? 0) > player.stats.fame) return { ok: false, message: `名声が ${quest.requiredFame} 必要です。` }
+    if (quest.requiredSkill && getEffectiveSkillRank(quest.requiredSkill.skillId) < quest.requiredSkill.rank) {
+      return { ok: false, message: `${quest.requiredSkill.skillId} ランク ${quest.requiredSkill.rank} が必要です。` }
+    }
 
     const quantity = quest.metadata?.quantity ?? 0
     const good = quest.metadata?.goodId ? useDataStore.getState().getTradeGood(quest.metadata.goodId) : null
@@ -284,7 +373,16 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
       }
     })
 
-    return { ok: true, message: '依頼品を納品しました。ギルドで報告できます。' }
+    const goodName = good?.name ?? goodId
+    showQuestAchievement({
+      kind: 'trade',
+      title: `${goodName} 納品完了`,
+      subject: goodName,
+      subtitle: `${getPortName(useDataStore.getState().masterData.ports, reportPortId)} で依頼品を引き渡しました。`,
+      goodId,
+    })
+
+    return { ok: true, message: '依頼品を納品しました。依頼主へ報告できます。' }
   },
 
   turnInQuest: () => {
@@ -302,6 +400,7 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
     const rewardMoney = quest.rewards.filter((reward) => reward.type === 'money').reduce((sum, reward) => sum + (reward.amount ?? 0), 0)
     const rewardExp = quest.rewards.filter((reward) => reward.type === 'exp').reduce((sum, reward) => sum + (reward.amount ?? 0), 0)
     const rewardFame = quest.rewards.filter((reward) => reward.type === 'fame').reduce((sum, reward) => sum + (reward.amount ?? 0), 0)
+    const category = getQuestCategory(quest)
 
     usePlayerStore.setState((state) => state.player ? ({
       player: {
@@ -309,11 +408,11 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
         money: state.player.money + rewardMoney,
         stats: {
           ...state.player.stats,
-          tradeExp: state.player.stats.tradeExp + rewardExp,
           fame: state.player.stats.fame + rewardFame,
         },
       },
     }) : state)
+    usePlayerStore.getState().grantExperience(category === 'adventure_discovery' ? { adventure: rewardExp } : { trade: rewardExp })
 
     const bonusNotes = applyQuestRewards(quest.rewards, player.nationality)
 
@@ -347,11 +446,11 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
         money: state.player.money + rewardMoney,
         stats: {
           ...state.player.stats,
-          combatExp: state.player.stats.combatExp + rewardExp,
           fame: state.player.stats.fame + rewardFame,
         },
       },
     }) : state)
+    usePlayerStore.getState().grantExperience({ combat: rewardExp })
 
     const bonusNotes = applyQuestRewards(quest.rewards, player.nationality)
     useNpcFleetStore.getState().removeQuestFleet(fleetId)
@@ -368,7 +467,95 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
       }
     })
 
+    const targetName = quest.metadata?.combatTargetName ?? quest.title
+    showQuestAchievement({
+      kind: 'combat',
+      title: `${targetName} 討伐完了`,
+      subject: targetName,
+      subtitle: `報酬 ${rewardMoney} d と戦闘経験 ${rewardExp} を獲得しました。`,
+    })
+
     return { ok: true, message: `${quest.title} を達成しました。報酬 ${rewardMoney} d を獲得。` }
+  },
+
+  attemptDiscovery: (method) => {
+    const navigation = useNavigationStore.getState()
+    const player = usePlayerStore.getState().player
+    if (!player) return { ok: false, message: '探索できる状態ではありません。' }
+    if (navigation.mode === 'docked' || navigation.mode === 'combat') {
+      return { ok: false, message: '洋上でのみ実行できます。' }
+    }
+
+    const methodLabel = getDiscoveryMethodLabel(method)
+    const discoveries = useDataStore.getState().masterData.discoveries
+    const completed = new Set(getCompletedDiscoveryIds())
+    const activeQuests = getActiveQuests(get())
+    const activeAdventureQuests = activeQuests.filter((quest) => getQuestCategory(quest) === 'adventure_discovery' && quest.metadata?.discoveryMethod === method)
+
+    const questCandidates = activeAdventureQuests
+      .map((quest) => {
+        const discovery = quest.metadata?.discoveryId ? discoveries.find((entry) => entry.id === quest.metadata?.discoveryId) : undefined
+        return discovery ? { discovery, quest, distance: getDistanceKmToDiscovery(discovery) } : null
+      })
+      .filter((entry): entry is { discovery: Discovery; quest: Quest; distance: number } => Boolean(entry))
+      .sort((a, b) => a.distance - b.distance)
+
+    const freeCandidates = discoveries
+      .filter((discovery) => discovery.method === method && !completed.has(discovery.id))
+      .map((discovery) => ({ discovery, quest: null, distance: getDistanceKmToDiscovery(discovery) }))
+      .sort((a, b) => a.distance - b.distance)
+
+    const nearby = [...questCandidates, ...freeCandidates].find((entry) => entry.distance <= entry.discovery.radiusKm)
+    if (!nearby) {
+      const nearest = [...questCandidates, ...freeCandidates][0]
+      const distanceHint = nearest ? ` 最も近い手がかりまで約 ${Math.round(nearest.distance)} km です。` : ''
+      return { ok: false, message: `周辺に${methodLabel}できる発見物は見当たりません。${distanceHint}` }
+    }
+
+    const requiredRank = nearby.discovery.requiredSkill.rank
+    const skillRank = getEffectiveSkillRank(nearby.discovery.requiredSkill.skillId)
+    if (skillRank < requiredRank) {
+      return { ok: false, message: `周辺の発見物の${methodLabel}には ${nearby.discovery.requiredSkill.skillId} ランク ${requiredRank} が必要です。` }
+    }
+
+    if (nearby.quest) {
+      recordDiscoveryForPlayer(nearby.discovery)
+      set((state) => {
+        const nextQuest: Quest = {
+          ...nearby.quest!,
+          title: `${nearby.discovery.name} 発見報告`,
+          status: 'ready_to_turn_in',
+          objectives: nearby.quest!.objectives.map((objective) => {
+            if (objective.type === 'discover') return { ...objective, current: objective.count, description: `${nearby.discovery.name} を発見した` }
+            return objective
+          }),
+        }
+        return {
+          activeQuests: getActiveQuests(state).map((quest) => quest.id === nextQuest.id ? nextQuest : quest),
+          activeQuest: nextQuest,
+          lastQuestNotice: `${nearby.discovery.name} を発見しました。${getPortName(useDataStore.getState().masterData.ports, nextQuest.metadata?.reportPortId)} のギルドで報告できます。`,
+        }
+      })
+      showQuestAchievement({
+        kind: 'discovery',
+        title: `${nearby.discovery.name} 発見`,
+        subject: nearby.discovery.name,
+        subtitle: `${getPortName(useDataStore.getState().masterData.ports, nearby.quest.metadata?.reportPortId)} のギルドで報告できます。`,
+        discoveryId: nearby.discovery.id,
+      })
+      return { ok: true, message: `${nearby.discovery.name} を発見しました。` }
+    }
+
+    recordDiscoveryForPlayer(nearby.discovery, 0.5)
+    set({ lastQuestNotice: `${nearby.discovery.name} を発見しました。冒険経験と名声を少し獲得しました。` })
+    showQuestAchievement({
+      kind: 'discovery',
+      title: `${nearby.discovery.name} 発見`,
+      subject: nearby.discovery.name,
+      subtitle: '冒険経験と名声を獲得しました。',
+      discoveryId: nearby.discovery.id,
+    })
+    return { ok: true, message: `${nearby.discovery.name} を発見しました。` }
   },
 
   recordPurchasedGoods: (portId, goodId, quantity) => {
@@ -399,10 +586,12 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
 
   recordSoldGoods: (portId, goodId, quantity) => {
     if (quantity <= 0) return
+    const completedSale: { current: { goodId: string; reportPortId?: string } | null } = { current: null }
     set((state) => {
       let completedNotice = false
       const nextQuests = getActiveQuests(state).map((quest) => {
         if (getQuestCategory(quest) !== 'trade_sales') return quest
+        if (quest.status === 'ready_to_turn_in') return quest
         if (quest.metadata?.destinationPortId !== portId || quest.metadata.goodId !== goodId) return quest
 
         const currentSold = quest.metadata.soldQuantity ?? 0
@@ -410,6 +599,7 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
         let nextQuest = updateObjective(quest, 'sell_item', nextSold)
         if (nextSold >= (quest.metadata.quantity ?? 0)) {
           completedNotice = true
+          completedSale.current = { goodId, reportPortId: getReportPortId(quest) }
           nextQuest = updateObjective(nextQuest, 'visit_port', 1)
           return {
             ...nextQuest,
@@ -431,6 +621,17 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
         lastQuestNotice: completedNotice ? '指定数量の売り込みが完了しました。ギルドへ報告できます。' : state.lastQuestNotice,
       }
     })
+    if (completedSale.current) {
+      const good = useDataStore.getState().getTradeGood(completedSale.current.goodId)
+      const goodName = good?.name ?? completedSale.current.goodId
+      showQuestAchievement({
+        kind: 'trade',
+        title: `${goodName} 売却完了`,
+        subject: goodName,
+        subtitle: `${getPortName(useDataStore.getState().masterData.ports, completedSale.current.reportPortId)} へ報告できます。`,
+        goodId: completedSale.current.goodId,
+      })
+    }
   },
 
   failExpiredQuests: (currentDay) => {

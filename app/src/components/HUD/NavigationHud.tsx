@@ -9,6 +9,7 @@ import { useDataStore } from '@/stores/useDataStore.ts'
 import { getNearestPort } from '@/game/world/queries.ts'
 import { isQuestDeadlineNotice } from '@/game/quest/questNotices.ts'
 import { TradeGoodIcon } from '@/components/TradeGoodIcon.tsx'
+import { AdventureQuestIcon } from '@/components/DiscoveryIcon.tsx'
 import { uiText } from '@/i18n/uiText.ts'
 import type { Quest } from '@/types/quest.ts'
 import type { Port } from '@/types/port.ts'
@@ -25,6 +26,7 @@ function barColor(value: number): string {
 
 export function NavigationHud() {
   const [showQuestLog, setShowQuestLog] = useState(false)
+  const [explorationNotice, setExplorationNotice] = useState<string | null>(null)
   const navigation = useNavigationStore()
   const ports = useWorldStore((s) => s.ports)
   const getTradeGood = useDataStore((s) => s.getTradeGood)
@@ -40,9 +42,17 @@ export function NavigationHud() {
   const activeQuest = useQuestStore((s) => s.activeQuest)
   const questNotice = useQuestStore((s) => s.lastQuestNotice)
   const clearQuestNotice = useQuestStore((s) => s.clearQuestNotice)
+  const attemptDiscovery = useQuestStore((s) => s.attemptDiscovery)
   const setPhase = useGameStore((s) => s.setPhase)
   const currentDay = Math.floor(useGameStore((s) => s.timeState.totalDays))
   const acceptedQuests = activeQuests.length > 0 ? activeQuests : activeQuest ? [activeQuest] : []
+  const canUseDiscoverySkills = navigation.mode !== 'docked' && navigation.mode !== 'combat'
+  const generalQuestNotice = questNotice && !isQuestDeadlineNotice(questNotice) ? questNotice : null
+  const shownExplorationNotice = explorationNotice ?? generalQuestNotice
+  const handleDiscoveryAction = (method: 'sighting' | 'search') => {
+    const result = attemptDiscovery(method)
+    setExplorationNotice(result.message)
+  }
 
   const nearest = useMemo(() => getNearestPort(navigation.position, ports), [navigation.position, ports])
   const dockedPort = ports.find((port) => port.id === navigation.dockedPortId)
@@ -120,6 +130,25 @@ export function NavigationHud() {
           <button style={styles.noticeButton} onClick={clearQuestNotice}>{uiText.nav.dismiss}</button>
         </div>
       )}
+      {shownExplorationNotice && (
+        <div style={styles.noticeWrap}>
+          <div style={styles.noticeTitle}>冒険</div>
+          <div style={styles.noticeText}>{shownExplorationNotice}</div>
+          <button
+            style={styles.noticeButton}
+            onClick={() => {
+              setExplorationNotice(null)
+              clearQuestNotice()
+            }}
+          >
+            {uiText.nav.dismiss}
+          </button>
+        </div>
+      )}
+      <div style={styles.discoveryActions}>
+        <button style={styles.discoveryButton} disabled={!canUseDiscoverySkills} onClick={() => handleDiscoveryAction('sighting')}>視認</button>
+        <button style={styles.discoveryButton} disabled={!canUseDiscoverySkills} onClick={() => handleDiscoveryAction('search')}>探索</button>
+      </div>
       <button style={styles.questButton} onClick={() => setShowQuestLog(true)}>クエスト {acceptedQuests.length}/{MAX_ACTIVE_QUESTS}</button>
       {dockedPort && <button style={styles.portButton} onClick={() => setPhase('port')}>{uiText.nav.enterPort} {dockedPort.name}</button>}
       <div style={styles.hint}>
@@ -145,6 +174,7 @@ function getPortName(ports: Port[], portId?: string): string {
 }
 
 function getQuestCategoryLabel(quest: Quest): string {
+  if (quest.metadata?.category === 'adventure_discovery') return '冒険'
   if (quest.metadata?.category === 'combat_bounty') return '討伐'
   if (quest.metadata?.category === 'trade_procurement') return '仕入'
   if (quest.metadata?.category === 'trade_sales') return '売却'
@@ -155,7 +185,15 @@ function getQuestReportPortId(quest: Quest): string | undefined {
   return quest.metadata?.reportPortId ?? quest.metadata?.destinationPortId ?? quest.giverPort
 }
 
+function isDiscoveryQuestFound(quest: Quest): boolean {
+  return quest.status === 'ready_to_turn_in' || quest.objectives.some((objective) => objective.type === 'discover' && objective.current >= objective.count)
+}
+
 function getQuestRouteText(quest: Quest, ports: Port[]): string {
+  if (quest.metadata?.category === 'adventure_discovery') {
+    const target = isDiscoveryQuestFound(quest) ? quest.metadata.discoveryName ?? '発見物' : '手がかりの示す発見物'
+    return `調査対象 ${target} / 報告先 ${getPortName(ports, getQuestReportPortId(quest))}`
+  }
   if (quest.metadata?.category === 'combat_bounty') {
     return `${getPortName(ports, quest.metadata.combatTargetAppearancePortId)}港付近 / ${getPortName(ports, quest.metadata.combatTargetPatrolPortId)}方面`
   }
@@ -166,6 +204,10 @@ function getQuestRouteText(quest: Quest, ports: Port[]): string {
 }
 
 function getQuestInstructionText(quest: Quest, ports: Port[], getGoodName: (goodId: string) => string): string {
+  if (quest.metadata?.category === 'adventure_discovery') {
+    const method = quest.metadata.discoveryMethod === 'search' ? '探索' : '視認'
+    return `${quest.metadata.discoveryHint ?? '手がかりの示す海域へ向かう'} 周辺で${method}を行う`
+  }
   if (quest.metadata?.category === 'combat_bounty') {
     return `${quest.metadata.combatTargetName ?? '討伐対象'} の艦隊を撃破`
   }
@@ -202,6 +244,7 @@ function QuestLogWindow(props: {
               <div key={quest.id} style={styles.questLogCard}>
                 <div style={styles.questLogTitleRow}>
                   {quest.metadata?.goodId && <TradeGoodIcon goodId={quest.metadata.goodId} label={props.getGoodName(quest.metadata.goodId)} size={30} />}
+                  {quest.metadata?.category === 'adventure_discovery' && <AdventureQuestIcon method={quest.metadata.discoveryMethod} size={30} />}
                   <span style={styles.questLogBadge}>{getQuestCategoryLabel(quest)}</span>
                   <strong>{quest.title}</strong>
                   <span style={styles.questLogDays}>残り {daysRemaining ?? '-'} 日</span>
@@ -373,6 +416,23 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid rgba(250, 204, 21, 0.3)',
     background: 'rgba(120, 53, 15, 0.28)',
     color: '#fde68a',
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: 700,
+  },
+  discoveryActions: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: 8,
+    marginTop: 8,
+  },
+  discoveryButton: {
+    minHeight: 32,
+    padding: '7px 8px',
+    borderRadius: 10,
+    border: '1px solid rgba(125, 211, 252, 0.28)',
+    background: 'rgba(14, 116, 144, 0.24)',
+    color: '#cffafe',
     cursor: 'pointer',
     fontSize: 12,
     fontWeight: 700,
