@@ -18,6 +18,7 @@ import { CombatQuestIcon } from '@/components/CombatQuestIcon.tsx'
 import { TradeGoodIcon } from '@/components/TradeGoodIcon.tsx'
 import { AdventureQuestIcon, DiscoveryIcon } from '@/components/DiscoveryIcon.tsx'
 import { useResponsiveUiMetrics } from '@/ui/responsive.ts'
+import { antiqueAssets, antiqueColors, antiqueFonts, antiqueStyles } from '@/ui/antiqueTheme.ts'
 import type { Officer, OfficerStats } from '@/types/character.ts'
 import type { Discovery, DiscoveryCategory } from '@/types/discovery.ts'
 import type { Port } from '@/types/port.ts'
@@ -89,13 +90,13 @@ const OFFICER_STAT_AXES: { key: keyof OfficerStats; label: string }[] = [
   { key: 'leadership', label: '統率' },
 ]
 const LISBON_CITY_HOTSPOTS: CityHotspot[] = [
-  { section: 'departure', label: '出航所', caption: '河岸の桟橋', x: 78, y: 72, tone: '#38bdf8', emblem: '⚓' },
-  { section: 'market', label: '市場', caption: '港前広場', x: 38, y: 60, tone: '#f59e0b', emblem: '◇' },
-  { section: 'guild', label: 'ギルド', caption: '商館街', x: 53, y: 49, tone: '#a78bfa', emblem: '✦' },
-  { section: 'tavern', label: '酒場', caption: '坂道の路地', x: 63, y: 64, tone: '#fb7185', emblem: '♬' },
-  { section: 'shipyard', label: '造船所', caption: '河口の船渠', x: 23, y: 72, tone: '#22c55e', emblem: '▱' },
-  { section: 'bank', label: '銀行', caption: '城壁内の両替商', x: 55, y: 34, tone: '#facc15', emblem: '¤' },
-  { section: 'inventory', label: '保管庫', caption: '倉庫街', x: 27, y: 48, tone: '#60a5fa', emblem: '□' },
+  { section: 'departure', label: '出航所', caption: '河岸の桟橋', x: 78, y: 72, tone: '#2f5d7c', emblem: '⚓' },
+  { section: 'market', label: '市場', caption: '港前広場', x: 38, y: 60, tone: '#7a4f00', emblem: '◇' },
+  { section: 'guild', label: 'ギルド', caption: '商館街', x: 53, y: 49, tone: '#6f4f83', emblem: '✦' },
+  { section: 'tavern', label: '酒場', caption: '坂道の路地', x: 63, y: 64, tone: '#8b1a1a', emblem: '♬' },
+  { section: 'shipyard', label: '造船所', caption: '河口の船渠', x: 23, y: 72, tone: '#2f6b45', emblem: '▱' },
+  { section: 'bank', label: '銀行', caption: '城壁内の両替商', x: 55, y: 34, tone: '#6f520f', emblem: '¤' },
+  { section: 'inventory', label: '保管庫', caption: '倉庫街', x: 27, y: 48, tone: '#3b6b76', emblem: '□' },
 ]
 const NATIONALITY_LABELS: Record<string, string> = {
   portugal: 'ポルトガル',
@@ -257,11 +258,11 @@ function formatFactorBonus(factor: number, inverse = false): string {
 }
 
 function getMarketTrendBadge(trend: PriceTrend): { icon: string; label: string; tone: string; title: string } {
-  if (trend === 'boom') return { icon: '↑', label: '高騰', tone: '#f97316', title: '相場が高く、売却向きです。' }
-  if (trend === 'rising') return { icon: '↗', label: '上昇', tone: '#f59e0b', title: '相場が上がっています。' }
-  if (trend === 'falling') return { icon: '↘', label: '下落', tone: '#38bdf8', title: '相場が下がっています。' }
-  if (trend === 'crash') return { icon: '↓', label: '暴落', tone: '#60a5fa', title: '相場が大きく下がり、買付向きです。' }
-  return { icon: '・', label: '安定', tone: '#94a3b8', title: '相場は安定しています。' }
+  if (trend === 'boom') return { icon: '↑', label: '高騰', tone: '#8b1a1a', title: '相場が高く、売却向きです。' }
+  if (trend === 'rising') return { icon: '↗', label: '上昇', tone: '#9c6b0f', title: '相場が上がっています。' }
+  if (trend === 'falling') return { icon: '↘', label: '下落', tone: '#235c57', title: '相場が下がっています。' }
+  if (trend === 'crash') return { icon: '↓', label: '暴落', tone: '#2f5d7c', title: '相場が大きく下がり、買付向きです。' }
+  return { icon: '・', label: '安定', tone: '#6b5a3d', title: '相場は安定しています。' }
 }
 
 function getSliderQuantity(value: number, max: number): number {
@@ -342,7 +343,7 @@ function OfficerRadarChart({ stats }: { stats: OfficerStats }) {
           key={level}
           points={OFFICER_STAT_AXES.map((_, index) => getRadarPoint(index, total, 10 * level, radius, center)).join(' ')}
           fill="none"
-          stroke="rgba(148, 163, 184, 0.28)"
+          stroke="rgba(90, 61, 43, 0.34)"
           strokeWidth="1"
         />
       ))}
@@ -353,15 +354,15 @@ function OfficerRadarChart({ stats }: { stats: OfficerStats }) {
         const [labelX, labelY] = labelPoint.split(',').map(Number)
         return (
           <g key={axis.key}>
-            <line x1={center} y1={center} x2={x} y2={y} stroke="rgba(148, 163, 184, 0.22)" strokeWidth="1" />
-            <text x={labelX} y={labelY} textAnchor="middle" dominantBaseline="central" fill="#cbd5e1" fontSize="10">{axis.label}</text>
+            <line x1={center} y1={center} x2={x} y2={y} stroke="rgba(90, 61, 43, 0.28)" strokeWidth="1" />
+            <text x={labelX} y={labelY} textAnchor="middle" dominantBaseline="central" fill="#3f2b20" fontSize="10" fontWeight="700">{axis.label}</text>
           </g>
         )
       })}
-      <polygon points={valuePoints} fill="rgba(96, 165, 250, 0.36)" stroke="#60a5fa" strokeWidth="2" />
+      <polygon points={valuePoints} fill="rgba(35, 92, 87, 0.34)" stroke="#235c57" strokeWidth="2.4" />
       {OFFICER_STAT_AXES.map((axis, index) => {
         const [x, y] = getRadarPoint(index, total, stats[axis.key], radius, center).split(',').map(Number)
-        return <circle key={`${axis.key}-value`} cx={x} cy={y} r="2.8" fill="#facc15" />
+        return <circle key={`${axis.key}-value`} cx={x} cy={y} r="3.2" fill="#b8860b" stroke="#3f2b20" strokeWidth="0.7" />
       })}
     </svg>
   )
@@ -391,9 +392,9 @@ function ShipPreviewCamera() {
   return null
 }
 
-function ShipModelPreview({ modelId }: { modelId?: string }) {
+function ShipModelPreview({ modelId, compact = false }: { modelId?: string; compact?: boolean }) {
   return (
-    <div style={styles.shipModelViewport}>
+    <div style={compact ? styles.shipModelViewportCompact : styles.shipModelViewport}>
       <Canvas camera={{ position: [5.8, 2.9, 7.2], fov: 42, near: 0.1, far: 100 }} dpr={[1, 1.5]}>
         <color attach="background" args={['#071323']} />
         <ShipPreviewCamera />
@@ -756,9 +757,9 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const outfitCost = (option: 'rigging' | 'cargo' | 'gunnery', level: number) => OUTFIT_BASE_COST[option] + level * OUTFIT_STEP[option]
   const outfitLocked = (optionLevel: number) => optionLevel >= OUTFIT_MAX_LEVEL
   const loadRatio = shipyardTargetShip ? shipyardTargetShip.usedCapacity / Math.max(1, shipyardTargetShip.maxCapacity) : 0
-  const renderFacilityShipSelect = (selectedShipId: string | null, onSelect: (shipId: string) => void) => (
+  const renderFacilityShipSelect = (selectedShipId: string | null, onSelect: (shipId: string) => void, label = '対象船') => (
     <label style={styles.commandTargetLabel}>
-      対象船
+      {label}
       <select style={styles.commandTargetSelect} value={selectedShipId ?? ''} onChange={(event) => onSelect(event.target.value)}>
         {ships.map((ship, index) => {
           const type = getShip(ship.typeId)
@@ -775,6 +776,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const shellStyle = compactLayout ? { ...styles.shell, ...styles.shellCompact } : styles.shell
   const sidebarStyle = compactLayout ? { ...styles.sidebar, ...styles.sidebarCompact } : styles.sidebar
   const compactActionRowStyle = compactLayout ? { ...styles.compactActionRow, ...styles.compactActionRowCompact } : styles.compactActionRow
+  const shipServiceCardStyle = compactLayout ? { ...styles.shipServiceCard, ...styles.shipServiceCardCompact } : styles.shipServiceCard
   const officerOfferCardStyle = compactLayout ? { ...styles.officerOfferCard, ...styles.officerOfferCardCompact } : styles.officerOfferCard
 
   return (
@@ -1017,19 +1019,18 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
             {visibleSection === 'departure' && (
               <div style={styles.contentStack}>
                 <section style={{ ...styles.panel, ...styles.featurePanel }}>
-                  <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>{uiText.town.labels.shipMaintenance}</h3><span style={styles.panelHint}>補給と修理を済ませてから出航</span></div>
                   <div style={styles.serviceColumns}>
                     <div style={styles.featureBanner}>
-                      <span style={shipyardFacility ? styles.featureBadge : styles.featureBadgeMuted}>{shipyardFacility ? uiText.town.labels.shipyard : uiText.town.labels.workshop}</span>
+                      <span style={shipyardFacility ? styles.featureBadge : styles.featureBadgeMuted}>{shipyardFacility ? '整備' : '応急'}</span>
                       <div>
-                        <strong>{shipyardFacility ? `${uiText.town.labels.shipyard} Lv.${shipyardLevel}` : uiText.town.labels.emergencyWorkshop}</strong>
+                        <strong>{shipyardFacility ? `港内整備 Lv.${shipyardLevel}` : uiText.town.labels.emergencyWorkshop}</strong>
                         <div style={styles.featureText}>{shipyardFacility ? '応急修理とオーバーホールが利用できます。' : 'この港では応急修理のみ可能です。'}</div>
                       </div>
                     </div>
                     <SelectedShipConditionPanel
                       ship={repairTargetShip}
                       shipType={repairTargetShipType}
-                      roleLabel={repairTargetShip?.instanceId === activeShipId ? '旗艦' : '操作対象'}
+                      roleLabel={repairTargetShip?.instanceId === activeShipId ? '旗艦' : '修理対象'}
                     />
                     <div style={styles.infoGridCompact}>
                       <div style={styles.infoBlock}><span style={styles.infoLabel}>{uiText.town.labels.supplies}</span><strong>食 {fleetSupply.food.toFixed(0)}/{fleetSupply.maxFood.toFixed(0)} / 水 {fleetSupply.water.toFixed(0)}/{fleetSupply.maxWater.toFixed(0)}</strong><small>満タンまで 食 {missingFoodSupply} / 水 {missingWaterSupply} / 費用 {fullResupplyCost} d</small></div>
@@ -1043,16 +1044,27 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                           const isRepairTarget = ship.instanceId === repairTargetShip?.instanceId
                           const captain = getAssignedOfficer(ship, officers)
                           return (
-                            <div key={ship.instanceId} style={compactActionRowStyle}>
-                              <div style={styles.tradeMeta}>
-                                <strong>{type?.name ?? ship.name}{ship.instanceId === activeShipId ? ` / ${uiText.town.labels.active}` : ''}{isRepairTarget ? ' / 操作対象' : ''}</strong>
+                            <div key={ship.instanceId} style={{ ...shipServiceCardStyle, ...(isRepairTarget ? styles.shipServiceCardActive : {}) }}>
+                              <ShipModelPreview modelId={type?.modelId} compact />
+                              <div style={styles.shipServiceBody}>
+                                <div style={styles.shipServiceHeader}>
+                                  <div style={styles.tradeMeta}>
+                                    <strong>{type?.name ?? ship.name}</strong>
+                                    <span style={styles.tradeSub}>{ship.instanceId === activeShipId ? uiText.town.labels.active : captain ? `船長 ${captain.name}` : '僚艦'}</span>
+                                  </div>
+                                  {isRepairTarget && <span style={styles.targetPill}>修理対象</span>}
+                                </div>
                                 <div style={styles.compactGaugeStack}>
                                   <ShipGaugeRow label="耐久" current={ship.currentDurability} max={ship.maxDurability} />
                                   <ShipGaugeRow label="船員" current={ship.currentCrew} max={ship.maxCrew} />
                                 </div>
-                                <span style={styles.tradeSub}>速力 {type?.speed ?? '-'} / 旋回 {type?.turnRate ?? '-'} / 砲門 {type?.cannonSlots ?? '-'} / 船長 {captain?.name ?? (ship.instanceId === activeShipId ? 'プレイヤー' : '未任命')}</span>
+                                <span style={styles.tradeSub}>速力 {type?.speed ?? '-'} / 旋回 {type?.turnRate ?? '-'} / 砲門 {type?.cannonSlots ?? '-'}</span>
                               </div>
-                              <button style={isRepairTarget ? styles.secondaryButton : styles.primaryButton} disabled={isRepairTarget} onClick={() => setRepairTargetShipId(ship.instanceId)}>操作対象にする</button>
+                              <div style={styles.shipServiceActions}>
+                                <button style={isRepairTarget ? styles.secondaryButton : styles.primaryButton} disabled={isRepairTarget} onClick={() => setRepairTargetShipId(ship.instanceId)}>
+                                  {isRepairTarget ? '選択中' : '修理対象に選ぶ'}
+                                </button>
+                              </div>
                             </div>
                           )
                         })}
@@ -1072,7 +1084,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                     <div>
                       <div style={styles.facilityTargetRow}>
                         <span style={styles.serviceNote}>修理対象の船</span>
-                        {renderFacilityShipSelect(repairTargetShip?.instanceId ?? fallbackShipId, setRepairTargetShipId)}
+                        {renderFacilityShipSelect(repairTargetShip?.instanceId ?? fallbackShipId, setRepairTargetShipId, '修理対象')}
                       </div>
                       <p style={styles.serviceLabel}>{uiText.town.labels.repair}</p>
                       <div style={styles.serviceGrid}>
@@ -1130,7 +1142,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
               <div style={styles.contentStack}>
                 <div style={styles.facilityTargetRow}>
                   <span style={styles.serviceNote}>市場で積荷を扱う船</span>
-                  {renderFacilityShipSelect(marketTargetShip?.instanceId ?? fallbackShipId, setMarketTargetShipId)}
+                  {renderFacilityShipSelect(marketTargetShip?.instanceId ?? fallbackShipId, setMarketTargetShipId, '積荷を扱う船')}
                 </div>
                 <div style={styles.infoGridCompact}>
                   <div style={styles.infoBlock}>
@@ -1189,8 +1201,10 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                                 </div>
                                 <input type="range" min={1} max={Math.max(1, maxBuyQuantity)} value={maxBuyQuantity > 0 ? selectedQuantity : 1} onChange={(e) => setQuantity(good.id, Number(e.target.value), maxBuyQuantity)} style={styles.quantitySlider} disabled={maxBuyQuantity <= 0} />
                               </div>
-                              <span style={styles.compactFigure}>{selectedQuote?.totalPrice ?? item.currentPrice} d</span>
-                              <span style={styles.compactFigure}>積載 {totalWeight.toFixed(1)}</span>
+                              <div style={styles.marketAmountStack}>
+                                <strong>{selectedQuote?.totalPrice ?? item.currentPrice} d</strong>
+                                <span>積載 {totalWeight.toFixed(1)}</span>
+                              </div>
                               <button style={{ ...styles.primaryButton, ...styles.tradeActionButton }} disabled={!marketTargetShip || maxBuyQuantity <= 0 || exceedsCap || exceedsCapacity} onClick={() => handleAction(buyGood(port.id, good.id, selectedQuantity, marketTargetShip?.instanceId))}>{uiText.town.labels.buyAction}</button>
                             </div>
                           </div>
@@ -1225,8 +1239,10 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                                 </div>
                                 <input type="range" min={1} max={maxSellQuantity} value={selectedQuantity} onChange={(e) => setQuantity(good.id, Number(e.target.value), maxSellQuantity)} style={styles.quantitySlider} />
                               </div>
-                              <span style={styles.compactFigure}>{selectedQuote?.totalPrice ?? 0} d</span>
-                              <span style={styles.compactFigure}>積載 {(good.weight * selectedQuantity).toFixed(1)}</span>
+                              <div style={styles.marketAmountStack}>
+                                <strong>{selectedQuote?.totalPrice ?? 0} d</strong>
+                                <span>積載 {(good.weight * selectedQuantity).toFixed(1)}</span>
+                              </div>
                               <button style={{ ...styles.secondaryButton, ...styles.tradeActionButton }} onClick={() => handleAction(sellGood(port.id, good.id, selectedQuantity, marketTargetShip?.instanceId))}>売却</button>
                             </div>
                           </div>
@@ -1241,18 +1257,17 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
             {visibleSection === 'tavern' && tavernFacility && (
               <div style={styles.contentStack}>
                 <section style={{ ...styles.panel, ...styles.featurePanel }}>
-                  <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>{uiText.town.labels.tavern}</h3><span style={styles.panelHint}>士気と雇用</span></div>
                   <div style={styles.serviceColumns}>
                     <div style={styles.featureBanner}>
                       <span style={styles.featureBadge}>{uiText.town.labels.tavern}</span>
                       <div>
                         <strong>{uiText.town.labels.tavern} Lv.{tavernLevel}</strong>
-                        <div style={styles.featureText}>操作対象: {tavernTargetShip?.name ?? '未選択'} / 新規雇用 {tavernRecruitUnitCost} d</div>
+                        <div style={styles.featureText}>対象船: {tavernTargetShip?.name ?? '未選択'} / 新規雇用 {tavernRecruitUnitCost} d</div>
                       </div>
                     </div>
                     <div style={styles.facilityTargetRow}>
-                      <span style={styles.serviceNote}>酒場で操作する船</span>
-                      {renderFacilityShipSelect(tavernTargetShip?.instanceId ?? fallbackShipId, setTavernTargetShipId)}
+                      <span style={styles.serviceNote}>酒場サービス対象の船</span>
+                      {renderFacilityShipSelect(tavernTargetShip?.instanceId ?? fallbackShipId, setTavernTargetShipId, '対象船')}
                     </div>
                     <div style={styles.tavernCrewPanel}>
                       <div style={styles.tradeMeta}>
@@ -1398,7 +1413,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                   <div style={styles.contentStack}>
                       <div style={styles.facilityTargetRow}>
                         <span style={styles.serviceNote}>艤装対象の船</span>
-                        {renderFacilityShipSelect(shipyardTargetShip?.instanceId ?? fallbackShipId, setShipyardTargetShipId)}
+                        {renderFacilityShipSelect(shipyardTargetShip?.instanceId ?? fallbackShipId, setShipyardTargetShipId, '艤装対象')}
                       </div>
                       <div style={styles.infoGridCompact}>
                         <div style={styles.infoBlock}><span style={styles.infoLabel}>選択中の船</span><strong>{selectedShipyardTargetType?.name ?? shipyardTargetShip?.name ?? '未選択'}</strong><small>艤装はこの船に適用されます。</small></div>
@@ -1586,42 +1601,42 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  container: { position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(180deg, rgba(6,15,28,0.96), rgba(17,30,50,0.98))', zIndex: 700, padding: 24 },
+  container: { position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(180deg, rgba(44, 24, 16, 0.82), rgba(20, 10, 6, 0.92)), url("${antiqueAssets.darkOakTile}")`, backgroundSize: 'auto, 560px 560px', zIndex: 700, padding: 24 },
   containerCompact: { alignItems: 'stretch', justifyContent: 'stretch', padding: 8 },
-  card: { width: 'min(1240px, 100%)', maxHeight: '100%', overflow: 'auto', padding: 24, borderRadius: 28, background: 'linear-gradient(180deg, rgba(8,18,32,0.96), rgba(11,24,42,0.98))', color: '#edf3fb', border: '1px solid rgba(128, 176, 222, 0.22)', boxShadow: '0 24px 80px rgba(0,0,0,0.35)' },
-  cardCompact: { width: '100%', maxHeight: 'calc(100vh - 16px)', padding: 12, borderRadius: 16 },
-  hero: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 18, marginBottom: 16 },
+  card: { ...antiqueStyles.woodSurface, width: 'min(1240px, 100%)', maxHeight: '100%', overflow: 'auto', padding: 24 },
+  cardCompact: { width: '100%', maxHeight: 'calc(100vh - 16px)', padding: 12 },
+  hero: { ...antiqueStyles.woodSurface, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 18, marginBottom: 16, padding: 18 },
   heroCompact: { flexDirection: 'column', gap: 10, marginBottom: 12 },
-  eyebrow: { margin: 0, color: '#7fb6f5', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.18em' },
-  title: { margin: '6px 0 0', fontSize: 36 },
+  eyebrow: { margin: 0, color: antiqueColors.brassLight, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: antiqueFonts.title },
+  title: { margin: '6px 0 0', fontSize: 36, color: antiqueColors.parchment, fontFamily: antiqueFonts.title, letterSpacing: '0.08em', textShadow: '0 1px 2px #000' },
   titleCompact: { fontSize: 28 },
-  subtitle: { margin: '8px 0 0', color: '#96b2d6' },
+  subtitle: { margin: '8px 0 0', color: antiqueColors.brassLight },
   heroActions: { display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 },
   statStrip: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 16 },
-  statCard: { padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: 4 },
-  statLabel: { color: '#89a6c9', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em' },
-  questBanner: { padding: 16, borderRadius: 18, background: 'linear-gradient(135deg, rgba(27,64,115,0.32), rgba(10,34,63,0.4))', border: '1px solid rgba(102, 167, 235, 0.2)', marginBottom: 16 },
-  bannerText: { margin: 0, color: '#d9e6f7' },
+  statCard: { ...antiqueStyles.paperCard, position: 'relative', padding: '18px 14px 12px', display: 'flex', flexDirection: 'column', gap: 5, minHeight: 72, overflow: 'hidden' },
+  statLabel: { alignSelf: 'flex-start', marginTop: -8, marginLeft: -4, padding: '2px 7px', borderRadius: 2, backgroundColor: 'rgba(139, 101, 8, 0.18)', border: '1px solid rgba(139, 101, 8, 0.3)', color: antiqueColors.ink, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 800 },
+  questBanner: { ...antiqueStyles.paperCard, padding: '14px 18px', marginBottom: 16 },
+  bannerText: { margin: 0, color: antiqueColors.inkLight },
   activeQuestTabs: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 },
-  activeQuestTab: { minHeight: 72, padding: 10, borderRadius: 10, border: '1px solid rgba(148, 163, 184, 0.18)', background: 'rgba(15, 23, 42, 0.45)', color: '#cbd5e1', textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 3 },
-  activeQuestTabSelected: { minHeight: 72, padding: 10, borderRadius: 10, border: '1px solid rgba(96, 165, 250, 0.55)', background: 'rgba(37, 99, 235, 0.22)', color: '#eff6ff', textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 3 },
-  bannerFacts: { display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8, color: '#9bb7d9', fontSize: 12 },
+  activeQuestTab: { ...antiqueStyles.paperCard, minHeight: 72, padding: '14px 16px', color: antiqueColors.inkLight, textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 3 },
+  activeQuestTabSelected: { ...antiqueStyles.paperCard, minHeight: 72, padding: '14px 16px', color: antiqueColors.ink, textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 3, borderLeft: `5px solid ${antiqueColors.brassDark}`, boxShadow: 'inset 0 0 14px rgba(90,61,43,0.12), 0 0 0 2px rgba(139,101,8,0.36)' },
+  bannerFacts: { display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8, color: antiqueColors.inkFaded, fontSize: 12 },
   bannerActions: { display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 12 },
-  notice: { position: 'sticky', top: 0, zIndex: 5, marginBottom: 16, padding: '10px 12px', borderRadius: 12, background: 'rgba(37, 99, 235, 0.16)', border: '1px solid rgba(147, 197, 253, 0.18)', color: '#dbeafe' },
-  noticeWarning: { background: 'rgba(120, 53, 15, 0.22)', border: '1px solid rgba(251, 191, 36, 0.34)', color: '#fde68a' },
+  notice: { ...antiqueStyles.paperCard, position: 'sticky', top: 0, zIndex: 5, marginBottom: 16, padding: '14px 18px', color: antiqueColors.ink },
+  noticeWarning: { background: 'rgba(120, 53, 15, 0.18)', border: '1px solid rgba(139, 101, 8, 0.34)', color: antiqueColors.sealRed },
   shell: { display: 'grid', gridTemplateColumns: '210px minmax(0, 1fr)', gap: 16 },
   shellCompact: { gridTemplateColumns: '1fr', gap: 12 },
-  sidebar: { padding: 14, borderRadius: 18, background: 'rgba(255,255,255,0.035)', display: 'flex', flexDirection: 'column', gap: 8, alignSelf: 'start', position: 'sticky', top: 0 },
-  sidebarCompact: { position: 'static', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(106px, 1fr))', gap: 6, padding: 10, borderRadius: 14 },
-  navButton: { padding: '11px 12px', textAlign: 'left', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: '#d8e5f6', cursor: 'pointer' },
-  navButtonActive: { background: 'linear-gradient(135deg, rgba(37,99,235,0.7), rgba(14,165,233,0.45))', border: '1px solid rgba(91, 178, 255, 0.35)' },
-  sidebarMeta: { marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 8, color: '#9db7d8', fontSize: 12 },
+  sidebar: { ...antiqueStyles.woodSurface, padding: 14, display: 'flex', flexDirection: 'column', gap: 8, alignSelf: 'start', position: 'sticky', top: 0 },
+  sidebarCompact: { position: 'static', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(106px, 1fr))', gap: 6, padding: 10 },
+  navButton: { padding: '11px 12px', textAlign: 'left', borderRadius: 3, border: '1px solid rgba(184,134,11,0.18)', backgroundColor: 'rgba(74, 50, 40, 0.92)', backgroundImage: 'none', color: antiqueColors.parchment, cursor: 'pointer', fontFamily: antiqueFonts.body, fontWeight: 700, appearance: 'none' },
+  navButtonActive: { ...antiqueStyles.paperCard, color: antiqueColors.ink, border: '2px solid rgba(255, 244, 204, 0.92)', boxShadow: 'inset 0 0 12px rgba(90,61,43,0.12), 0 0 0 1px rgba(139,101,8,0.6)', fontWeight: 800 },
+  sidebarMeta: { marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(184,134,11,0.34)', display: 'flex', flexDirection: 'column', gap: 8, color: antiqueColors.candle, fontSize: 12, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.7)' },
   content: { minWidth: 0 },
   contentStack: { display: 'flex', flexDirection: 'column', gap: 16 },
-  panel: { padding: 16, borderRadius: 18, background: 'rgba(255,255,255,0.04)' },
-  cityPanel: { padding: 16, borderRadius: 22, background: 'linear-gradient(180deg, rgba(22, 35, 55, 0.92), rgba(9, 20, 36, 0.96))', border: '1px solid rgba(244, 184, 96, 0.18)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)' },
+  panel: { ...antiqueStyles.ledgerPanel, padding: '18px 24px' },
+  cityPanel: { ...antiqueStyles.ledgerPanel, padding: '18px 24px' },
   cityIntro: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 12 },
-  cityBadge: { padding: '8px 10px', borderRadius: 999, background: 'rgba(180, 83, 9, 0.22)', border: '1px solid rgba(251, 191, 36, 0.24)', color: '#f8ddb3', fontSize: 11, whiteSpace: 'nowrap' },
+  cityBadge: { padding: '8px 10px', borderRadius: 3, border: '1px solid rgba(139, 101, 8, 0.34)', backgroundColor: 'rgba(241, 224, 172, 0.92)', color: antiqueColors.ink, fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap', boxShadow: 'inset 0 0 8px rgba(90,61,43,0.1)' },
   cityVista: { position: 'relative', minHeight: 430, overflow: 'hidden', borderRadius: 20, border: '1px solid rgba(255,255,255,0.1)', backgroundColor: '#d1b98b', backgroundSize: 'cover', backgroundPosition: 'center', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)' },
   cityVistaCompact: { minHeight: 300, borderRadius: 14 },
   cityEtchingVignette: { position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(circle at 50% 42%, transparent 54%, rgba(20, 12, 5, 0.32) 100%), linear-gradient(90deg, rgba(67, 40, 17, 0.18), transparent 18%, transparent 82%, rgba(67, 40, 17, 0.18))', mixBlendMode: 'multiply' },
@@ -1636,64 +1651,72 @@ const styles: Record<string, React.CSSProperties> = {
   cityTower: { position: 'absolute', width: '6%', height: '21%', background: 'linear-gradient(180deg, #f3e5c5, #9d7b50)', clipPath: 'polygon(18% 0, 82% 0, 82% 100%, 18% 100%)', boxShadow: 'inset 0 14px 0 rgba(127, 47, 31, 0.42)' },
   cityCrane: { position: 'absolute', width: '10%', height: '18%', borderLeft: '5px solid #5d3b21', borderTop: '4px solid #5d3b21', transform: 'skewX(-12deg)' },
   cityShip: { position: 'absolute', width: '11%', height: '7%', background: '#40230f', clipPath: 'polygon(0 46%, 72% 46%, 100% 22%, 86% 80%, 12% 80%)', boxShadow: '22px -36px 0 -25px #ead9bd' },
-  cityHotspot: { position: 'absolute', transform: 'translate(-50%, -50%)', display: 'flex', alignItems: 'center', gap: 8, minWidth: 126, padding: '8px 10px', borderRadius: 999, border: '1px solid rgba(255,255,255,0.24)', background: 'rgba(10, 23, 38, 0.82)', color: '#fff', backdropFilter: 'blur(8px)' },
+  cityHotspot: { position: 'absolute', transform: 'translate(-50%, -50%)', display: 'flex', alignItems: 'center', gap: 8, minWidth: 126, padding: '8px 10px', borderRadius: 3, border: `1px solid ${antiqueColors.brassDark}`, background: 'rgba(62, 39, 35, 0.86)', color: antiqueColors.parchment, backdropFilter: 'blur(8px)' },
   cityHotspotCompact: { minWidth: 0, padding: '6px 8px', gap: 5, fontSize: 11 },
-  cityHotspotIcon: { width: 26, height: 26, borderRadius: '50%', display: 'grid', placeItems: 'center', color: '#08111f', fontWeight: 800, flex: '0 0 auto' },
+  cityHotspotIcon: { width: 26, height: 26, borderRadius: '50%', display: 'grid', placeItems: 'center', color: '#fff8dc', textShadow: '0 1px 2px rgba(0,0,0,0.65)', fontWeight: 900, flex: '0 0 auto' },
   cityHotspotText: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1, lineHeight: 1.1 },
   overviewCopy: { maxWidth: 620 },
-  overviewEyebrow: { margin: 0, color: '#e6b979', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.16em' },
-  overviewTitle: { margin: '5px 0 0', fontSize: 24 },
-  overviewText: { margin: '8px 0 0', color: '#d1dceb', lineHeight: 1.7 },
+  overviewEyebrow: { margin: 0, color: antiqueColors.inkLight, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.16em', fontFamily: antiqueFonts.title, fontWeight: 800 },
+  overviewTitle: { margin: '5px 0 0', fontSize: 24, color: antiqueColors.ink, fontFamily: antiqueFonts.body },
+  overviewText: { margin: '8px 0 0', color: antiqueColors.inkLight, lineHeight: 1.7 },
   twoCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 },
   sectionTitle: { margin: 0, fontSize: 15 },
   panelHeader: { display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline', marginBottom: 10 },
-  panelHint: { color: '#8ca4c4', fontSize: 12 },
+  panelHint: { color: antiqueColors.inkLight, fontSize: 12, fontWeight: 700 },
   infoGridCompact: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 },
-  infoBlock: { display: 'flex', flexDirection: 'column', gap: 4, padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.03)' },
-  infoLabel: { color: '#8ca4c4', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em' },
+  infoBlock: { ...antiqueStyles.paperCard, display: 'flex', flexDirection: 'column', gap: 4, padding: '16px 18px' },
+  infoLabel: { color: antiqueColors.inkLight, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800 },
   progressGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10 },
-  progressCard: { display: 'grid', gap: 7, padding: 12, borderRadius: 14, background: 'rgba(15, 23, 42, 0.42)', border: '1px solid rgba(148, 163, 184, 0.14)' },
-  progressHeader: { display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', color: '#dbeafe', fontSize: 12 },
-  progressTrack: { height: 8, borderRadius: 999, background: 'rgba(148, 163, 184, 0.18)', overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, #38bdf8, #facc15)' },
-  effectGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginTop: 12, color: '#bfdbfe', fontSize: 12 },
-  selectedShipPanel: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, alignItems: 'stretch', padding: 12, borderRadius: 16, background: 'rgba(15, 23, 42, 0.42)', border: '1px solid rgba(125, 211, 252, 0.16)' },
+  progressCard: { ...antiqueStyles.paperCard, display: 'grid', gap: 7, padding: '16px 18px' },
+  progressHeader: { display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', color: antiqueColors.ink, fontSize: 12 },
+  progressTrack: { height: 8, borderRadius: 2, background: 'rgba(90, 61, 43, 0.2)', overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 2, background: `linear-gradient(90deg, ${antiqueColors.brassDark}, ${antiqueColors.brassBright})` },
+  effectGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginTop: 12, color: antiqueColors.inkLight, fontSize: 12 },
+  selectedShipPanel: { ...antiqueStyles.paperCard, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, alignItems: 'stretch', padding: '16px 18px' },
   shipModelViewport: { minHeight: 210, borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(148, 163, 184, 0.18)', background: '#071323' },
+  shipModelViewportCompact: { minHeight: 116, height: '100%', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(90, 61, 43, 0.28)', background: '#071323' },
   selectedShipInfo: { display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 12, minWidth: 0 },
   selectedShipTitleRow: { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
-  shipGaugeRow: { display: 'grid', gridTemplateColumns: '48px minmax(80px, 1fr) 58px', alignItems: 'center', gap: 8, minHeight: 22, color: '#dbeafe', fontSize: 12 },
-  shipGaugeLabel: { color: '#9fb4d0', fontSize: 11 },
-  shipGaugeTrack: { height: 8, borderRadius: 999, background: 'rgba(148, 163, 184, 0.18)', overflow: 'hidden' },
-  shipGaugeFill: { height: '100%', borderRadius: 999 },
-  shipGaugeValue: { textAlign: 'right', color: '#eef6ff', fontSize: 12, fontVariantNumeric: 'tabular-nums' },
+  shipGaugeRow: { display: 'grid', gridTemplateColumns: '48px minmax(80px, 1fr) 58px', alignItems: 'center', gap: 8, minHeight: 22, color: antiqueColors.ink, fontSize: 12 },
+  shipGaugeLabel: { color: antiqueColors.inkLight, fontSize: 11, fontWeight: 700 },
+  shipGaugeTrack: { height: 8, borderRadius: 2, background: 'rgba(90, 61, 43, 0.2)', overflow: 'hidden' },
+  shipGaugeFill: { height: '100%', borderRadius: 2 },
+  shipGaugeValue: { textAlign: 'right', color: antiqueColors.ink, fontSize: 12, fontVariantNumeric: 'tabular-nums' },
   compactGaugeStack: { display: 'grid', gap: 4, marginTop: 2, marginBottom: 2 },
-  tavernCrewPanel: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, alignItems: 'center', padding: 12, borderRadius: 14, background: 'rgba(15, 23, 42, 0.34)', border: '1px solid rgba(148, 163, 184, 0.12)' },
+  tavernCrewPanel: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, alignItems: 'center', padding: 12, borderRadius: 3, background: 'rgba(92, 60, 34, 0.08)', border: '1px solid rgba(139, 101, 8, 0.16)' },
   facilities: { display: 'flex', flexWrap: 'wrap', gap: 8 },
-  facilityChip: { padding: '6px 9px', borderRadius: 999, background: 'rgba(57, 116, 184, 0.26)', color: '#dbeafe', fontSize: 11 },
+  facilityChip: { display: 'inline-flex', alignItems: 'center', minHeight: 28, padding: '6px 9px', borderRadius: 3, border: '1px solid rgba(244,232,193,0.52)', backgroundColor: '#ead49b', backgroundImage: 'linear-gradient(180deg, rgba(250,238,198,0.95), rgba(222,194,132,0.94))', color: antiqueColors.ink, fontSize: 11, fontWeight: 900, textShadow: 'none', boxShadow: 'inset 0 0 8px rgba(90,61,43,0.12), 0 1px 0 rgba(0,0,0,0.18)' },
   list: { display: 'flex', flexDirection: 'column', gap: 10 },
   denseList: { display: 'flex', flexDirection: 'column', gap: 2 },
-  denseRow: { display: 'flex', justifyContent: 'space-between', gap: 10, padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' },
-  inlineMeta: { display: 'block', color: '#89a6c9', fontSize: 11, marginTop: 2 },
-  compactActionRow: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 12, alignItems: 'center', padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.035)' },
+  denseRow: { display: 'flex', justifyContent: 'space-between', gap: 10, padding: '8px 0', borderBottom: '1px solid rgba(139,101,8,0.14)' },
+  inlineMeta: { display: 'block', color: antiqueColors.inkFaded, fontSize: 11, marginTop: 2 },
+  compactActionRow: { ...antiqueStyles.paperCard, display: 'grid', gridTemplateColumns: '1fr', gap: 12, alignItems: 'center', padding: '16px 18px' },
   compactActionRowCompact: { gridTemplateColumns: '1fr', gap: 8, padding: 10 },
-  officerOfferCard: { display: 'grid', gridTemplateColumns: '112px minmax(0, 1fr)', gap: 14, alignItems: 'stretch', padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(148, 163, 184, 0.12)' },
+  shipServiceCard: { ...antiqueStyles.paperCard, display: 'grid', gridTemplateColumns: '170px minmax(0, 1fr) auto', gap: 14, alignItems: 'stretch', padding: '14px 16px' },
+  shipServiceCardCompact: { gridTemplateColumns: '1fr', gap: 10 },
+  shipServiceCardActive: { borderLeft: `5px solid ${antiqueColors.brassDark}`, boxShadow: 'inset 0 0 14px rgba(90,61,43,0.12), 0 0 0 2px rgba(139,101,8,0.28)' },
+  shipServiceBody: { display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8, minWidth: 0 },
+  shipServiceHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' },
+  shipServiceActions: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', minWidth: 132 },
+  targetPill: { display: 'inline-flex', alignItems: 'center', minHeight: 24, padding: '3px 8px', borderRadius: 3, backgroundColor: '#ead499', color: antiqueColors.ink, border: '1px solid rgba(139, 101, 8, 0.38)', fontSize: 11, fontWeight: 900 },
+  officerOfferCard: { ...antiqueStyles.paperCard, display: 'grid', gridTemplateColumns: '112px minmax(0, 1fr)', gap: 14, alignItems: 'stretch', padding: '16px 18px' },
   officerOfferCardCompact: { gridTemplateColumns: '1fr', gap: 10 },
   officerPortraitColumn: { display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' },
   officerPortraitFrame: { width: 96, aspectRatio: '1 / 1', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(244, 201, 130, 0.32)', background: 'linear-gradient(180deg, rgba(69, 52, 35, 0.65), rgba(20, 28, 42, 0.9))', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)' },
   officerPortraitImage: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
-  officerPortraitCaption: { color: '#9fb3cf', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' },
+  officerPortraitCaption: { color: antiqueColors.inkFaded, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' },
   officerOfferBody: { display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 },
   officerOfferHeader: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 12, alignItems: 'start' },
   officerOfferMain: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, alignItems: 'center' },
   officerRadar: { display: 'block', maxWidth: '100%' },
   officerStatList: { display: 'grid', gridTemplateColumns: '1fr', gap: 5 },
-  officerStatRow: { display: 'grid', gridTemplateColumns: '42px 1fr', alignItems: 'center', gap: 8, color: '#b8c7dc', fontSize: 12 },
-  officerCostBox: { display: 'flex', flexDirection: 'column', gap: 5, color: '#dbeafe', fontSize: 12, padding: 10, borderRadius: 12, background: 'rgba(15, 23, 42, 0.34)', border: '1px solid rgba(148, 163, 184, 0.12)' },
-  assignedOfficerSummary: { display: 'grid', gridTemplateColumns: '104px minmax(0, 1fr)', gap: 10, alignItems: 'center', minWidth: 0 },
-  roleSlotGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10 },
-  roleSlotCard: { display: 'grid', gap: 8, padding: 12, borderRadius: 14, background: 'rgba(15, 23, 42, 0.38)', border: '1px solid rgba(125, 211, 252, 0.14)' },
-  roleSlotHeader: { display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', color: '#dbeafe', fontSize: 12 },
-  roleSelect: { width: '100%', padding: '9px 10px', borderRadius: 10, border: '1px solid rgba(147, 197, 253, 0.34)', background: '#10233d', color: '#edf3fb' },
+  officerStatRow: { display: 'grid', gridTemplateColumns: '42px 1fr', alignItems: 'center', gap: 8, color: antiqueColors.inkLight, fontSize: 12 },
+  officerCostBox: { ...antiqueStyles.paperCard, display: 'flex', flexDirection: 'column', gap: 5, fontSize: 12, padding: 10, borderLeft: `4px solid ${antiqueColors.brassDark}` },
+  assignedOfficerSummary: { display: 'grid', gridTemplateColumns: '104px minmax(320px, 1fr)', gap: 14, alignItems: 'center', minWidth: 0 },
+  roleSlotGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 10 },
+  roleSlotCard: { ...antiqueStyles.paperCard, display: 'grid', gap: 8, padding: '16px 18px' },
+  roleSlotHeader: { display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', color: antiqueColors.ink, fontSize: 12 },
+  roleSelect: { width: '100%', padding: '9px 10px', borderRadius: 3, border: '1px solid rgba(139, 101, 8, 0.34)', background: antiqueColors.parchment, color: antiqueColors.ink },
   dialogueOverlay: { position: 'fixed', inset: 0, zIndex: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px min(5vw, 56px)', background: 'rgba(2, 6, 23, 0.58)', backdropFilter: 'blur(2px)', cursor: 'pointer' },
   dialogueStage: { width: 'min(940px, 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '18px 18px 14px', borderRadius: 20, background: 'linear-gradient(180deg, rgba(4, 12, 24, 0.42), rgba(7, 16, 31, 0.28))', border: '1px solid rgba(191, 219, 254, 0.16)', boxShadow: '0 28px 90px rgba(0,0,0,0.48)' },
   dialogueStack: { width: 'min(920px, 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 },
@@ -1704,59 +1727,60 @@ const styles: Record<string, React.CSSProperties> = {
   dialogueAdvanceHint: { color: '#b7c9e3', fontSize: 12, letterSpacing: '0.08em' },
   tradeGoodSummary: { display: 'flex', alignItems: 'flex-start', gap: 10, minWidth: 0 },
   tradeMeta: { display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 },
-  tradeGoodName: { color: '#f8fbff', lineHeight: 1.25, wordBreak: 'keep-all', overflowWrap: 'normal' },
-  tradeSub: { color: '#93a8c4', fontSize: 12 },
-  marketQuoteLine: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 7, color: '#93a8c4', fontSize: 12 },
-  marketTrendBadge: { display: 'inline-flex', alignItems: 'center', gap: 4, minHeight: 22, padding: '2px 7px', borderRadius: 7, border: '1px solid', fontWeight: 700, lineHeight: 1.2 },
+  tradeGoodName: { color: antiqueColors.ink, lineHeight: 1.25, wordBreak: 'keep-all', overflowWrap: 'normal' },
+  tradeSub: { color: '#4d3426', fontSize: 12 },
+  marketQuoteLine: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 7, color: '#4d3426', fontSize: 12 },
+  marketTrendBadge: { display: 'inline-flex', alignItems: 'center', gap: 4, minHeight: 22, padding: '2px 7px', borderRadius: 3, border: '1px solid', fontWeight: 700, lineHeight: 1.2 },
   marketTrendIcon: { display: 'inline-grid', placeItems: 'center', width: 14, height: 14, borderRadius: 4, background: 'rgba(255,255,255,0.12)', fontSize: 11, lineHeight: 1 },
   questTitleRow: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
-  questCategoryBadge: { padding: '3px 8px', borderRadius: 999, background: 'rgba(245, 158, 11, 0.2)', border: '1px solid rgba(245, 158, 11, 0.35)', color: '#fde68a', fontSize: 11, lineHeight: 1.3 },
+  questCategoryBadge: { padding: '3px 8px', borderRadius: 3, background: 'rgba(139, 101, 8, 0.18)', border: '1px solid rgba(139, 101, 8, 0.35)', color: antiqueColors.ink, fontSize: 11, fontWeight: 800, lineHeight: 1.3 },
   discoveryGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10 },
-  discoveryCard: { display: 'grid', gridTemplateColumns: '54px minmax(0, 1fr)', gap: 10, alignItems: 'start', padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(244, 201, 130, 0.14)' },
+  discoveryCard: { ...antiqueStyles.paperCard, display: 'grid', gridTemplateColumns: '54px minmax(0, 1fr)', gap: 10, alignItems: 'start', padding: '16px 18px' },
   discoveryMeta: { display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 },
-  discoveryCategoryBadge: { padding: '3px 8px', borderRadius: 999, background: 'rgba(56, 189, 248, 0.16)', border: '1px solid rgba(125, 211, 252, 0.28)', color: '#bae6fd', fontSize: 11, lineHeight: 1.3 },
-  marketRowDense: { display: 'grid', gridTemplateColumns: '1fr', gap: 12, alignItems: 'stretch', padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.035)' },
-  tradeControlsDense: { display: 'grid', gridTemplateColumns: 'minmax(150px, 1fr) 70px 78px 64px', alignItems: 'center', gap: 10, minWidth: 0 },
+  discoveryCategoryBadge: { padding: '3px 8px', borderRadius: 3, background: 'rgba(35, 92, 87, 0.14)', border: '1px solid rgba(35, 92, 87, 0.28)', color: '#235c57', fontSize: 11, lineHeight: 1.3 },
+  marketRowDense: { ...antiqueStyles.paperCard, display: 'grid', gridTemplateColumns: '1fr', gap: 12, alignItems: 'stretch', padding: '14px 16px' },
+  tradeControlsDense: { display: 'grid', gridTemplateColumns: 'minmax(150px, 1fr) minmax(78px, auto) minmax(64px, auto)', alignItems: 'center', gap: 10, minWidth: 0 },
   quantitySliderGroup: { display: 'grid', gap: 5, minWidth: 0 },
-  quantitySliderHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, color: '#dbeafe', fontSize: 12 },
-  quantitySlider: { width: '100%', accentColor: '#38bdf8' },
-  miniButton: { minWidth: 48, padding: '5px 8px', borderRadius: 7, border: '1px solid rgba(125, 211, 252, 0.32)', background: 'rgba(14, 165, 233, 0.12)', color: '#bae6fd', cursor: 'pointer', fontWeight: 700, fontSize: 11 },
-  compactFigure: { minWidth: 0, textAlign: 'right', color: '#eef4ff', fontSize: 12 },
-  tradeActionButton: { minWidth: 64, padding: '10px 12px', whiteSpace: 'nowrap' },
-  emptyState: { color: '#7b8fab', fontSize: 13, padding: '14px 4px' },
+  quantitySliderHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, color: antiqueColors.ink, fontSize: 12 },
+  quantitySlider: { width: '100%', accentColor: antiqueColors.brass },
+  miniButton: { minWidth: 48, padding: '5px 8px', borderRadius: 3, border: '1px solid rgba(139, 101, 8, 0.48)', backgroundColor: '#ead499', backgroundImage: 'linear-gradient(180deg, rgba(250,238,198,0.72), rgba(211,166,66,0.42))', color: antiqueColors.ink, cursor: 'pointer', fontWeight: 900, fontSize: 11, appearance: 'none' },
+  compactFigure: { minWidth: 0, textAlign: 'right', color: antiqueColors.ink, fontSize: 12, fontWeight: 700, fontVariantNumeric: 'tabular-nums' },
+  marketAmountStack: { display: 'grid', gap: 2, minWidth: 72, textAlign: 'right', color: antiqueColors.ink, fontSize: 12, fontVariantNumeric: 'tabular-nums' },
+  tradeActionButton: { minWidth: 64, padding: '10px 12px', whiteSpace: 'nowrap', justifySelf: 'end' },
+  emptyState: { display: 'inline-block', color: antiqueColors.inkLight, backgroundColor: 'rgba(241, 224, 172, 0.86)', border: '1px solid rgba(90,61,43,0.24)', borderRadius: 3, fontSize: 13, padding: '10px 12px', fontWeight: 700, textShadow: 'none' },
   serviceGrid: { display: 'flex', flexWrap: 'wrap', gap: 10 },
   inlineButtonGroup: { display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end' },
   serviceColumns: { display: 'grid', gridTemplateColumns: '1fr', gap: 16 },
-  facilityTargetRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: 12, borderRadius: 14, border: '1px solid rgba(96, 165, 250, 0.24)', background: 'rgba(37, 99, 235, 0.08)' },
-  commandTargetLabel: { display: 'flex', alignItems: 'center', gap: 8, color: '#b7c9e3', fontSize: 12 },
-  commandTargetSelect: { minWidth: 220, padding: '9px 10px', borderRadius: 10, border: '1px solid rgba(147, 197, 253, 0.45)', background: '#10233d', color: '#edf3fb' },
+  facilityTargetRow: { ...antiqueStyles.paperCard, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: 14 },
+  commandTargetLabel: { display: 'flex', alignItems: 'center', gap: 8, color: antiqueColors.inkLight, fontSize: 12 },
+  commandTargetSelect: { minWidth: 220, padding: '9px 10px', borderRadius: 3, border: '1px solid rgba(139, 101, 8, 0.45)', background: antiqueColors.parchment, color: antiqueColors.ink },
   fleetDockGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 },
-  fleetDockCard: { padding: 10, borderRadius: 12, border: '1px solid rgba(148, 163, 184, 0.22)', background: 'rgba(255,255,255,0.035)', color: '#e8f1ff', cursor: 'pointer', textAlign: 'left' },
-  fleetDockCardActive: { border: '1px solid rgba(96, 165, 250, 0.72)', background: 'rgba(37, 99, 235, 0.18)' },
-  fleetDockEmpty: { padding: 10, borderRadius: 12, border: '1px dashed rgba(148, 163, 184, 0.18)', color: '#71839d' },
+  fleetDockCard: { ...antiqueStyles.paperCard, padding: 10, cursor: 'pointer', textAlign: 'left' },
+  fleetDockCardActive: { borderLeft: `5px solid ${antiqueColors.brassDark}`, boxShadow: 'inset 0 0 14px rgba(90,61,43,0.12), 0 0 0 2px rgba(139,101,8,0.32)' },
+  fleetDockEmpty: { padding: 10, borderRadius: 3, border: '1px dashed rgba(139, 101, 8, 0.28)', color: antiqueColors.inkFaded },
   fleetDockHeader: { display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 8, fontSize: 12 },
-  fleetDockStat: { display: 'grid', gridTemplateColumns: '78px 1fr', alignItems: 'center', gap: 8, color: '#a9bad2', fontSize: 11, marginTop: 5 },
-  fleetDockMeter: { height: 6, borderRadius: 999, background: 'rgba(148, 163, 184, 0.18)', overflow: 'hidden' },
-  fleetDockMeterFill: { height: '100%', borderRadius: 999, background: '#60a5fa' },
+  fleetDockStat: { display: 'grid', gridTemplateColumns: '78px 1fr', alignItems: 'center', gap: 8, color: antiqueColors.inkLight, fontSize: 11, marginTop: 5 },
+  fleetDockMeter: { height: 6, borderRadius: 2, background: 'rgba(90, 61, 43, 0.2)', overflow: 'hidden' },
+  fleetDockMeterFill: { height: '100%', borderRadius: 2, background: antiqueColors.brassDark },
   departRow: { display: 'flex', justifyContent: 'flex-end', paddingTop: 4 },
-  featurePanel: { border: '1px solid rgba(112, 170, 228, 0.16)', background: 'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.035))' },
-  featureBanner: { display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 14, background: 'linear-gradient(135deg, rgba(29,78,216,0.18), rgba(14,165,233,0.10))', border: '1px solid rgba(112, 170, 228, 0.16)' },
-  featureBadge: { padding: '6px 10px', borderRadius: 999, background: 'rgba(37, 99, 235, 0.7)', color: '#fff', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' },
-  featureBadgeMuted: { padding: '6px 10px', borderRadius: 999, background: 'rgba(148, 163, 184, 0.25)', color: '#d8e5f6', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' },
-  featureText: { color: '#9cc0e6', fontSize: 12, marginTop: 3 },
-  serviceLabel: { margin: '0 0 8px', color: '#9db7d8', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em' },
-  serviceNote: { color: '#8ca4c4', fontSize: 12 },
-  leaveButton: { padding: '11px 15px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.08)', color: '#fff', cursor: 'pointer' },
-  primaryButton: { padding: '11px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #2563eb, #0ea5e9)', color: '#fff', cursor: 'pointer' },
-  secondaryButton: { padding: '11px 16px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.05)', color: '#fff', cursor: 'pointer' },
-  disabledButton: { background: 'rgba(71, 85, 105, 0.34)', border: '1px solid rgba(148, 163, 184, 0.2)', color: '#94a3b8', cursor: 'not-allowed', boxShadow: 'none', opacity: 0.72 },
-  outfitPanel: { marginTop: 12, padding: 14, borderRadius: 16, border: '1px solid rgba(148, 163, 184, 0.25)', background: 'rgba(15, 23, 42, 0.8)' },
-  outfitHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, color: '#cfd8ff', fontSize: 13 },
-  outfitSummary: { display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 10, color: '#9fb2d0', fontSize: 12 },
+  featurePanel: { border: '1px solid rgba(139, 101, 8, 0.18)' },
+  featureBanner: { ...antiqueStyles.paperCard, display: 'flex', alignItems: 'center', gap: 12, padding: 14 },
+  featureBadge: { padding: '6px 10px', borderRadius: 3, backgroundColor: '#5f4306', backgroundImage: 'linear-gradient(180deg, rgba(139,101,8,0.9), rgba(72,48,4,0.96))', color: '#fff8dc', fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', textShadow: '0 1px 1px rgba(0,0,0,0.55)' },
+  featureBadgeMuted: { padding: '6px 10px', borderRadius: 3, background: 'rgba(90, 61, 43, 0.24)', color: antiqueColors.inkLight, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' },
+  featureText: { color: antiqueColors.inkFaded, fontSize: 12, marginTop: 3 },
+  serviceLabel: { display: 'inline-flex', margin: '0 0 8px', padding: '3px 7px', borderRadius: 3, border: '1px solid rgba(90,61,43,0.24)', backgroundColor: 'rgba(241, 224, 172, 0.86)', color: antiqueColors.ink, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, textShadow: 'none' },
+  serviceNote: { color: antiqueColors.inkLight, fontSize: 12, fontWeight: 700, textShadow: 'none' },
+  leaveButton: { ...antiqueStyles.woodButton, padding: '11px 15px' },
+  primaryButton: { ...antiqueStyles.brassFlatButton, padding: '11px 16px' },
+  secondaryButton: { ...antiqueStyles.woodButton, padding: '11px 16px' },
+  disabledButton: { background: 'rgba(90, 61, 43, 0.18)', border: '1px solid rgba(139, 101, 8, 0.18)', color: antiqueColors.inkFaded, cursor: 'not-allowed', boxShadow: 'none', opacity: 0.72 },
+  outfitPanel: { ...antiqueStyles.ledgerPanel, marginTop: 12, padding: '18px 24px' },
+  outfitHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, color: antiqueColors.ink, fontSize: 13 },
+  outfitSummary: { display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 10, color: antiqueColors.inkLight, fontSize: 12 },
   outfitGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 },
-  outfitCard: { padding: 10, borderRadius: 12, border: '1px solid rgba(148, 163, 184, 0.35)', background: 'rgba(255,255,255,0.02)', display: 'flex', flexDirection: 'column', gap: 6 },
-  outfitNote: { fontSize: 11, color: '#8aa0c4' },
-  outfitMeta: { fontSize: 12, color: '#dbeafe' },
+  outfitCard: { ...antiqueStyles.paperCard, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 6 },
+  outfitNote: { fontSize: 11, color: antiqueColors.inkFaded },
+  outfitMeta: { fontSize: 12, color: antiqueColors.ink },
 }
 
 

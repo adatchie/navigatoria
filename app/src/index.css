@@ -11,7 +11,7 @@ body,
   height: 100%;
   overflow: hidden;
   background: #000;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
 }
 
 /* leva panel styling overrides */

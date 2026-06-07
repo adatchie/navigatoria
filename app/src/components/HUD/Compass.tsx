@@ -4,6 +4,7 @@
 
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { uiText } from '@/i18n/uiText.ts'
+import { antiqueColors, antiqueFonts, antiqueStyles } from '@/ui/antiqueTheme.ts'
 
 const SIZE = 80
 const CENTER = SIZE / 2
@@ -32,8 +33,8 @@ export function Compass() {
     <div style={styles.container}>
       <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
         {/* 外枠円 */}
-        <circle cx={CENTER} cy={CENTER} r={RADIUS + 4} fill="none" stroke="rgba(120, 172, 219, 0.2)" strokeWidth={1} />
-        <circle cx={CENTER} cy={CENTER} r={RADIUS} fill="rgba(8, 28, 58, 0.6)" stroke="rgba(120, 172, 219, 0.3)" strokeWidth={0.8} />
+        <circle cx={CENTER} cy={CENTER} r={RADIUS + 4} fill="none" stroke="rgba(201,151,92,0.55)" strokeWidth={1.2} />
+        <circle cx={CENTER} cy={CENTER} r={RADIUS} fill="rgba(13,17,23,0.74)" stroke="rgba(201,151,92,0.38)" strokeWidth={0.8} />
 
         {/* 回転グループ (ヘディングに合わせて回転) */}
         <g transform={`rotate(${-heading}, ${CENTER}, ${CENTER})`}>
@@ -50,7 +51,7 @@ export function Compass() {
                 y1={CENTER - Math.cos(rad) * innerR}
                 x2={CENTER + Math.sin(rad) * (RADIUS - 1)}
                 y2={CENTER - Math.cos(rad) * (RADIUS - 1)}
-                stroke={isMajor ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)'}
+                stroke={isMajor ? 'rgba(245,222,179,0.78)' : 'rgba(201,151,92,0.28)'}
                 strokeWidth={isMajor ? 1.2 : 0.6}
               />
             )
@@ -66,7 +67,7 @@ export function Compass() {
                 x={CENTER + Math.sin(rad) * labelR}
                 y={CENTER - Math.cos(rad) * labelR + 3}
                 textAnchor="middle"
-                fill={label === uiText.compass.cardinals.N ? '#f87171' : 'rgba(200, 230, 255, 0.7)'}
+                fill={label === uiText.compass.cardinals.N ? antiqueColors.brassBright : 'rgba(245, 222, 179, 0.72)'}
                 fontSize={label === uiText.compass.cardinals.N ? 9 : 7}
                 fontWeight={label === uiText.compass.cardinals.N ? 700 : 400}
               >
@@ -82,13 +83,13 @@ export function Compass() {
               y1={CENTER + RADIUS * 0.55}
               x2={CENTER}
               y2={CENTER - RADIUS * 0.55}
-              stroke="rgba(96, 165, 250, 0.5)"
+              stroke="rgba(201,151,92,0.45)"
               strokeWidth={1.5}
               strokeDasharray="3 2"
             />
             <polygon
               points={`${CENTER},${CENTER - RADIUS * 0.55} ${CENTER - 3},${CENTER - RADIUS * 0.35} ${CENTER + 3},${CENTER - RADIUS * 0.35}`}
-              fill="rgba(96, 165, 250, 0.6)"
+              fill="rgba(201,151,92,0.62)"
             />
           </g>
         </g>
@@ -96,11 +97,11 @@ export function Compass() {
         {/* 船首マーカー (固定、上向き) */}
         <polygon
           points={`${CENTER},${CENTER - RADIUS - 2} ${CENTER - 4},${CENTER - RADIUS + 5} ${CENTER + 4},${CENTER - RADIUS + 5}`}
-          fill="#f87171"
+          fill={antiqueColors.brassBright}
         />
 
         {/* 中心の点 */}
-        <circle cx={CENTER} cy={CENTER} r={2} fill="rgba(255,255,255,0.6)" />
+        <circle cx={CENTER} cy={CENTER} r={2} fill={antiqueColors.candle} />
       </svg>
 
       {/* ヘディング表示 */}
@@ -125,21 +126,24 @@ function getHeadingLabel(heading: number): string {
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
+    ...antiqueStyles.oceanPanel,
     position: 'fixed',
     bottom: 'calc(16px + 132px * var(--navigatoria-ui-scale, 1))',
     right: 'calc(16px * var(--navigatoria-ui-scale, 1))',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
+    padding: 8,
     zIndex: 120,
     transform: 'scale(var(--navigatoria-ui-scale, 1))',
     transformOrigin: 'bottom right',
   },
   headingText: {
     marginTop: 2,
-    color: '#b8c9de',
+    color: antiqueColors.brassBright,
     fontSize: 10,
     letterSpacing: 0.5,
     textAlign: 'center',
+    fontFamily: antiqueFonts.title,
   },
 }

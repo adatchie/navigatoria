@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Compass Rose — antique brass style -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#2c1810" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#1a0f0a" stop-opacity="0.8"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- Outer ring -->
+  <circle cx="100" cy="100" r="95" fill="none" stroke="#b8860b" stroke-width="2"/>
+  <circle cx="100" cy="100" r="90" fill="none" stroke="#8b6508" stroke-width="0.5"/>
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#b8860b" stroke-width="0.3" stroke-dasharray="2,4"/>
+  
+  <!-- Degree marks -->
+  <g stroke="#b8860b" stroke-width="0.5" opacity="0.4">
+    <line x1="100" y1="5" x2="100" y2="12"/>
+    <line x1="100" y1="188" x2="100" y2="195"/>
+    <line x1="5" y1="100" x2="12" y2="100"/>
+    <line x1="188" y1="100" x2="195" y2="100"/>
+  </g>
+  
+  <!-- Main cardinal points (large triangles) -->
+  <g fill="#b8860b" opacity="0.9">
+    <!-- N -->
+    <polygon points="100,10 94,55 100,48 106,55"/>
+    <!-- S -->
+    <polygon points="100,190 94,145 100,152 106,145"/>
+    <!-- E -->
+    <polygon points="190,100 145,94 152,100 145,106"/>
+    <!-- W -->
+    <polygon points="10,100 55,94 48,100 55,106"/>
+  </g>
+  
+  <!-- Intercardinal points (smaller diamonds) -->
+  <g fill="#8b6508" opacity="0.6">
+    <!-- NE -->
+    <polygon points="100,10" transform="rotate(45 100 100)"/>
+    <polygon points="100,20 96,50 100,44 104,50"/>
+    <!-- SE -->
+    <polygon points="100,20 96,50 100,44 104,50" transform="rotate(135 100 100)"/>
+    <!-- SW -->
+    <polygon points="100,20 96,50 100,44 104,50" transform="rotate(225 100 100)"/>
+    <!-- NW -->
+    <polygon points="100,20 96,50 100,44 104,50" transform="rotate(315 100 100)"/>
+  </g>
+  
+  <!-- Inner decorative ring -->
+  <circle cx="100" cy="100" r="55" fill="none" stroke="#b8860b" stroke-width="0.5" opacity="0.3"/>
+  <circle cx="100" cy="100" r="40" fill="none" stroke="#8b6508" stroke-width="0.3" opacity="0.2"/>
+  
+  <!-- Center ornament -->
+  <circle cx="100" cy="100" r="6" fill="#b8860b" opacity="0.5"/>
+  <circle cx="100" cy="100" r="3" fill="#d4a843" opacity="0.7"/>
+  <circle cx="100" cy="100" r="1.5" fill="#f4e8c1" opacity="0.5"/>
+  
+  <!-- Cardinal labels -->
+  <text x="100" y="30" text-anchor="middle" fill="#d4a843" font-family="serif" font-size="14" font-weight="bold">N</text>
+  <text x="100" y="180" text-anchor="middle" fill="#8b6508" font-family="serif" font-size="11">S</text>
+  <text x="175" y="104" text-anchor="middle" fill="#8b6508" font-family="serif" font-size="11">E</text>
+  <text x="25" y="104" text-anchor="middle" fill="#8b6508" font-family="serif" font-size="11">W</text>
+</svg>

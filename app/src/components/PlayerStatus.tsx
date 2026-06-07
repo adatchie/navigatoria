@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { EXPERIENCE_TRACKS, getTrackLevel, getTrackProgress } from '@/game/player/progression.ts'
+import { antiqueAssets, antiqueColors, antiqueFonts, antiqueStyles } from '@/ui/antiqueTheme.ts'
 import type { ProfessionType } from '@/types/character.ts'
 
 const PROFESSION_LABELS: Record<ProfessionType, string> = {
@@ -74,6 +75,7 @@ export function PlayerStatusModal({ onClose }: PlayerStatusModalProps) {
   return (
     <div style={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="プレイヤー情報">
       <div style={styles.modal}>
+        <img src={antiqueAssets.waxSeal} alt="" aria-hidden="true" style={styles.modalSeal} />
         <div style={styles.modalHeader}>
           <div>
             <span style={styles.eyebrow}>Player status</span>
@@ -168,14 +170,17 @@ const styles: Record<string, CSSProperties> = {
     gap: 7,
     padding: '0 10px 0 5px',
     borderRadius: 8,
-    border: '1px solid rgba(191, 219, 254, 0.36)',
-    background: 'rgba(8, 18, 34, 0.88)',
-    color: '#e8edf7',
-    boxShadow: '0 10px 28px rgba(0,0,0,0.28)',
+    border: `1px solid ${antiqueColors.brassDark}`,
+    backgroundColor: antiqueColors.wood,
+    backgroundImage: `linear-gradient(180deg, rgba(93, 64, 55, 0.96), rgba(62, 39, 35, 0.96)), url("${antiqueAssets.darkOakTile}")`,
+    backgroundSize: 'auto, 280px 280px',
+    color: '#fff8dc',
+    boxShadow: '0 10px 28px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.14)',
     backdropFilter: 'blur(10px)',
     cursor: 'pointer',
     fontSize: 12,
     fontWeight: 800,
+    fontFamily: antiqueFonts.body,
     transform: 'scale(var(--navigatoria-ui-scale, 1))',
     transformOrigin: 'top right',
   },
@@ -185,8 +190,10 @@ const styles: Record<string, CSSProperties> = {
     display: 'grid',
     placeItems: 'center',
     borderRadius: '50%',
-    background: 'rgba(96, 165, 250, 0.22)',
-    color: '#bfdbfe',
+    backgroundColor: antiqueColors.brassDark,
+    backgroundImage: `linear-gradient(180deg, ${antiqueColors.brassLight}, ${antiqueColors.brassDark})`,
+    color: '#fff8dc',
+    textShadow: '0 1px 2px rgba(0,0,0,0.65)',
     fontSize: 11,
   },
   buttonText: {
@@ -201,20 +208,27 @@ const styles: Record<string, CSSProperties> = {
     display: 'grid',
     placeItems: 'center',
     padding: 18,
-    background: 'rgba(2, 6, 23, 0.54)',
+    background: 'rgba(20, 10, 6, 0.54)',
     backdropFilter: 'blur(2px)',
-    color: '#e8edf7',
+    color: antiqueColors.ink,
   },
   modal: {
+    ...antiqueStyles.parchmentSurface,
+    position: 'relative',
     width: 'min(760px, calc(100vw - 28px))',
     maxHeight: 'min(720px, calc(100vh - 32px))',
     overflow: 'auto',
-    padding: 16,
-    borderRadius: 14,
-    background: 'rgba(9, 18, 34, 0.97)',
-    border: '1px solid rgba(191, 219, 254, 0.24)',
-    boxShadow: '0 28px 90px rgba(0, 0, 0, 0.48)',
-    fontFamily: 'system-ui, sans-serif',
+    padding: 18,
+  },
+  modalSeal: {
+    position: 'absolute',
+    top: 18,
+    right: 84,
+    width: 62,
+    height: 62,
+    opacity: 0.38,
+    transform: 'rotate(8deg)',
+    pointerEvents: 'none',
   },
   modalHeader: {
     display: 'flex',
@@ -226,27 +240,25 @@ const styles: Record<string, CSSProperties> = {
   eyebrow: {
     display: 'block',
     marginBottom: 4,
-    color: '#93c5fd',
+    color: antiqueColors.brassDark,
     fontSize: 10,
     textTransform: 'uppercase',
     letterSpacing: '0.12em',
+    fontFamily: antiqueFonts.title,
   },
   title: {
     margin: 0,
     fontSize: 28,
     lineHeight: 1.15,
-    letterSpacing: 0,
+    letterSpacing: '0.06em',
+    color: antiqueColors.ink,
+    fontFamily: antiqueFonts.body,
   },
   closeButton: {
+    ...antiqueStyles.woodButton,
     minWidth: 64,
     minHeight: 34,
     padding: '7px 10px',
-    borderRadius: 8,
-    border: '1px solid rgba(148, 163, 184, 0.32)',
-    background: 'rgba(15, 23, 42, 0.72)',
-    color: '#dbeafe',
-    cursor: 'pointer',
-    fontWeight: 700,
   },
   summaryGrid: {
     display: 'grid',
@@ -262,19 +274,19 @@ const styles: Record<string, CSSProperties> = {
   infoCell: {
     minHeight: 58,
     padding: '9px 10px',
-    borderRadius: 8,
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(148, 163, 184, 0.12)',
+    borderRadius: 3,
+    background: 'rgba(255, 255, 255, 0.22)',
+    border: '1px solid rgba(139, 101, 8, 0.24)',
     display: 'grid',
     gap: 4,
     alignContent: 'center',
   },
   infoLabel: {
-    color: '#93a4bb',
+    color: antiqueColors.inkFaded,
     fontSize: 10,
   },
   infoValue: {
-    color: '#f8fafc',
+    color: antiqueColors.ink,
     fontSize: 16,
     lineHeight: 1.15,
     overflowWrap: 'anywhere',
@@ -284,9 +296,10 @@ const styles: Record<string, CSSProperties> = {
   },
   sectionTitle: {
     margin: '0 0 8px',
-    color: '#bfdbfe',
+    color: antiqueColors.brassDark,
     fontSize: 14,
-    letterSpacing: 0,
+    letterSpacing: '0.08em',
+    fontFamily: antiqueFonts.body,
   },
   trackList: {
     display: 'grid',
@@ -294,9 +307,9 @@ const styles: Record<string, CSSProperties> = {
   },
   trackRow: {
     padding: 10,
-    borderRadius: 8,
-    background: 'rgba(15, 23, 42, 0.72)',
-    border: '1px solid rgba(148, 163, 184, 0.14)',
+    borderRadius: 3,
+    background: 'rgba(92, 60, 34, 0.1)',
+    border: '1px solid rgba(139, 101, 8, 0.22)',
   },
   trackHeader: {
     display: 'grid',
@@ -306,24 +319,24 @@ const styles: Record<string, CSSProperties> = {
     marginBottom: 7,
   },
   trackLabel: {
-    color: '#cbd5e1',
+    color: antiqueColors.ink,
     fontWeight: 800,
   },
   expText: {
-    color: '#93a4bb',
+    color: antiqueColors.inkFaded,
     textAlign: 'right',
     fontSize: 12,
   },
   expTrack: {
     height: 7,
-    borderRadius: 999,
-    background: 'rgba(148, 163, 184, 0.18)',
+    borderRadius: 2,
+    background: 'rgba(90, 61, 43, 0.2)',
     overflow: 'hidden',
   },
   expFill: {
     height: '100%',
-    borderRadius: 999,
-    background: 'linear-gradient(90deg, #38bdf8, #facc15)',
+    borderRadius: 2,
+    background: `linear-gradient(90deg, ${antiqueColors.brassDark}, ${antiqueColors.brassBright})`,
   },
   skillList: {
     display: 'flex',
@@ -336,16 +349,16 @@ const styles: Record<string, CSSProperties> = {
     gap: 7,
     minHeight: 30,
     padding: '5px 8px',
-    borderRadius: 999,
-    background: 'rgba(30, 64, 175, 0.24)',
-    border: '1px solid rgba(147, 197, 253, 0.22)',
-    color: '#dbeafe',
+    borderRadius: 3,
+    background: 'rgba(184, 134, 11, 0.12)',
+    border: '1px solid rgba(139, 101, 8, 0.28)',
+    color: antiqueColors.ink,
     fontSize: 12,
   },
   emptyState: {
     padding: 12,
-    borderRadius: 8,
-    background: 'rgba(255,255,255,0.035)',
-    color: '#93a4bb',
+    borderRadius: 3,
+    background: 'rgba(92, 60, 34, 0.08)',
+    color: antiqueColors.inkFaded,
   },
 }

@@ -7,6 +7,7 @@
 import { useCallback } from 'react'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { uiText } from '@/i18n/uiText.ts'
+import { antiqueColors, antiqueFonts, antiqueStyles } from '@/ui/antiqueTheme.ts'
 
 // 帆の段階（ボタン操作用）
 const SAIL_STEPS = [0, 0.25, 0.5, 0.75, 1.0]
@@ -82,15 +83,12 @@ export function SailControl() {
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
+    ...antiqueStyles.oceanPanel,
     position: 'fixed',
     bottom: 'calc(18px * var(--navigatoria-ui-scale, 1))',
     left: 'var(--navigatoria-sail-left, calc(12px + 364px * var(--navigatoria-ui-scale, 1)))',
     width: 160,
     padding: '10px 12px',
-    borderRadius: 12,
-    background: 'rgba(12, 19, 34, 0.82)',
-    border: '1px solid rgba(120, 172, 219, 0.24)',
-    backdropFilter: 'blur(10px)',
     zIndex: 120,
     pointerEvents: 'auto' as const,
     transform: 'scale(var(--navigatoria-ui-scale, 1))',
@@ -103,16 +101,17 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 6,
   },
   label: {
-    color: '#8fb1d8',
+    color: antiqueColors.brass,
     fontSize: 10,
     textTransform: 'uppercase',
     letterSpacing: 1,
     fontWeight: 600,
   },
   value: {
-    color: '#e8edf7',
+    color: antiqueColors.candle,
     fontSize: 16,
     fontWeight: 700,
+    fontFamily: antiqueFonts.title,
   },
   slider: {
     width: '100%',
@@ -120,7 +119,7 @@ const styles: Record<string, React.CSSProperties> = {
     appearance: 'auto',
     cursor: 'pointer',
     marginBottom: 8,
-    accentColor: '#60a5fa',
+    accentColor: antiqueColors.brass,
   },
   buttons: {
     display: 'flex',
@@ -132,38 +131,38 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '4px 2px',
     fontSize: 9,
     fontWeight: 500,
-    border: '1px solid rgba(120, 172, 219, 0.2)',
-    borderRadius: 6,
-    background: 'rgba(255, 255, 255, 0.04)',
-    color: '#b8c9de',
+    border: '1px solid rgba(201, 151, 92, 0.22)',
+    borderRadius: 2,
+    background: 'rgba(255, 255, 255, 0.035)',
+    color: antiqueColors.candle,
     cursor: 'pointer',
   },
   buttonActive: {
-    background: 'rgba(96, 165, 250, 0.3)',
-    borderColor: 'rgba(96, 165, 250, 0.5)',
-    color: '#ffffff',
+    background: 'rgba(184, 134, 11, 0.24)',
+    borderColor: antiqueColors.brass,
+    color: antiqueColors.brassBright,
   },
   speedRow: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: 6,
-    borderTop: '1px solid rgba(255,255,255,0.08)',
+    borderTop: '1px solid rgba(201,151,92,0.16)',
   },
   speedLabel: {
-    color: '#8fb1d8',
+    color: antiqueColors.brass,
     fontSize: 10,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
   speedValue: {
-    color: '#e8edf7',
+    color: antiqueColors.candle,
     fontSize: 13,
     fontWeight: 600,
   },
   hint: {
     marginTop: 6,
-    color: '#6b8aaa',
+    color: antiqueColors.brassDark,
     fontSize: 9,
     textAlign: 'center',
   },

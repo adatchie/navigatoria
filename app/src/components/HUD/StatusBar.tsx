@@ -5,6 +5,7 @@
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { uiText } from '@/i18n/uiText.ts'
+import { antiqueColors, antiqueFonts } from '@/ui/antiqueTheme.ts'
 
 const MONTH_NAMES = uiText.statusBar.months
 
@@ -36,8 +37,8 @@ export function StatusBar() {
   // 補給状況の警告色
   const foodRatio = fleetSupply.food / Math.max(1, fleetSupply.maxFood)
   const waterRatio = fleetSupply.water / Math.max(1, fleetSupply.maxWater)
-  const foodColor = foodRatio < 0.2 ? '#ef4444' : foodRatio < 0.4 ? '#f59e0b' : '#94a3b8'
-  const waterColor = waterRatio < 0.2 ? '#ef4444' : waterRatio < 0.4 ? '#f59e0b' : '#94a3b8'
+  const foodColor = foodRatio < 0.2 ? '#d97706' : foodRatio < 0.4 ? antiqueColors.brassBright : antiqueColors.candle
+  const waterColor = waterRatio < 0.2 ? '#d97706' : waterRatio < 0.4 ? antiqueColors.brassBright : antiqueColors.candle
 
   return (
     <div style={styles.bar}>
@@ -45,7 +46,7 @@ export function StatusBar() {
       <div style={styles.segment}>
         <span style={styles.value}>{dateStr}</span>
         <span style={styles.dim}>{hourStr}</span>
-        <span style={{ ...styles.badge, background: paused ? 'rgba(239,68,68,0.3)' : 'rgba(96,165,250,0.2)' }}>
+        <span style={{ ...styles.badge, background: paused ? 'rgba(139, 26, 26, 0.44)' : 'rgba(184, 134, 11, 0.18)' }}>
           {speedLabel}
         </span>
       </div>
@@ -89,12 +90,13 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: 20,
     padding: '0 16px',
-    background: 'rgba(12, 19, 34, 0.75)',
-    borderBottom: '1px solid rgba(120, 172, 219, 0.15)',
+    background: 'linear-gradient(180deg, rgba(13, 17, 23, 0.94), rgba(13, 17, 23, 0.72))',
+    borderBottom: '1px solid rgba(201, 151, 92, 0.24)',
     backdropFilter: 'blur(8px)',
     zIndex: 130,
     fontSize: 12,
-    color: '#e8edf7',
+    color: antiqueColors.candle,
+    fontFamily: antiqueFonts.body,
     pointerEvents: 'auto' as const,
     overflow: 'hidden',
     transform: 'scale(var(--navigatoria-ui-scale, 1))',
@@ -112,36 +114,36 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 6,
   },
   label: {
-    color: '#8fb1d8',
+    color: antiqueColors.brass,
     fontSize: 10,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
   value: {
-    color: '#e8edf7',
+    color: antiqueColors.candle,
     fontWeight: 500,
   },
   dim: {
-    color: '#8fb1d8',
+    color: antiqueColors.brass,
     fontSize: 11,
   },
   badge: {
     padding: '1px 6px',
-    borderRadius: 4,
+    borderRadius: 2,
     fontSize: 9,
     fontWeight: 600,
     letterSpacing: 0.5,
-    color: '#e8edf7',
+    color: antiqueColors.candle,
   },
   supplyBar: {
     width: 120,
     height: 6,
-    borderRadius: 999,
-    background: 'rgba(148, 163, 184, 0.18)',
+    borderRadius: 2,
+    background: 'rgba(201, 151, 92, 0.16)',
     overflow: 'hidden',
   },
   supplyFill: {
     height: '100%',
-    borderRadius: 999,
+    borderRadius: 2,
   },
 }
