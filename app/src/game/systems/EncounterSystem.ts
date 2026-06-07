@@ -10,6 +10,18 @@ import { useWorldStore } from '@/stores/useWorldStore.ts'
 import { isVoyageTimeRunning } from '@/game/timeFlow.ts'
 import { getNearestPort, getZoneAtPosition } from '@/game/world/queries.ts'
 
+const ENCOUNTER_CHECK_INTERVAL_DAYS = 0.35
+const BASE_ENCOUNTER_CHANCE = 0.018
+const OFFSHORE_ENCOUNTER_CHANCE = 0.055
+const WEATHER_ENCOUNTER_CHANCE = {
+  clear: 0,
+  cloudy: 0,
+  rain: 0.025,
+  fog: 0.04,
+  storm: 0.07,
+} as const
+const NOTORIETY_ENCOUNTER_CHANCE_MAX = 0.08
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
 }
@@ -138,7 +150,7 @@ export class EncounterSystem implements GameSystem {
     const currentDay = timeState.totalDays
     if (currentDay < this.nextCheckDay) return
 
-    this.nextCheckDay = currentDay + 0.18
+    this.nextCheckDay = currentDay + ENCOUNTER_CHECK_INTERVAL_DAYS
 
     const ports = useWorldStore.getState().ports
     const zones = useWorldStore.getState().zones
@@ -149,9 +161,9 @@ export class EncounterSystem implements GameSystem {
     if (!nearest || !player || !activeShip) return
 
     const portDistanceFactor = clamp((nearest.distanceKm - 12) / 60, 0, 1)
-    const weatherFactor = navigation.weather.type === 'storm' ? 0.18 : navigation.weather.type === 'rain' ? 0.08 : navigation.weather.type === 'fog' ? 0.12 : 0
-    const notorietyFactor = clamp(player.stats.notoriety / 100, 0, 0.2)
-    const chance = 0.08 + portDistanceFactor * 0.18 + weatherFactor + notorietyFactor
+    const weatherFactor = WEATHER_ENCOUNTER_CHANCE[navigation.weather.type] ?? 0
+    const notorietyFactor = clamp(player.stats.notoriety / 100, 0, NOTORIETY_ENCOUNTER_CHANCE_MAX)
+    const chance = BASE_ENCOUNTER_CHANCE + portDistanceFactor * OFFSHORE_ENCOUNTER_CHANCE + weatherFactor + notorietyFactor
     if (Math.random() > chance) return
 
     const ships = useDataStore.getState().masterData.ships

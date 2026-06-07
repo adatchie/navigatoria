@@ -46,12 +46,34 @@ export function getExperienceForNextLevel(currentLevel: number): number {
   return (clampLevel(currentLevel) + 1) ** 2 * 10
 }
 
+export function getTotalExperienceForLevel(level: number): number {
+  const normalizedLevel = clampLevel(level)
+  let total = 0
+  for (let currentLevel = 1; currentLevel < normalizedLevel; currentLevel++) {
+    total += getExperienceForNextLevel(currentLevel)
+  }
+  return total
+}
+
 export function getTrackLevel(stats: CharacterStats, track: ExperienceTrack): number {
   return clampLevel(stats[getTrackDefinition(track).levelKey])
 }
 
 export function getTrackExp(stats: CharacterStats, track: ExperienceTrack): number {
-  return Math.max(0, Math.floor(stats[getTrackDefinition(track).expKey] ?? 0))
+  const rawExp = Math.max(0, Math.floor(stats[getTrackDefinition(track).expKey] ?? 0))
+  const levelFloorExp = getTotalExperienceForLevel(getTrackLevel(stats, track))
+  return rawExp < levelFloorExp ? levelFloorExp + rawExp : rawExp
+}
+
+export function getTrackProgress(stats: CharacterStats, track: ExperienceTrack): { current: number; required: number; total: number } {
+  const level = getTrackLevel(stats, track)
+  const total = getTrackExp(stats, track)
+  const levelFloorExp = getTotalExperienceForLevel(level)
+  return {
+    current: Math.max(0, total - levelFloorExp),
+    required: getExperienceForNextLevel(level),
+    total,
+  }
 }
 
 function getProfessionAdjustedExp(amount: number, track: ExperienceTrack, profession: ProfessionType, applyProfessionModifier: boolean): number {
@@ -64,17 +86,16 @@ function getProfessionAdjustedExp(amount: number, track: ExperienceTrack, profes
 function normalizeTrack(stats: CharacterStats, track: ExperienceTrack): { stats: CharacterStats; levelUp?: LevelUpEntry } {
   const trackDef = getTrackDefinition(track)
   const fromLevel = getTrackLevel(stats, track)
-  let level = fromLevel
-  let exp = getTrackExp(stats, track)
+  let level = 1
+  const exp = getTrackExp(stats, track)
 
   while (level < MAX_PLAYER_LEVEL) {
-    const requiredExp = getExperienceForNextLevel(level)
-    if (requiredExp <= 0 || exp < requiredExp) break
-    exp -= requiredExp
+    const nextLevelExp = getTotalExperienceForLevel(level + 1)
+    if (exp < nextLevelExp) break
     level += 1
   }
 
-  if (level >= MAX_PLAYER_LEVEL) exp = 0
+  level = Math.max(fromLevel, level)
 
   const nextStats = {
     ...stats,

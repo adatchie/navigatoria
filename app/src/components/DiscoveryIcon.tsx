@@ -22,10 +22,12 @@ type AdventureQuestIconProps = {
   size?: number
 }
 
-function getSpriteBackgroundPosition(column: number, row: number, columns: number, rows: number): string {
-  const x = columns > 1 ? (column / (columns - 1)) * 100 : 0
-  const y = rows > 1 ? (row / (rows - 1)) * 100 : 0
-  return `${x}% ${y}%`
+function getSpriteBackgroundPosition(column: number, row: number, size: number): string {
+  return `-${column * size}px -${row * size}px`
+}
+
+function getSpriteBackgroundSize(columns: number, rows: number, size: number): string {
+  return `${columns * size}px ${rows * size}px`
 }
 
 function getIconStyle(size: number): CSSProperties {
@@ -39,6 +41,8 @@ function getIconStyle(size: number): CSSProperties {
     borderRadius: 8,
     border: '1px solid rgba(244, 201, 130, 0.26)',
     backgroundColor: 'rgba(6, 15, 28, 0.72)',
+    backgroundOrigin: 'border-box',
+    backgroundClip: 'border-box',
     backgroundRepeat: 'no-repeat',
     boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06), 0 8px 18px rgba(0,0,0,0.22)',
     color: '#93a8c4',
@@ -57,8 +61,8 @@ export function DiscoveryIcon({ discoveryId, label, size = 44 }: DiscoveryIconPr
   const style: CSSProperties = {
     ...getIconStyle(size),
     backgroundImage: hasFrame ? `url(${DISCOVERY_ICON_SPRITE_URL})` : undefined,
-    backgroundSize: `${DISCOVERY_ICON_COLUMNS * 100}% ${DISCOVERY_ICON_ROWS * 100}%`,
-    backgroundPosition: getSpriteBackgroundPosition(column, row, DISCOVERY_ICON_COLUMNS, DISCOVERY_ICON_ROWS),
+    backgroundSize: getSpriteBackgroundSize(DISCOVERY_ICON_COLUMNS, DISCOVERY_ICON_ROWS, size),
+    backgroundPosition: getSpriteBackgroundPosition(column, row, size),
   }
 
   return (
@@ -73,8 +77,8 @@ export function AdventureQuestIcon({ method = 'sighting', label, size = 44 }: Ad
   const style: CSSProperties = {
     ...getIconStyle(size),
     backgroundImage: `url(${ADVENTURE_QUEST_ICON_SPRITE_URL})`,
-    backgroundSize: `${ADVENTURE_QUEST_ICON_COLUMNS * 100}% 100%`,
-    backgroundPosition: getSpriteBackgroundPosition(column, 0, ADVENTURE_QUEST_ICON_COLUMNS, 1),
+    backgroundSize: getSpriteBackgroundSize(ADVENTURE_QUEST_ICON_COLUMNS, 1, size),
+    backgroundPosition: getSpriteBackgroundPosition(column, 0, size),
   }
 
   return (

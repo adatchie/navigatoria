@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 30" width="600" height="30">
+  <!-- Ornamental divider — antique flourish -->
+  <defs>
+    <linearGradient id="brass-fade" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#b8860b" stop-opacity="0"/>
+      <stop offset="15%" stop-color="#b8860b" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#d4a843" stop-opacity="1"/>
+      <stop offset="85%" stop-color="#b8860b" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#b8860b" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Main line -->
+  <line x1="0" y1="15" x2="600" y2="15" stroke="url(#brass-fade)" stroke-width="0.5"/>
+  
+  <!-- Center diamond -->
+  <polygon points="300,5 308,15 300,25 292,15" fill="#b8860b" opacity="0.6"/>
+  <polygon points="300,8 305,15 300,22 295,15" fill="#d4a843" opacity="0.8"/>
+  
+  <!-- Side diamonds -->
+  <polygon points="270,11 275,15 270,19 265,15" fill="#b8860b" opacity="0.4"/>
+  <polygon points="330,11 335,15 330,19 325,15" fill="#b8860b" opacity="0.4"/>
+  
+  <!-- Flourish curves left -->
+  <path d="M290,15 Q285,8 275,10 Q265,12 260,15" fill="none" stroke="#b8860b" stroke-width="0.5" opacity="0.5"/>
+  <path d="M290,15 Q285,22 275,20 Q265,18 260,15" fill="none" stroke="#b8860b" stroke-width="0.5" opacity="0.5"/>
+  
+  <!-- Flourish curves right -->
+  <path d="M310,15 Q315,8 325,10 Q335,12 340,15" fill="none" stroke="#b8860b" stroke-width="0.5" opacity="0.5"/>
+  <path d="M310,15 Q315,22 325,20 Q335,18 340,15" fill="none" stroke="#b8860b" stroke-width="0.5" opacity="0.5"/>
+  
+  <!-- End dots -->
+  <circle cx="250" cy="15" r="2" fill="#b8860b" opacity="0.3"/>
+  <circle cx="350" cy="15" r="2" fill="#b8860b" opacity="0.3"/>
+  
+  <!-- Outer scroll left -->
+  <path d="M245,15 Q235,5 220,8 Q210,10 200,15 Q210,20 220,22 Q235,25 245,15" fill="none" stroke="#8b6508" stroke-width="0.4" opacity="0.3"/>
+  
+  <!-- Outer scroll right -->
+  <path d="M355,15 Q365,5 380,8 Q390,10 400,15 Q390,20 380,22 Q365,25 355,15" fill="none" stroke="#8b6508" stroke-width="0.4" opacity="0.3"/>
+</svg>

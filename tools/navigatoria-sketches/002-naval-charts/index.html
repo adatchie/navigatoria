@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Navigatoria — Naval Charts</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+JP:wght@300;400;700&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0e14;
+  --bg-panel: #111820;
+  --bg-card: #161d27;
+  --border: #1e2a3a;
+  --border-light: #2a3a4e;
+  --text: #c5cdd8;
+  --text-dim: #6b7d8e;
+  --text-bright: #e8ecf1;
+  --accent: #00b4d8;
+  --accent-dim: #007a94;
+  --accent-glow: rgba(0,180,216,0.15);
+  --green: #2ecc71;
+  --amber: #f0a500;
+  --red: #e74c3c;
+}
+
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+}
+
+/* === Header — HUD style === */
+.header {
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.port-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.port-badge-icon {
+  width: 32px; height: 32px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+
+.port-badge-text h1 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-bright);
+  letter-spacing: 1px;
+}
+
+.port-badge-text span {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.header-actions {
+  display: flex; gap: 6px;
+}
+
+.btn-hud {
+  background: var(--bg-card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 5px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.1s;
+}
+.btn-hud:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-glow);
+}
+
+/* === Telemetry bar === */
+.telemetry {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 20px;
+  display: flex;
+  gap: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+
+.tele-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tele-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.tele-dot.amber { background: var(--amber); }
+.tele-dot.green { background: var(--green); }
+
+.tele-label { color: var(--text-dim); }
+.tele-val { color: var(--text-bright); font-weight: 700; }
+
+/* === Main layout === */
+.main-layout {
+  display: flex;
+  flex: 1;
+}
+
+/* === Sidebar — vertical HUD === */
+.sidebar {
+  width: 180px;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-section-label {
+  padding: 10px 14px 4px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.1s;
+  border-left: 2px solid transparent;
+}
+.nav-item:hover {
+  background: rgba(0,180,216,0.05);
+  color: var(--text);
+  border-left-color: var(--accent-dim);
+}
+.nav-item.active {
+  background: var(--accent-glow);
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+.nav-key {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  background: var(--bg);
+  padding: 1px 4px;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  margin-left: auto;
+}
+
+.sidebar-bottom {
+  margin-top: auto;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.mini-stats {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1.8;
+}
+
+/* === Content === */
+.content {
+  flex: 1;
+  background: var(--bg);
+  padding: 24px 32px;
+  overflow-y: auto;
+}
+
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.content-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-bright);
+  letter-spacing: 2px;
+}
+
+.content-coords {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.content-desc {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.9;
+  max-width: 560px;
+  opacity: 0.85;
+}
+
+/* Facility list — monospace table */
+.facility-table {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+}
+
+.facility-row {
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.facility-row:hover {
+  background: var(--accent-glow);
+}
+
+.facility-cell {
+  padding: 12px 8px;
+}
+
+.facility-cell-icon {
+  width: 36px;
+  font-size: 18px;
+}
+
+.facility-cell-name {
+  font-weight: 700;
+  color: var(--text-bright);
+  font-size: 14px;
+}
+
+.facility-cell-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.facility-cell-key {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  background: var(--bg-panel);
+  padding: 2px 6px;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+/* Info footer */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.info-block {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px;
+}
+
+.info-block-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 6px;
+}
+
+.info-block-value {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="port-badge">
+      <div class="port-badge-icon">⚓</div>
+      <div class="port-badge-text">
+        <h1>リスボン</h1>
+        <span>Lisbon / west_europe / 5%tax</span>
+      </div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn-hud">SAVE</button>
+    <button class="btn-hud">LOAD</button>
+  </div>
+</div>
+
+<div class="telemetry">
+  <div class="tele-item">
+    <span class="tele-dot amber"></span>
+    <span class="tele-label">GOLD</span>
+    <span class="tele-val">10,000 d</span>
+  </div>
+  <div class="tele-item">
+    <span class="tele-dot"></span>
+    <span class="tele-label">FLEET</span>
+    <span class="tele-val">5/5</span>
+  </div>
+  <div class="tele-item">
+    <span class="tele-dot"></span>
+    <span class="tele-label">FLAG</span>
+    <span class="tele-val">バルカ</span>
+  </div>
+  <div class="tele-item">
+    <span class="tele-dot green"></span>
+    <span class="tele-label">HULL</span>
+    <span class="tele-val">815/815</span>
+  </div>
+  <div class="tele-item">
+    <span class="tele-dot"></span>
+    <span class="tele-label">CREW</span>
+    <span class="tele-val">71/184</span>
+  </div>
+  <div class="tele-item">
+    <span class="tele-dot green"></span>
+    <span class="tele-label">MORALE</span>
+    <span class="tele-val">72 安定</span>
+  </div>
+</div>
+
+<div class="main-layout">
+  <nav class="sidebar">
+    <div class="nav-section-label">Port</div>
+    <a class="nav-item active"><span>🏰</span> 港概要 <span class="nav-key">1</span></a>
+    <a class="nav-item"><span>⛵</span> 出航所 <span class="nav-key">2</span></a>
+    <a class="nav-item"><span>💰</span> 市場 <span class="nav-key">3</span></a>
+    <a class="nav-item"><span>🗡</span> ギルド <span class="nav-key">4</span></a>
+    <a class="nav-item"><span>🍻</span> 酒場 <span class="nav-key">5</span></a>
+    <div class="nav-section-label">Service</div>
+    <a class="nav-item"><span>🔨</span> 造船所 <span class="nav-key">6</span></a>
+    <a class="nav-item"><span>🏦</span> 銀行 <span class="nav-key">7</span></a>
+    <a class="nav-item"><span>📦</span> 保管庫 <span class="nav-key">8</span></a>
+    <div class="sidebar-bottom">
+      <div class="mini-stats">
+        DEV: 85<br>
+        MKT:L4 GIL:L3<br>
+        SHIP:L4 BAR:L3<br>
+        PAL:L5 BNK:L3
+      </div>
+    </div>
+  </nav>
+
+  <div class="content">
+    <div class="content-header">
+      <div>
+        <div class="content-title">リスボン</div>
+        <div class="content-coords">38°42'N 9°08'W — ポルトガル王国</div>
+      </div>
+    </div>
+
+    <p class="content-desc">
+      テージョ川に面したポルトガル王国の都。丘陵に広がる街並みと賑わう港には、遠洋航海を支える施設が集まっています。
+      南方への航海を夢見る者たちが集う、大航海時代の中心的な拠点です。
+    </p>
+
+    <table class="facility-table">
+      <tr class="facility-row">
+        <td class="facility-cell facility-cell-icon">⛵</td>
+        <td class="facility-cell">
+          <div class="facility-cell-name">出航所</div>
+          <div class="facility-cell-sub">河岸の桟橋</div>
+        </td>
+        <td class="facility-cell"><span class="facility-cell-key">2</span></td>
+      </tr>
+      <tr class="facility-row">
+        <td class="facility-cell facility-cell-icon">💰</td>
+        <td class="facility-cell">
+          <div class="facility-cell-name">市場</div>
+          <div class="facility-cell-sub">港前広場</div>
+        </td>
+        <td class="facility-cell"><span class="facility-cell-key">3</span></td>
+      </tr>
+      <tr class="facility-row">
+        <td class="facility-cell facility-cell-icon">🗡</td>
+        <td class="facility-cell">
+          <div class="facility-cell-name">ギルド</div>
+          <div class="facility-cell-sub">商館街</div>
+        </td>
+        <td class="facility-cell"><span class="facility-cell-key">4</span></td>
+      </tr>
+      <tr class="facility-row">
+        <td class="facility-cell facility-cell-icon">🍻</td>
+        <td class="facility-cell">
+          <div class="facility-cell-name">酒場</div>
+          <div class="facility-cell-sub">坂道の路地</div>
+        </td>
+        <td class="facility-cell"><span class="facility-cell-key">5</span></td>
+      </tr>
+      <tr class="facility-row">
+        <td class="facility-cell facility-cell-icon">🔨</td>
+        <td class="facility-cell">
+          <div class="facility-cell-name">造船所</div>
+          <div class="facility-cell-sub">河口の船渠</div>
+        </td>
+        <td class="facility-cell"><span class="facility-cell-key">6</span></td>
+      </tr>
+      <tr class="facility-row">
+        <td class="facility-cell facility-cell-icon">🏦</td>
+        <td class="facility-cell">
+          <div class="facility-cell-name">銀行</div>
+          <div class="facility-cell-sub">城壁内の両替商</div>
+        </td>
+        <td class="facility-cell"><span class="facility-cell-key">7</span></td>
+      </tr>
+      <tr class="facility-row">
+        <td class="facility-cell facility-cell-icon">📦</td>
+        <td class="facility-cell">
+          <div class="facility-cell-name">保管庫</div>
+          <div class="facility-cell-sub">倉庫街</div>
+        </td>
+        <td class="facility-cell"><span class="facility-cell-key">8</span></td>
+      </tr>
+    </table>
+
+    <div class="info-grid">
+      <div class="info-block">
+        <div class="info-block-label">Port</div>
+        <div class="info-block-value">portugal / 発展度 85</div>
+      </div>
+      <div class="info-block">
+        <div class="info-block-label">Captain</div>
+        <div class="info-block-value">航海者<br>交易 0 / 名声 0</div>
+      </div>
+      <div class="info-block">
+        <div class="info-block-label">Fleet</div>
+        <div class="info-block-value">5/5隻 バルカ<br>815/815 士気72</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

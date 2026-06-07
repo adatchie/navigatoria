@@ -63,7 +63,7 @@ function buildRewards(discovery: Discovery, reportPortId: string, distanceKmValu
   const rankMultiplier = getRankRewardMultiplier(discovery.rank >= 3 ? 'premium' : discovery.rank >= 2 ? 'urgent' : 'standard')
   const distanceMultiplier = getQuestDistanceRewardMultiplier(distanceKmValue)
   const money = Math.round((180 + discovery.exp * 5) * rankMultiplier * distanceMultiplier)
-  const exp = Math.round(discovery.exp * distanceMultiplier)
+  const exp = Math.round(discovery.exp * distanceMultiplier * 1.35)
   const fame = Math.max(discovery.fame, Math.round(discovery.fame * Math.min(2.6, distanceMultiplier)))
   return [
     { type: 'money', amount: money },

@@ -12,8 +12,9 @@ import { VOYAGE_CONFIG } from '@/config/gameConfig.ts'
 import { OFFICER_ROLE_DEFINITIONS, formatOfficerRoleEffect, formatOfficerStats, getAssignedOfficer, getAssignedOfficerForRole, getOfficerAssignmentLabel, getOfficerShipEffects } from '@/game/officers/officerEffects.ts'
 import { generateTavernOfficerOffers, getOfficerSpecialtyLabel, localizeOfficerName } from '@/game/officers/officerGenerator.ts'
 import { isQuestDeadlineNotice } from '@/game/quest/questNotices.ts'
-import { EXPERIENCE_TRACKS, getExperienceForNextLevel } from '@/game/player/progression.ts'
+import { EXPERIENCE_TRACKS, getTrackProgress } from '@/game/player/progression.ts'
 import { ShipModelRenderer, ShipRenderer } from '@/rendering/ShipRenderer.tsx'
+import { CombatQuestIcon } from '@/components/CombatQuestIcon.tsx'
 import { TradeGoodIcon } from '@/components/TradeGoodIcon.tsx'
 import { AdventureQuestIcon, DiscoveryIcon } from '@/components/DiscoveryIcon.tsx'
 import { useResponsiveUiMetrics } from '@/ui/responsive.ts'
@@ -22,6 +23,7 @@ import type { Discovery, DiscoveryCategory } from '@/types/discovery.ts'
 import type { Port } from '@/types/port.ts'
 import type { Quest, QuestCategory, QuestRank, QuestReward, TradeQuestCategory } from '@/types/quest.ts'
 import type { OfficerRoleSlot, ShipInstance, ShipType } from '@/types/ship.ts'
+import type { PriceTrend } from '@/types/trade.ts'
 import { uiText } from '@/i18n/uiText.ts'
 
 interface TownScreenProps {
@@ -254,6 +256,18 @@ function formatFactorBonus(factor: number, inverse = false): string {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`
 }
 
+function getMarketTrendBadge(trend: PriceTrend): { icon: string; label: string; tone: string; title: string } {
+  if (trend === 'boom') return { icon: '↑', label: '高騰', tone: '#f97316', title: '相場が高く、売却向きです。' }
+  if (trend === 'rising') return { icon: '↗', label: '上昇', tone: '#f59e0b', title: '相場が上がっています。' }
+  if (trend === 'falling') return { icon: '↘', label: '下落', tone: '#38bdf8', title: '相場が下がっています。' }
+  if (trend === 'crash') return { icon: '↓', label: '暴落', tone: '#60a5fa', title: '相場が大きく下がり、買付向きです。' }
+  return { icon: '・', label: '安定', tone: '#94a3b8', title: '相場は安定しています。' }
+}
+
+function getSliderQuantity(value: number, max: number): number {
+  return Math.max(1, Math.min(Math.max(1, max), Math.floor(value) || 1))
+}
+
 function getOfficerRoleSelectValue(officerId?: string): string {
   return officerId ?? ''
 }
@@ -289,6 +303,13 @@ function getShipyardRequirement(category: string): number {
   if (category === 'medium_sail' || category === 'galley') return 2
   if (category === 'oriental') return 3
   return 4
+}
+
+function estimateShipSalePrice(ship: ShipInstance, shipType: ShipType | undefined): number {
+  if (!shipType) return 0
+  const durabilityRatio = ship.currentDurability / Math.max(1, ship.maxDurability)
+  const upgradeValue = (ship.upgrades?.rigging ?? 0) * 1200 + (ship.upgrades?.cargo ?? 0) * 1400 + (ship.upgrades?.gunnery ?? 0) * 1600
+  return Math.max(250, Math.round((shipType.price * 0.48 + upgradeValue) * (0.72 + durabilityRatio * 0.28)))
 }
 
 function resolvePortraitUrl(url?: string): string {
@@ -445,6 +466,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const ships = usePlayerStore((s) => s.ships)
   const officers = usePlayerStore((s) => s.officers)
   const activeShipId = usePlayerStore((s) => s.activeShipId)
+  const setActiveShip = usePlayerStore((s) => s.setActiveShip)
   const setPhase = useGameStore((s) => s.setPhase)
   const day = useGameStore((s) => Math.floor(s.timeState.totalDays))
   const getShip = useDataStore((s) => s.getShip)
@@ -472,6 +494,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const repairShip = usePlayerStore((s) => s.repairShip)
   const repairFleet = usePlayerStore((s) => s.repairFleet)
   const purchaseShip = usePlayerStore((s) => s.purchaseShip)
+  const sellShip = usePlayerStore((s) => s.sellShip)
   const sellInventoryItem = usePlayerStore((s) => s.sellInventoryItem)
   const outfitShip = usePlayerStore((s) => s.outfitShip)
   const ensurePortQuests = useQuestStore((s) => s.ensurePortQuests)
@@ -598,7 +621,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
 
   if (!port) return <div style={styles.container}><div style={styles.card}>港が選択されていません。</div></div>
 
-  const setQuantity = (goodId: string, nextValue: number) => setQuantities((current) => ({ ...current, [goodId]: Math.max(1, Math.min(200, Math.floor(nextValue) || 1)) }))
+  const setQuantity = (goodId: string, nextValue: number, max = 200) => setQuantities((current) => ({ ...current, [goodId]: getSliderQuantity(nextValue, max) }))
   const handleAction = (result: ActionResult) => {
     clearQuestNotice()
     if (actionNoticeTimeoutRef.current !== null) {
@@ -709,13 +732,13 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
   const progressionRows = player
     ? EXPERIENCE_TRACKS.map((track) => {
         const level = player.stats[track.levelKey]
-        const exp = player.stats[track.expKey]
+        const progress = getTrackProgress(player.stats, track.id)
         return {
           id: track.id,
           label: track.label,
           level,
-          exp,
-          requiredExp: getExperienceForNextLevel(level),
+          exp: progress.current,
+          requiredExp: progress.required,
         }
       })
     : []
@@ -809,6 +832,9 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                 {questGood && <TradeGoodIcon goodId={questGood.id} label={questGood.name} size={36} />}
                 {selectedQuestCategory === 'adventure_discovery' && (
                   <AdventureQuestIcon method={selectedQuest.metadata?.discoveryMethod} size={36} />
+                )}
+                {selectedQuestCategory === 'combat_bounty' && (
+                  <CombatQuestIcon label={selectedQuest.metadata?.combatTargetName ?? '討伐クエスト'} size={36} />
                 )}
                 <span>{activeQuestRoute}</span>
                 <span>{activeQuestSubject}</span>
@@ -958,6 +984,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                       const daysRemaining = getDaysRemaining(quest, day)
                       const boardQuestGood = quest.metadata?.goodId ? getTradeGood(quest.metadata.goodId) : null
                       const isAdventureQuest = quest.metadata?.category === 'adventure_discovery'
+                      const isCombatQuest = quest.metadata?.category === 'combat_bounty'
                       const routeSummary = formatTradeQuestRoute(quest, ports)
                       const questInstruction = formatTradeQuestInstruction(quest, ports, boardQuestGood?.name)
                       return (
@@ -965,6 +992,7 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                           <div style={styles.tradeGoodSummary}>
                             {boardQuestGood && <TradeGoodIcon goodId={boardQuestGood.id} label={boardQuestGood.name} size={42} />}
                             {isAdventureQuest && <AdventureQuestIcon method={quest.metadata?.discoveryMethod} size={42} />}
+                            {isCombatQuest && <CombatQuestIcon label={quest.metadata?.combatTargetName ?? '討伐クエスト'} size={42} />}
                             <div style={styles.tradeMeta}>
                               <div style={styles.questTitleRow}>
                                 <span style={styles.questCategoryBadge}>{formatQuestCategory(quest.metadata?.category)}</span>
@@ -1121,28 +1149,49 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                     <div style={styles.panelHeader}><h3 style={styles.sectionTitle}>{uiText.town.labels.buy}</h3><span style={styles.panelHint}>1行で判断できる形</span></div>
                     <div style={styles.list}>
                       {marketRows.map(({ item, good, quantity, quote, limit }) => {
-                        const totalWeight = good.weight * quantity
                         const purchaseCap = Math.max(0, Math.min(item.stock, limit))
-                        const exceedsCap = quantity > purchaseCap && purchaseCap > 0
                         const remainingCapacity = (marketTargetShip?.maxCapacity ?? 0) - (marketTargetShip?.usedCapacity ?? 0)
+                        const capacityCap = Math.max(0, Math.floor(remainingCapacity / Math.max(0.1, good.weight)))
+                        const unitPrice = quote?.unitPrice ?? item.currentPrice
+                        const moneyCap = Math.max(0, Math.floor((player?.money ?? 0) / Math.max(1, unitPrice)))
+                        const maxBuyQuantity = Math.max(0, Math.min(purchaseCap, capacityCap, moneyCap))
+                        const selectedQuantity = maxBuyQuantity > 0 ? getSliderQuantity(quantity, maxBuyQuantity) : 1
+                        const selectedQuote = portId && selectedQuantity !== quantity ? getBuyQuote(portId, item.goodId, selectedQuantity, marketTargetShip?.instanceId) : quote
+                        const totalWeight = good.weight * selectedQuantity
+                        const exceedsCap = selectedQuantity > purchaseCap && purchaseCap > 0
                         const exceedsCapacity = totalWeight > remainingCapacity
+                        const trendBadge = getMarketTrendBadge(item.trend)
                         return (
                           <div key={good.id} style={styles.marketRowDense}>
                             <div style={styles.tradeGoodSummary}>
                               <TradeGoodIcon goodId={good.id} label={good.name} />
                               <div style={styles.tradeMeta}>
-                                <strong>{good.name}</strong>
-                                <span style={styles.tradeSub}>{quote?.unitPrice ?? item.currentPrice} d / 在庫 {item.stock} / 上限 {limit} / {item.trend}</span>
+                                <strong style={styles.tradeGoodName}>{good.name}</strong>
+                                <span style={styles.marketQuoteLine}>
+                                  <span>{quote?.unitPrice ?? item.currentPrice} d</span>
+                                  <span>在庫 {item.stock}</span>
+                                  <span>上限 {limit}</span>
+                                  <span title={trendBadge.title} style={{ ...styles.marketTrendBadge, borderColor: `${trendBadge.tone}88`, color: trendBadge.tone, background: `${trendBadge.tone}1f` }}>
+                                    <span style={styles.marketTrendIcon}>{trendBadge.icon}</span>
+                                    {trendBadge.label}
+                                  </span>
+                                </span>
                                 {purchaseCap <= 0 && <span style={styles.tradeBlocked}>この港では今日はこれ以上買えません。</span>}
                                 {exceedsCap && <span style={styles.tradeBlocked}>数量が購入上限を超えています。</span>}
                                 {exceedsCapacity && <span style={styles.tradeBlocked}>選択中の船の船倉容量が足りません。</span>}
                               </div>
                             </div>
                             <div style={styles.tradeControlsDense}>
-                              <input type="number" min={1} max={Math.max(1, purchaseCap)} value={quantity} onChange={(e) => setQuantity(good.id, Number(e.target.value))} style={styles.quantityInput} disabled={purchaseCap <= 0} />
-                              <span style={styles.compactFigure}>{quote?.totalPrice ?? item.currentPrice} d</span>
+                              <div style={styles.quantitySliderGroup}>
+                                <div style={styles.quantitySliderHeader}>
+                                  <span>数量 {maxBuyQuantity > 0 ? selectedQuantity : 0}</span>
+                                  <button style={styles.miniButton} disabled={maxBuyQuantity <= 0} onClick={() => setQuantity(good.id, maxBuyQuantity, maxBuyQuantity)}>MAX</button>
+                                </div>
+                                <input type="range" min={1} max={Math.max(1, maxBuyQuantity)} value={maxBuyQuantity > 0 ? selectedQuantity : 1} onChange={(e) => setQuantity(good.id, Number(e.target.value), maxBuyQuantity)} style={styles.quantitySlider} disabled={maxBuyQuantity <= 0} />
+                              </div>
+                              <span style={styles.compactFigure}>{selectedQuote?.totalPrice ?? item.currentPrice} d</span>
                               <span style={styles.compactFigure}>積載 {totalWeight.toFixed(1)}</span>
-                              <button style={styles.primaryButton} disabled={!marketTargetShip || purchaseCap <= 0 || exceedsCap || exceedsCapacity} onClick={() => handleAction(buyGood(port.id, good.id, quantity, marketTargetShip?.instanceId))}>{uiText.town.labels.buyAction}</button>
+                              <button style={{ ...styles.primaryButton, ...styles.tradeActionButton }} disabled={!marketTargetShip || maxBuyQuantity <= 0 || exceedsCap || exceedsCapacity} onClick={() => handleAction(buyGood(port.id, good.id, selectedQuantity, marketTargetShip?.instanceId))}>{uiText.town.labels.buyAction}</button>
                             </div>
                           </div>
                         )
@@ -1155,21 +1204,30 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                     <div style={styles.list}>
                       {cargoRows.length === 0 && <div style={styles.emptyState}>積荷はまだありません。</div>}
                       {cargoRows.map(({ slot, good, quantity, quote }) => {
-                        const estimatedProfit = quote ? (quote.unitPrice - slot.buyPrice) * quantity : 0
+                        const maxSellQuantity = Math.max(1, slot.quantity)
+                        const selectedQuantity = getSliderQuantity(quantity, maxSellQuantity)
+                        const selectedQuote = portId && selectedQuantity !== quantity ? getSellQuote(portId, slot.goodId, selectedQuantity, marketTargetShip?.instanceId) : quote
+                        const estimatedProfit = selectedQuote ? (selectedQuote.unitPrice - slot.buyPrice) * selectedQuantity : 0
                         return (
                           <div key={good.id} style={styles.marketRowDense}>
                             <div style={styles.tradeGoodSummary}>
                               <TradeGoodIcon goodId={good.id} label={good.name} />
                               <div style={styles.tradeMeta}>
-                                <strong>{good.name}</strong>
+                                <strong style={styles.tradeGoodName}>{good.name}</strong>
                                 <span style={styles.tradeSub}>所持 {slot.quantity} / 売値 {quote?.unitPrice ?? 0} d / 利益 {estimatedProfit >= 0 ? '+' : ''}{estimatedProfit} d</span>
                               </div>
                             </div>
                             <div style={styles.tradeControlsDense}>
-                              <input type="number" min={1} max={slot.quantity} value={quantity} onChange={(e) => setQuantity(good.id, Number(e.target.value))} style={styles.quantityInput} />
-                              <span style={styles.compactFigure}>{quote?.totalPrice ?? 0} d</span>
-                              <span style={styles.compactFigure}>積載 {(good.weight * quantity).toFixed(1)}</span>
-                              <button style={styles.secondaryButton} onClick={() => handleAction(sellGood(port.id, good.id, quantity, marketTargetShip?.instanceId))}>売却</button>
+                              <div style={styles.quantitySliderGroup}>
+                                <div style={styles.quantitySliderHeader}>
+                                  <span>数量 {selectedQuantity}</span>
+                                  <button style={styles.miniButton} onClick={() => setQuantity(good.id, maxSellQuantity, maxSellQuantity)}>MAX</button>
+                                </div>
+                                <input type="range" min={1} max={maxSellQuantity} value={selectedQuantity} onChange={(e) => setQuantity(good.id, Number(e.target.value), maxSellQuantity)} style={styles.quantitySlider} />
+                              </div>
+                              <span style={styles.compactFigure}>{selectedQuote?.totalPrice ?? 0} d</span>
+                              <span style={styles.compactFigure}>積載 {(good.weight * selectedQuantity).toFixed(1)}</span>
+                              <button style={{ ...styles.secondaryButton, ...styles.tradeActionButton }} onClick={() => handleAction(sellGood(port.id, good.id, selectedQuantity, marketTargetShip?.instanceId))}>売却</button>
                             </div>
                           </div>
                         )
@@ -1345,6 +1403,35 @@ export function TownScreen({ onManualSave, onLoadLatest }: TownScreenProps) {
                       <div style={styles.infoGridCompact}>
                         <div style={styles.infoBlock}><span style={styles.infoLabel}>選択中の船</span><strong>{selectedShipyardTargetType?.name ?? shipyardTargetShip?.name ?? '未選択'}</strong><small>艤装はこの船に適用されます。</small></div>
                         <div style={styles.infoBlock}><span style={styles.infoLabel}>船体状態</span><strong>{shipyardTargetShip?.currentDurability ?? 0}/{shipyardTargetShip?.maxDurability ?? 0}</strong><small>船員 {shipyardTargetShip?.currentCrew ?? 0}/{shipyardTargetShip?.maxCrew ?? 0} / 積荷 {shipyardTargetShip?.usedCapacity ?? 0}/{shipyardTargetShip?.maxCapacity ?? 0}</small></div>
+                      </div>
+                      <div>
+                        <p style={styles.serviceLabel}>保有船の管理</p>
+                        <div style={styles.list}>
+                          {ships.map((ship) => {
+                            const type = getShip(ship.typeId)
+                            const isFlagship = ship.instanceId === activeShipId
+                            const hasCargo = ship.cargo.length > 0 || ship.usedCapacity > 0
+                            const salePrice = estimateShipSalePrice(ship, type)
+                            return (
+                              <div key={ship.instanceId} style={compactActionRowStyle}>
+                                <div style={styles.tradeMeta}>
+                                  <strong>{type?.name ?? ship.name}{isFlagship ? ' / 旗艦' : ''}{ship.instanceId === shipyardTargetShip?.instanceId ? ' / 艤装対象' : ''}</strong>
+                                  <span style={styles.tradeSub}>売却見積 {salePrice} d / 耐久 {ship.currentDurability}/{ship.maxDurability} / 積荷 {ship.usedCapacity.toFixed(1)}/{ship.maxCapacity.toFixed(1)}</span>
+                                  {isFlagship && <span style={styles.tradeBlocked}>旗艦は売却できません。先に別の船を旗艦にしてください。</span>}
+                                  {hasCargo && !isFlagship && <span style={styles.tradeBlocked}>積荷が残っている船は売却できません。</span>}
+                                </div>
+                                <div style={styles.inlineButtonGroup}>
+                                  <button style={isFlagship ? styles.secondaryButton : styles.primaryButton} disabled={isFlagship} onClick={() => {
+                                    setActiveShip(ship.instanceId)
+                                    setShipyardTargetShipId(ship.instanceId)
+                                    handleAction({ ok: true, message: `${type?.name ?? ship.name} を旗艦にしました。` })
+                                  }}>旗艦にする</button>
+                                  <button style={styles.secondaryButton} disabled={isFlagship || hasCargo || ships.length <= 1} onClick={() => handleAction(sellShip(ship.instanceId))}>売却</button>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
                       <div>
                         <p style={styles.serviceLabel}>{uiText.town.labels.shipyardOffers}</p>
@@ -1615,19 +1702,27 @@ const styles: Record<string, React.CSSProperties> = {
   dialogueTextBox: { minHeight: 104, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8, padding: '16px 18px', borderRadius: 12, background: 'linear-gradient(180deg, rgba(10, 22, 38, 0.96), rgba(13, 28, 48, 0.98))', border: '1px solid rgba(191, 219, 254, 0.28)', color: '#eef6ff', boxShadow: '0 16px 44px rgba(0,0,0,0.38)', fontSize: 18, lineHeight: 1.5 },
   systemMessageWindow: { width: 'min(640px, 100%)', display: 'flex', flexDirection: 'column', gap: 8, padding: '20px 22px', borderRadius: 14, background: 'linear-gradient(180deg, rgba(13, 30, 52, 0.98), rgba(7, 17, 31, 0.98))', border: '1px solid rgba(250, 204, 21, 0.34)', color: '#f8fbff', boxShadow: '0 20px 60px rgba(0,0,0,0.42)', fontSize: 18, lineHeight: 1.5 },
   dialogueAdvanceHint: { color: '#b7c9e3', fontSize: 12, letterSpacing: '0.08em' },
-  tradeGoodSummary: { display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 },
-  tradeMeta: { display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 },
+  tradeGoodSummary: { display: 'flex', alignItems: 'flex-start', gap: 10, minWidth: 0 },
+  tradeMeta: { display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 },
+  tradeGoodName: { color: '#f8fbff', lineHeight: 1.25, wordBreak: 'keep-all', overflowWrap: 'normal' },
   tradeSub: { color: '#93a8c4', fontSize: 12 },
+  marketQuoteLine: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 7, color: '#93a8c4', fontSize: 12 },
+  marketTrendBadge: { display: 'inline-flex', alignItems: 'center', gap: 4, minHeight: 22, padding: '2px 7px', borderRadius: 7, border: '1px solid', fontWeight: 700, lineHeight: 1.2 },
+  marketTrendIcon: { display: 'inline-grid', placeItems: 'center', width: 14, height: 14, borderRadius: 4, background: 'rgba(255,255,255,0.12)', fontSize: 11, lineHeight: 1 },
   questTitleRow: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   questCategoryBadge: { padding: '3px 8px', borderRadius: 999, background: 'rgba(245, 158, 11, 0.2)', border: '1px solid rgba(245, 158, 11, 0.35)', color: '#fde68a', fontSize: 11, lineHeight: 1.3 },
   discoveryGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10 },
   discoveryCard: { display: 'grid', gridTemplateColumns: '54px minmax(0, 1fr)', gap: 10, alignItems: 'start', padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(244, 201, 130, 0.14)' },
   discoveryMeta: { display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 },
   discoveryCategoryBadge: { padding: '3px 8px', borderRadius: 999, background: 'rgba(56, 189, 248, 0.16)', border: '1px solid rgba(125, 211, 252, 0.28)', color: '#bae6fd', fontSize: 11, lineHeight: 1.3 },
-  marketRowDense: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 10, alignItems: 'center', padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.035)' },
-  tradeControlsDense: { display: 'flex', alignItems: 'center', gap: 8 },
-  quantityInput: { width: 60, padding: '7px 8px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.06)', color: '#fff' },
-  compactFigure: { minWidth: 72, textAlign: 'right', color: '#eef4ff', fontSize: 12 },
+  marketRowDense: { display: 'grid', gridTemplateColumns: '1fr', gap: 12, alignItems: 'stretch', padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.035)' },
+  tradeControlsDense: { display: 'grid', gridTemplateColumns: 'minmax(150px, 1fr) 70px 78px 64px', alignItems: 'center', gap: 10, minWidth: 0 },
+  quantitySliderGroup: { display: 'grid', gap: 5, minWidth: 0 },
+  quantitySliderHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, color: '#dbeafe', fontSize: 12 },
+  quantitySlider: { width: '100%', accentColor: '#38bdf8' },
+  miniButton: { minWidth: 48, padding: '5px 8px', borderRadius: 7, border: '1px solid rgba(125, 211, 252, 0.32)', background: 'rgba(14, 165, 233, 0.12)', color: '#bae6fd', cursor: 'pointer', fontWeight: 700, fontSize: 11 },
+  compactFigure: { minWidth: 0, textAlign: 'right', color: '#eef4ff', fontSize: 12 },
+  tradeActionButton: { minWidth: 64, padding: '10px 12px', whiteSpace: 'nowrap' },
   emptyState: { color: '#7b8fab', fontSize: 13, padding: '14px 4px' },
   serviceGrid: { display: 'flex', flexWrap: 'wrap', gap: 10 },
   inlineButtonGroup: { display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end' },

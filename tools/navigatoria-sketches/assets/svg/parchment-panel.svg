@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" width="300" height="400">
+  <!-- Parchment panel edge — torn/aged paper border -->
+  <defs>
+    <filter id="rough">
+      <feTurbulence type="turbulence" baseFrequency="0.04" numOctaves="4" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <radialGradient id="parchment" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f4e8c1"/>
+      <stop offset="60%" stop-color="#efe0b3"/>
+      <stop offset="85%" stop-color="#e0d0a0"/>
+      <stop offset="100%" stop-color="#c8b88a"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- Torn paper shape -->
+  <path d="M15,8 Q30,4 50,10 Q70,5 90,12 Q110,6 130,10 Q150,4 170,9 Q190,5 210,11 Q230,6 250,10 Q270,4 285,8 
+           L292,15 Q296,35 290,60 Q295,85 291,110 Q296,135 290,160 Q294,185 292,210 Q296,235 290,260 
+           Q295,285 291,310 Q294,335 290,360 Q296,375 292,385
+           L285,392 Q265,396 245,390 Q225,395 205,389 Q185,396 165,391 Q145,395 125,390 Q105,396 85,391 Q65,395 45,390 Q25,396 8,392
+           L4,385 Q8,365 5,340 Q9,315 4,290 Q8,265 5,240 Q9,215 4,190 Q8,165 5,140 Q9,115 4,90 Q8,65 5,40 Q9,25 8,15 Z"
+        fill="url(#parchment)" filter="url(#rough)" opacity="0.95"/>
+  
+  <!-- Edge shadow -->
+  <path d="M15,8 Q30,4 50,10 Q70,5 90,12 Q110,6 130,10 Q150,4 170,9 Q190,5 210,11 Q230,6 250,10 Q270,4 285,8 
+           L292,15 Q296,35 290,60 Q295,85 291,110 Q296,135 290,160 Q294,185 292,210 Q296,235 290,260 
+           Q295,285 291,310 Q294,335 290,360 Q296,375 292,385
+           L285,392 Q265,396 245,390 Q225,395 205,389 Q185,396 165,391 Q145,395 125,390 Q105,396 85,391 Q65,395 45,390 Q25,396 8,392
+           L4,385 Q8,365 5,340 Q9,315 4,290 Q8,265 5,240 Q9,215 4,190 Q8,165 5,140 Q9,115 4,90 Q8,65 5,40 Q9,25 8,15 Z"
+        fill="none" stroke="rgba(139,101,8,0.2)" stroke-width="3"/>
+  
+  <!-- Coffee stain ring -->
+  <ellipse cx="220" cy="320" rx="35" ry="30" fill="none" stroke="rgba(139,101,8,0.06)" stroke-width="8"/>
+  <ellipse cx="220" cy="320" rx="35" ry="30" fill="none" stroke="rgba(139,101,8,0.03)" stroke-width="15"/>
+  
+  <!-- Corner fold shadow -->
+  <path d="M4,385 L4,392 L12,392 Z" fill="rgba(0,0,0,0.08)"/>
+</svg>

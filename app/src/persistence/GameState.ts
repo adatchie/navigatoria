@@ -1,7 +1,7 @@
 import { SaveManager } from './SaveManager.ts'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
-import { usePlayerStore } from '@/stores/usePlayerStore.ts'
+import { ensureUniqueShipInstanceIds, usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { useWorldStore } from '@/stores/useWorldStore.ts'
 import { useEconomyStore } from '@/stores/useEconomyStore.ts'
 import { useQuestStore } from '@/stores/useQuestStore.ts'
@@ -10,10 +10,23 @@ import { useNpcFleetStore } from '@/stores/useNpcFleetStore.ts'
 import { useDataStore } from '@/stores/useDataStore.ts'
 import { localizeOfficerName } from '@/game/officers/officerGenerator.ts'
 import { normalizePlayerProgression } from '@/game/player/progression.ts'
+import { getNearestPort } from '@/game/world/queries.ts'
 import type { Port } from '@/types/port.ts'
 import { DEFAULT_GAME_SPEED } from '@/config/gameConfig.ts'
 
 const CURRENT_SAVE_VERSION = 2
+export const SAVE_SLOT_COUNT = 10
+const SLOT_SAVE_NAME_PREFIX = 'SLOT:'
+
+export interface SaveSlotSummary {
+  slot: number
+  saveId: number | null
+  isEmpty: boolean
+  updatedAt: number | null
+  playerName: string | null
+  levelSummary: string | null
+  locationName: string | null
+}
 
 export interface GameSnapshot {
   version: number
@@ -68,12 +81,88 @@ export async function saveCurrentGame(name: string): Promise<number | null> {
   return SaveManager.save(name, { ...snapshot, playerName: snapshot.player.player.name, gameTime: snapshot.gameTime })
 }
 
+export async function saveCurrentGameToSlot(slot: number): Promise<number | null> {
+  const normalizedSlot = normalizeSaveSlot(slot)
+  const snapshot = captureGameState()
+  if (!snapshot || !snapshot.player.player) return null
+  return SaveManager.saveNamed(getSlotSaveName(normalizedSlot), { ...snapshot, playerName: snapshot.player.player.name, gameTime: snapshot.gameTime })
+}
+
+export async function listSaveSlots(): Promise<SaveSlotSummary[]> {
+  const slots: SaveSlotSummary[] = []
+  for (let slot = 1; slot <= SAVE_SLOT_COUNT; slot++) {
+    const entry = await SaveManager.getSaveByName(getSlotSaveName(slot))
+    slots.push(buildSaveSlotSummary(slot, entry))
+  }
+  return slots
+}
+
+export async function loadSaveSlot(slot: number): Promise<GameSnapshot | null> {
+  const entry = await SaveManager.getSaveByName(getSlotSaveName(normalizeSaveSlot(slot)))
+  if (!entry?.id) return null
+  const loaded = await SaveManager.load(entry.id)
+  return loaded as GameSnapshot | null
+}
+
 export async function loadLatestSave(): Promise<GameSnapshot | null> {
   const saves = await SaveManager.listSaves()
   const latest = saves[0]
   if (!latest?.id) return null
   const loaded = await SaveManager.load(latest.id)
   return loaded as GameSnapshot | null
+}
+
+function normalizeSaveSlot(slot: number): number {
+  return Math.max(1, Math.min(SAVE_SLOT_COUNT, Math.floor(slot) || 1))
+}
+
+function getSlotSaveName(slot: number): string {
+  return `${SLOT_SAVE_NAME_PREFIX}${slot}`
+}
+
+function buildSaveSlotSummary(slot: number, entry: Awaited<ReturnType<typeof SaveManager.getSaveByName>>): SaveSlotSummary {
+  if (!entry) {
+    return {
+      slot,
+      saveId: null,
+      isEmpty: true,
+      updatedAt: null,
+      playerName: null,
+      levelSummary: null,
+      locationName: null,
+    }
+  }
+
+  const snapshot = safeParseSnapshot(entry.data)
+  const player = snapshot?.player.player
+  return {
+    slot,
+    saveId: entry.id ?? null,
+    isEmpty: false,
+    updatedAt: entry.updatedAt,
+    playerName: entry.playerName,
+    levelSummary: player ? `冒${player.stats.adventureLevel} / 交${player.stats.tradeLevel} / 戦${player.stats.combatLevel}` : null,
+    locationName: snapshot ? getSnapshotLocationName(snapshot) : null,
+  }
+}
+
+function safeParseSnapshot(data: string): GameSnapshot | null {
+  try {
+    return JSON.parse(data) as GameSnapshot
+  } catch {
+    return null
+  }
+}
+
+function getSnapshotLocationName(snapshot: GameSnapshot): string {
+  const ports = snapshot.world.ports ?? []
+  const dockedPortId = snapshot.navigation.dockedPortId ?? snapshot.player.player?.currentPortId
+  const dockedPort = dockedPortId ? ports.find((port) => port.id === dockedPortId) : undefined
+  if (dockedPort) return dockedPort.name
+
+  const nearest = getNearestPort(snapshot.navigation.position, ports)
+  if (nearest) return `${nearest.port.name}沖`
+  return '洋上'
 }
 
 export function restoreGameState(snapshot: GameSnapshot): void {
@@ -109,23 +198,25 @@ export function restoreGameState(snapshot: GameSnapshot): void {
   const navigationState = dockedPort
     ? { ...snapshot.navigation, position: dockedPort.position }
     : snapshot.navigation
+  const normalizedFleet = ensureUniqueShipInstanceIds(snapshot.player.ships, snapshot.player.activeShipId)
   const playerState = {
     ...snapshot.player,
+    activeShipId: normalizedFleet.activeShipId,
     officers: (snapshot.player.officers ?? []).map((officer, index) => ({
       ...officer,
       name: localizeOfficerName(officer.name, index),
     })),
     officerSalaryProgress: snapshot.player.officerSalaryProgress ?? 0,
-    ships: snapshot.player.ships.map((ship) => {
+    ships: normalizedFleet.ships.map((ship) => {
       const officerAssignments = {
         ...(ship.officerAssignments ?? {}),
         ...(ship.captainOfficerId ? { captain: ship.captainOfficerId } : {}),
       }
-      if (ship.instanceId === snapshot.player.activeShipId) delete officerAssignments.captain
+      if (ship.instanceId === normalizedFleet.activeShipId) delete officerAssignments.captain
       return {
         ...ship,
         officerAssignments: Object.keys(officerAssignments).length > 0 ? officerAssignments : undefined,
-        captainOfficerId: ship.instanceId === snapshot.player.activeShipId ? undefined : officerAssignments.captain,
+        captainOfficerId: ship.instanceId === normalizedFleet.activeShipId ? undefined : officerAssignments.captain,
       }
     }),
     player: dockedPort && snapshot.player.player

@@ -51,23 +51,26 @@ export function createNpcFleetEncounter(params: {
   const ship = getShip(fleet.shipTypeId)
   const roleThreat = ROLE_THREAT[fleet.role] ?? 3
   const shipThreat = ship ? Math.max(1, Math.round(ship.requiredLevel / 5)) : 2
-  const threat = Math.max(1, Math.min(10, roleThreat + shipThreat))
+  const shipCount = Math.max(1, Math.floor(fleet.shipCount ?? 1))
+  const threat = Math.max(1, Math.min(10, roleThreat + shipThreat + Math.max(0, shipCount - 1)))
   const crewMax = ship?.crew.max ?? 42
   const durabilityMax = ship?.durability.max ?? 180
   const crewFactor = ROLE_CREW_FACTOR[fleet.role] ?? 0.78
+  const fleetScale = 1 + (shipCount - 1) * 0.72
 
   return {
     id: `npc_fleet_${fleet.id}_${Math.floor(currentDay * 1000)}`,
     type: getEncounterType(fleet.role),
     title: `${fleet.commander}の艦隊`,
-    description: `${fleet.description} ${fleet.commander}の艦隊に戦闘を仕掛けます。`,
+    description: `${fleet.description} ${fleet.commander}の艦隊に戦闘を仕掛けます。${shipCount > 1 ? `敵は ${shipCount} 隻編成です。` : ''}`,
     shipName: fleet.name,
     shipClass: ship?.name,
     enemyShipTypeId: fleet.shipTypeId,
+    enemyShipCount: shipCount,
     threat,
-    enemyCrew: Math.max(6, Math.round(crewMax * crewFactor)),
-    enemyDurability: Math.max(30, Math.round(durabilityMax * (0.72 + roleThreat * 0.045))),
-    enemyCannonSlots: Math.max(1, ship?.cannonSlots ?? 4),
+    enemyCrew: Math.max(6, Math.round(crewMax * crewFactor * fleetScale)),
+    enemyDurability: Math.max(30, Math.round(durabilityMax * (0.72 + roleThreat * 0.045) * fleetScale)),
+    enemyCannonSlots: Math.max(1, Math.round((ship?.cannonSlots ?? 4) * fleetScale)),
     enemySpeed: ship?.speed ?? fleet.speedKnots,
     enemyTurnRate: ship?.turnRate ?? 42,
     distanceKm: distanceKm(snapshot.position, playerPosition),

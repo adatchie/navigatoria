@@ -3,24 +3,24 @@ import { uiText } from '@/i18n/uiText.ts'
 interface TitleScreenProps {
   onStart: () => void
   onContinue?: () => void
-  canContinue?: boolean
+  hasSaveData?: boolean
 }
 
-export function TitleScreen({ onStart, onContinue, canContinue = false }: TitleScreenProps) {
+export function TitleScreen({ onStart, onContinue, hasSaveData = false }: TitleScreenProps) {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
         <h1 style={styles.title}>大航海時代</h1>
         <h2 style={styles.subtitle}>{uiText.title.subtitle}</h2>
-        <div style={styles.actions}>
-          <button style={styles.startBtn} onClick={onStart}>
-            {uiText.title.newVoyage}
-          </button>
-          {canContinue && onContinue && (
+        <div style={{ ...styles.actions, ...(hasSaveData ? styles.actionsWithContinue : {}) }}>
+          {hasSaveData && onContinue && (
             <button style={styles.continueBtn} onClick={onContinue}>
               {uiText.title.continue}
             </button>
           )}
+          <button style={styles.startBtn} onClick={onStart}>
+            {uiText.title.newVoyage}
+          </button>
         </div>
       </div>
       <p style={styles.version}>{uiText.title.version}</p>
@@ -42,8 +42,9 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 500,
   },
   card: {
-    padding: '40px 48px',
-    borderRadius: 24,
+    width: 'min(520px, calc(100vw - 32px))',
+    padding: '34px 36px',
+    borderRadius: 18,
     background: 'rgba(8, 18, 34, 0.82)',
     border: '1px solid rgba(133, 185, 235, 0.22)',
     boxShadow: '0 20px 80px rgba(0, 0, 0, 0.4)',
@@ -63,10 +64,15 @@ const styles: Record<string, React.CSSProperties> = {
   },
   actions: {
     display: 'flex',
+    flexWrap: 'wrap',
     gap: 12,
     justifyContent: 'center',
   },
+  actionsWithContinue: {
+    justifyContent: 'space-between',
+  },
   startBtn: {
+    flex: '0 1 220px',
     padding: '12px 28px',
     fontSize: 16,
     background: 'linear-gradient(135deg, #2563eb, #0ea5e9)',
@@ -77,11 +83,12 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: 1,
   },
   continueBtn: {
+    flex: '0 1 220px',
     padding: '12px 28px',
     fontSize: 16,
-    background: 'rgba(255,255,255,0.08)',
-    color: '#d6e6fb',
-    border: '1px solid rgba(255,255,255,0.14)',
+    background: 'linear-gradient(135deg, #0f766e, #14b8a6)',
+    color: '#fff',
+    border: 'none',
     borderRadius: 10,
     cursor: 'pointer',
     letterSpacing: 1,

@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Navigatoria — Dark Compass</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Noto+Serif+JP:wght@300;400;700&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-deep: #080b10;
+  --bg: #0d1117;
+  --bg-elevated: #161b22;
+  --bg-card: #1c2230;
+  --border: #30363d;
+  --border-accent: #c9975c;
+  --text: #d1d5db;
+  --text-dim: #6e7681;
+  --text-bright: #f0f3f6;
+  --candle: #f5deb3;
+  --candle-dim: #a08050;
+  --brass: #c9975c;
+  --brass-bright: #e8b86d;
+  --copper: #b87333;
+  --teal: #3fb8af;
+  --ink-red: #a04040;
+}
+
+body {
+  font-family: 'Noto Serif JP', serif;
+  background: var(--bg-deep);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+}
+
+/* === Header — captain's desk === */
+.header {
+  background: linear-gradient(180deg, #161b22 0%, #0d1117 100%);
+  border-bottom: 1px solid var(--border-accent);
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* warm candlelight glow from top-right */
+.header::after {
+  content: '';
+  position: absolute;
+  top: -40px; right: 60px;
+  width: 200px; height: 120px;
+  background: radial-gradient(ellipse, rgba(245,222,179,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.port-compass {
+  width: 44px; height: 44px;
+  border: 2px solid var(--brass);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  position: relative;
+  background: var(--bg-card);
+  box-shadow: 0 0 12px rgba(201,151,92,0.15), inset 0 0 8px rgba(0,0,0,0.5);
+}
+.port-compass::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: 50%;
+  width: 2px; height: 8px;
+  background: var(--brass-bright);
+  transform: translateX(-50%);
+  border-radius: 1px;
+}
+
+.port-info h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--candle);
+  letter-spacing: 3px;
+  text-shadow: 0 0 20px rgba(245,222,179,0.15);
+}
+
+.port-info span {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+.header-actions { display: flex; gap: 8px; }
+
+.btn-captain {
+  background: transparent;
+  color: var(--brass);
+  border: 1px solid var(--brass);
+  padding: 6px 16px;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+  letter-spacing: 1px;
+}
+.btn-captain:hover {
+  background: rgba(201,151,92,0.1);
+  box-shadow: 0 0 8px rgba(201,151,92,0.2);
+  color: var(--brass-bright);
+}
+
+/* === Status — engraved plate === */
+.status-strip {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 24px;
+  display: flex;
+  gap: 20px;
+  font-size: 12px;
+}
+
+.stat {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.stat-label {
+  color: var(--text-dim);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stat-value {
+  color: var(--candle);
+  font-weight: 700;
+  font-family: 'Playfair Display', serif;
+}
+
+.stat-value.dim { color: var(--text); }
+
+/* === Main === */
+.main-layout {
+  display: flex;
+  flex: 1;
+}
+
+/* === Sidebar — lantern-lit corridor === */
+.sidebar {
+  width: 190px;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* subtle candlelight at top */
+.sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  width: 100px; height: 80px;
+  background: radial-gradient(ellipse, rgba(245,222,179,0.04) 0%, transparent 70%);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.nav-divider {
+  padding: 12px 18px 4px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: var(--brass);
+  opacity: 0.5;
+  font-family: 'Playfair Display', serif;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.nav-item::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%;
+  width: 2px; height: 0;
+  background: var(--brass);
+  transition: height 0.2s, top 0.2s;
+}
+.nav-item:hover {
+  color: var(--text);
+  background: rgba(201,151,92,0.03);
+}
+.nav-item:hover::before {
+  height: 60%;
+  top: 20%;
+}
+.nav-item.active {
+  color: var(--candle);
+  background: rgba(201,151,92,0.06);
+}
+.nav-item.active::before {
+  height: 60%;
+  top: 20%;
+}
+
+.nav-icon {
+  font-size: 15px;
+  width: 20px;
+  text-align: center;
+}
+
+.sidebar-bottom {
+  margin-top: auto;
+  padding: 14px 18px;
+  border-top: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--text-dim);
+  line-height: 1.8;
+}
+
+/* === Content — captain's log === */
+.content {
+  flex: 1;
+  background: var(--bg-deep);
+  padding: 28px 36px;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* warm glow top-right */
+.content::before {
+  content: '';
+  position: absolute;
+  top: -20px; right: 40px;
+  width: 300px; height: 200px;
+  background: radial-gradient(ellipse, rgba(245,222,179,0.04) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.content-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--candle);
+  letter-spacing: 4px;
+  margin-bottom: 4px;
+  text-shadow: 0 0 30px rgba(245,222,179,0.1);
+}
+
+.content-coords {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+  letter-spacing: 1px;
+}
+
+.content-desc {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 2;
+  max-width: 580px;
+  opacity: 0.8;
+  margin-bottom: 28px;
+}
+
+/* ornamental divider */
+.ornament {
+  text-align: center;
+  color: var(--brass);
+  opacity: 0.3;
+  font-size: 18px;
+  letter-spacing: 12px;
+  margin: 20px 0;
+}
+
+/* Facility cards — candles in dark */
+.facility-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.facility-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+.facility-card::after {
+  content: '';
+  position: absolute;
+  top: -20px; right: -20px;
+  width: 60px; height: 60px;
+  background: radial-gradient(ellipse, rgba(245,222,179,0.04) 0%, transparent 70%);
+  pointer-events: none;
+  transition: opacity 0.25s;
+  opacity: 0;
+}
+.facility-card:hover {
+  border-color: var(--brass);
+  box-shadow: 0 2px 12px rgba(201,151,92,0.1);
+  transform: translateY(-2px);
+}
+.facility-card:hover::after {
+  opacity: 1;
+}
+
+.facility-icon {
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.facility-name {
+  font-weight: 700;
+  color: var(--candle);
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+
+.facility-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+/* Bottom info */
+.bottom-info {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.info-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 14px 16px;
+}
+
+.info-card-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--brass);
+  opacity: 0.6;
+  margin-bottom: 6px;
+  font-family: 'Playfair Display', serif;
+}
+
+.info-card-value {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="port-compass">⚓</div>
+    <div class="port-info">
+      <h1>LISSABON</h1>
+      <span>ポルトガル / 西ヨーロッパ / 税率 5%</span>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn-captain">記録する</button>
+    <button class="btn-captain">記録を読む</button>
+  </div>
+</div>
+
+<div class="status-strip">
+  <div class="stat">
+    <span class="stat-label">所持金</span>
+    <span class="stat-value">10,000 d</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">艦隊</span>
+    <span class="stat-value dim">5/5 隻</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">旗艦</span>
+    <span class="stat-value dim">バルカ</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">耐久</span>
+    <span class="stat-value dim">815/815</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">船員</span>
+    <span class="stat-value dim">71/184</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">士気</span>
+    <span class="stat-value dim">72 安定</span>
+  </div>
+</div>
+
+<div class="main-layout">
+  <nav class="sidebar">
+    <div class="nav-divider">Port</div>
+    <a class="nav-item active"><span class="nav-icon">🏰</span> 港概要</a>
+    <a class="nav-item"><span class="nav-icon">⛵</span> 出航所</a>
+    <a class="nav-item"><span class="nav-icon">💰</span> 市場</a>
+    <a class="nav-item"><span class="nav-icon">🗡</span> ギルド</a>
+    <a class="nav-item"><span class="nav-icon">🍻</span> 酒場</a>
+    <div class="nav-divider">Service</div>
+    <a class="nav-item"><span class="nav-icon">🔨</span> 造船所</a>
+    <a class="nav-item"><span class="nav-icon">🏦</span> 銀行</a>
+    <a class="nav-item"><span class="nav-icon">📦</span> 保管庫</a>
+    <div class="sidebar-bottom">
+      発展度 85<br>
+      市場 L.4 / ギルド L.3<br>
+      造船所 L.4 / 酒場 L.3<br>
+      王宮 L.5 / 銀行 L.3
+    </div>
+  </nav>
+
+  <div class="content">
+    <h2 class="content-title">リスボン</h2>
+    <div class="content-coords">38°42'N 9°08'W — ポルトガル王国</div>
+
+    <p class="content-desc">
+      テージョ川に面したポルトガル王国の都。丘陵に広がる街並みと賑わう港には、遠洋航海を支える施設が集まっています。
+      南方への航海を夢見る者たちが集う、大航海時代の中心的な拠点です。
+    </p>
+
+    <div class="ornament">◆ ◇ ◆ ◇ ◆</div>
+
+    <div class="facility-grid">
+      <div class="facility-card">
+        <div class="facility-icon">⛵</div>
+        <div class="facility-name">出航所</div>
+        <div class="facility-sub">河岸の桟橋</div>
+      </div>
+      <div class="facility-card">
+        <div class="facility-icon">💰</div>
+        <div class="facility-name">市場</div>
+        <div class="facility-sub">港前広場</div>
+      </div>
+      <div class="facility-card">
+        <div class="facility-icon">🗡</div>
+        <div class="facility-name">ギルド</div>
+        <div class="facility-sub">商館街</div>
+      </div>
+      <div class="facility-card">
+        <div class="facility-icon">🍻</div>
+        <div class="facility-name">酒場</div>
+        <div class="facility-sub">坂道の路地</div>
+      </div>
+      <div class="facility-card">
+        <div class="facility-icon">🔨</div>
+        <div class="facility-name">造船所</div>
+        <div class="facility-sub">河口の船渠</div>
+      </div>
+      <div class="facility-card">
+        <div class="facility-icon">🏦</div>
+        <div class="facility-name">銀行</div>
+        <div class="facility-sub">城壁内の両替商</div>
+      </div>
+      <div class="facility-card">
+        <div class="facility-icon">📦</div>
+        <div class="facility-name">保管庫</div>
+        <div class="facility-sub">倉庫街</div>
+      </div>
+    </div>
+
+    <div class="bottom-info">
+      <div class="info-card">
+        <div class="info-card-label">Port Registry</div>
+        <div class="info-card-value">
+          portugal / 発展度 85<br>
+          市場 Lv.4 / ギルド Lv.3 / 造船所 Lv.4<br>
+          酒場 Lv.3 / 王宮 Lv.5 / 銀行 Lv.3
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-label">Fleet Status</div>
+        <div class="info-card-value">
+          5/5 隻 — 旗艦 バルカ<br>
+          船体 815/815 / 士気 72 安定<br>
+          船長 航海者 — 交易 0 / 名声 0
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

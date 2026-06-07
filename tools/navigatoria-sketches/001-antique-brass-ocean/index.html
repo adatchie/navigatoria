@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Navigatoria — Ocean / Antique Brass</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Cinzel:wght@400;700&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --parchment: #f4e8c1;
+  --parchment-dark: #d4c4a0;
+  --ink: #2c1810;
+  --ink-light: #5a3d2b;
+  --brass: #b8860b;
+  --brass-light: #d4a843;
+  --brass-dark: #8b6508;
+  --wood: #3e2723;
+  --wood-light: #5d4037;
+  --gold-leaf: #c5a044;
+}
+
+body {
+  font-family: 'Noto Serif JP', serif;
+  background: #0a1628;
+  color: var(--parchment);
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Simulated ocean background */
+.ocean-bg {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(180deg, #1a3a5c 0%, #0d2847 30%, #0a1e3a 60%, #071528 100%);
+}
+.ocean-bg::before {
+  content: '';
+  position: absolute;
+  top: 40%; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(180deg, transparent, rgba(0,20,40,0.5));
+}
+
+/* === Top bar — wooden frame === */
+.top-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  background: linear-gradient(180deg, rgba(62,39,35,0.95) 0%, rgba(46,30,20,0.9) 100%);
+  border-bottom: 2px solid var(--brass);
+  padding: 6px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.date-display {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  color: var(--gold-leaf);
+  letter-spacing: 1px;
+}
+
+.date-display span {
+  color: var(--brass-light);
+  font-size: 11px;
+  margin-left: 8px;
+}
+
+.speed-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-speed {
+  background: linear-gradient(180deg, #5d4037, #4e342e);
+  color: var(--brass-light);
+  border: 1px solid var(--brass-dark);
+  padding: 3px 10px;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: 2px;
+}
+.btn-speed.active {
+  background: linear-gradient(180deg, var(--brass-dark), var(--brass));
+  color: var(--wood);
+  font-weight: 700;
+}
+.btn-speed:hover {
+  background: linear-gradient(180deg, #6d4c41, #5d4037);
+}
+
+/* === Bottom HUD — ship status === */
+.bottom-hud {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  z-index: 10;
+}
+
+/* Ship status bar */
+.ship-status {
+  display: flex;
+  gap: 2px;
+  padding: 0 16px 8px;
+}
+
+.ship-card {
+  flex: 1;
+  background: rgba(62,39,35,0.9);
+  border: 1px solid var(--brass-dark);
+  border-radius: 3px;
+  padding: 6px 10px;
+  font-size: 11px;
+  backdrop-filter: blur(4px);
+}
+
+.ship-card.flagship {
+  border-color: var(--brass);
+  box-shadow: 0 0 6px rgba(184,134,11,0.2);
+}
+
+.ship-card-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 3px;
+}
+
+.ship-card-name {
+  font-weight: 700;
+  color: var(--gold-leaf);
+  font-size: 12px;
+}
+
+.ship-card-role {
+  font-size: 9px;
+  color: var(--brass);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.ship-card-stats {
+  display: flex;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--parchment-dark);
+}
+
+/* === Compass — bottom right === */
+.compass-container {
+  position: absolute;
+  bottom: 90px;
+  right: 20px;
+  z-index: 10;
+}
+
+.compass {
+  width: 80px;
+  height: 80px;
+  border: 2px solid var(--brass);
+  border-radius: 50%;
+  background: rgba(62,39,35,0.9);
+  position: relative;
+  box-shadow: 0 0 12px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,0,0,0.3);
+  backdrop-filter: blur(4px);
+}
+
+.compass-needle {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 2px;
+  height: 30px;
+  background: linear-gradient(180deg, var(--red-seal, #8b1a1a) 50%, var(--brass) 50%);
+  transform-origin: top center;
+  transform: translate(-50%, 0) rotate(225deg);
+  margin-top: 10px;
+}
+
+.compass-n {
+  position: absolute;
+  top: 6px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--gold-leaf);
+  font-family: 'Cinzel', serif;
+}
+.compass-s { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); font-size: 9px; color: var(--brass); }
+.compass-e { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 9px; color: var(--brass); }
+.compass-w { position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 9px; color: var(--brass); }
+
+.compass-bearing {
+  text-align: center;
+  margin-top: 4px;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  color: var(--brass-light);
+}
+
+/* === Sail control — bottom left === */
+.sail-control {
+  position: absolute;
+  bottom: 90px;
+  left: 20px;
+  z-index: 10;
+}
+
+.sail-panel {
+  background: rgba(62,39,35,0.9);
+  border: 1px solid var(--brass-dark);
+  border-radius: 4px;
+  padding: 10px;
+  backdrop-filter: blur(4px);
+}
+
+.sail-label {
+  font-size: 10px;
+  color: var(--brass);
+  margin-bottom: 6px;
+  letter-spacing: 1px;
+}
+
+.sail-slider {
+  width: 120px;
+  -webkit-appearance: none;
+  height: 4px;
+  background: var(--wood-light);
+  border-radius: 2px;
+  outline: none;
+  margin-bottom: 6px;
+}
+.sail-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--brass);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(0,0,0,0.3);
+}
+
+.sail-buttons {
+  display: flex;
+  gap: 3px;
+}
+
+.btn-sail {
+  background: var(--wood-light);
+  color: var(--brass-light);
+  border: 1px solid var(--brass-dark);
+  padding: 3px 8px;
+  font-size: 10px;
+  cursor: pointer;
+  border-radius: 2px;
+  font-family: 'Noto Serif JP', serif;
+}
+.btn-sail:hover {
+  background: var(--brass-dark);
+  color: var(--parchment);
+}
+
+/* === Info readout — top right === */
+.info-readout {
+  position: absolute;
+  top: 50px;
+  right: 16px;
+  z-index: 10;
+  background: rgba(62,39,35,0.85);
+  border: 1px solid var(--brass-dark);
+  border-radius: 4px;
+  padding: 10px 14px;
+  font-size: 11px;
+  backdrop-filter: blur(4px);
+  min-width: 160px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+}
+
+.info-label { color: var(--brass); }
+.info-val { color: var(--parchment); font-weight: 700; }
+
+/* === Event toast === */
+.event-toast {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(62,39,35,0.95);
+  border: 2px solid var(--brass);
+  border-radius: 6px;
+  padding: 16px 28px;
+  text-align: center;
+  z-index: 20;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  max-width: 360px;
+}
+
+.event-icon {
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.event-text {
+  font-size: 13px;
+  color: var(--parchment);
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+
+.btn-dismiss {
+  background: linear-gradient(180deg, var(--brass), var(--brass-dark));
+  color: var(--wood);
+  border: none;
+  padding: 5px 20px;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 3px;
+  font-weight: 700;
+}
+
+/* === Quest tracker — top left === */
+.quest-tracker {
+  position: absolute;
+  top: 50px;
+  left: 16px;
+  z-index: 10;
+}
+
+.btn-quest {
+  background: rgba(62,39,35,0.9);
+  color: var(--gold-leaf);
+  border: 1px solid var(--brass);
+  padding: 5px 14px;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: 3px;
+  backdrop-filter: blur(4px);
+}
+</style>
+</head>
+<body>
+
+<div class="ocean-bg"></div>
+
+<div class="top-bar">
+  <div class="date-display">
+    1522年 1月 1日 03:15<span>Day 0</span>
+  </div>
+  <div class="speed-controls">
+    <button class="btn-speed">⏸</button>
+    <button class="btn-speed">½×</button>
+    <button class="btn-speed active">1×</button>
+    <button class="btn-speed">2×</button>
+    <button class="btn-speed">4×</button>
+  </div>
+</div>
+
+<div class="quest-tracker">
+  <button class="btn-quest">📜 クエスト 0/3</button>
+</div>
+
+<div class="info-readout">
+  <div class="info-row">
+    <span class="info-label">速力</span>
+    <span class="info-val">2.0 kt</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">方位</span>
+    <span class="info-val">225° 南西</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">最寄り港</span>
+    <span class="info-val">リスボン 12.2km</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">帆</span>
+    <span class="info-val">50%</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">風</span>
+    <span class="info-val">231° / 16.5kt</span>
+  </div>
+</div>
+
+<div class="event-toast">
+  <div class="event-icon">⚠</div>
+  <div class="event-text">船内で口論が起き、士気が下がりました。</div>
+  <button class="btn-dismiss">閉じる</button>
+</div>
+
+<div class="sail-control">
+  <div class="sail-panel">
+    <div class="sail-label">帆展開</div>
+    <input type="range" class="sail-slider" min="0" max="100" value="50">
+    <div class="sail-buttons">
+      <button class="btn-sail">収帆</button>
+      <button class="btn-sail">¼</button>
+      <button class="btn-sail">半帆</button>
+      <button class="btn-sail">¾</button>
+      <button class="btn-sail">全帆</button>
+    </div>
+  </div>
+</div>
+
+<div class="compass-container">
+  <div class="compass">
+    <div class="compass-n">N</div>
+    <div class="compass-s">S</div>
+    <div class="compass-e">E</div>
+    <div class="compass-w">W</div>
+    <div class="compass-needle"></div>
+  </div>
+  <div class="compass-bearing">225° 南西</div>
+</div>
+
+<div class="bottom-hud">
+  <div class="ship-status">
+    <div class="ship-card flagship">
+      <div class="ship-card-header">
+        <span class="ship-card-name">⚓ バルカ</span>
+        <span class="ship-card-role">旗艦</span>
+      </div>
+      <div class="ship-card-stats">
+        <span>耐久 120/120</span>
+        <span>船員 5/14</span>
+      </div>
+    </div>
+    <div class="ship-card">
+      <div class="ship-card-header">
+        <span class="ship-card-name">ラティーナ</span>
+        <span class="ship-card-role">僚船</span>
+      </div>
+      <div class="ship-card-stats">
+        <span>耐久 170/170</span>
+        <span>船員 9/26</span>
+      </div>
+    </div>
+    <div class="ship-card">
+      <div class="ship-card-header">
+        <span class="ship-card-name">ピンネース</span>
+        <span class="ship-card-role">僚船</span>
+      </div>
+      <div class="ship-card-stats">
+        <span>耐久 125/125</span>
+        <span>船員 6/16</span>
+      </div>
+    </div>
+    <div class="ship-card">
+      <div class="ship-card-header">
+        <span class="ship-card-name">ダウ</span>
+        <span class="ship-card-role">僚船</span>
+      </div>
+      <div class="ship-card-stats">
+        <span>耐久 155/155</span>
+        <span>船員 9/24</span>
+      </div>
+    </div>
+    <div class="ship-card">
+      <div class="ship-card-header">
+        <span class="ship-card-name">ガレー</span>
+        <span class="ship-card-role">僚船</span>
+      </div>
+      <div class="ship-card-stats">
+        <span>耐久 245/245</span>
+        <span>船員 42/104</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

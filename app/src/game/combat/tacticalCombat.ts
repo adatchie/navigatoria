@@ -149,29 +149,33 @@ export function buildInitialTacticalBattle(params: {
     ? params.getShipType(params.encounter.enemyShipTypeId)
     : undefined
 
-  const enemyShip: TacticalShipState = {
-    id: params.encounter.id + ':enemy-1',
+  const enemyShipCount = clamp(Math.floor(params.encounter.enemyShipCount ?? 1), 1, 5)
+  const enemyDurabilityPerShip = Math.max(1, Math.round(params.encounter.enemyDurability / enemyShipCount))
+  const enemyCrewPerShip = Math.max(1, Math.round(params.encounter.enemyCrew / enemyShipCount))
+  const enemyCannonSlotsPerShip = Math.max(1, Math.round(params.encounter.enemyCannonSlots / enemyShipCount))
+  const enemyShips: TacticalShipState[] = Array.from({ length: enemyShipCount }, (_, index) => ({
+    id: `${params.encounter.id}:enemy-${index + 1}`,
     side: 'enemy',
-    name: params.encounter.shipName,
+    name: enemyShipCount > 1 ? `${params.encounter.shipName} ${index + 1}` : params.encounter.shipName,
     modelId: enemyShipType?.modelId,
-    position: { x: ENEMY_START_X, y: 50 },
+    position: { x: ENEMY_START_X, y: getFormationY(index, enemyShipCount) },
     heading: 270,
-    durability: params.encounter.enemyDurability,
-    maxDurability: params.encounter.enemyDurability,
-    crew: params.encounter.enemyCrew,
-    maxCrew: params.encounter.enemyCrew,
+    durability: enemyDurabilityPerShip,
+    maxDurability: enemyDurabilityPerShip,
+    crew: enemyCrewPerShip,
+    maxCrew: enemyCrewPerShip,
     speed: params.encounter.enemySpeed,
     turnRate: params.encounter.enemyTurnRate,
-    cannonSlots: params.encounter.enemyCannonSlots,
+    cannonSlots: enemyCannonSlotsPerShip,
     status: 'active',
-  }
+  }))
 
   return {
     phase: 'player_targeting',
     turn: 1,
     elapsedSeconds: 0,
     wind: params.wind,
-    ships: [...playerShips, enemyShip],
+    ships: [...playerShips, ...enemyShips],
     orders: [],
   }
 }

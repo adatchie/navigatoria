@@ -5,11 +5,13 @@ import { fileURLToPath } from 'node:url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(__dirname, '..')
 const inputPath = path.join(repoRoot, 'src/data/master/ne_50m_land.json')
+const corridorPath = path.join(repoRoot, 'src/data/master/navigableWaterCorridors.json')
 const outputDir = path.join(repoRoot, 'src/data/generated')
 const outputPath = path.join(outputDir, 'renderLandMask.ts')
 
 const MASK_WIDTH = 2048
 const MASK_HEIGHT = 1024
+const WORLD_WIDTH = 1600 * 32
 const MAX_MERCATOR_LAT = 85.05112878
 const BASE64_LINE_LENGTH = 96
 
@@ -29,6 +31,36 @@ function projectPoint([lon, lat]) {
   const x = ((lon + 180) / 360) * MASK_WIDTH
   const y = ((mercatorY(lat) - mercatorMin) / (mercatorMax - mercatorMin)) * MASK_HEIGHT
   return [x, y]
+}
+
+function clampPointToSegment(point, segmentStart, segmentEnd) {
+  const [px, py] = point
+  const [ax, ay] = segmentStart
+  const [bx, by] = segmentEnd
+  const abx = bx - ax
+  const aby = by - ay
+  const segmentLengthSq = abx * abx + aby * aby
+  if (segmentLengthSq === 0) return [ax, ay]
+  const t = Math.max(0, Math.min(1, ((px - ax) * abx + (py - ay) * aby) / segmentLengthSq))
+  return [ax + abx * t, ay + aby * t]
+}
+
+function distanceSq(a, b) {
+  const dx = a[0] - b[0]
+  const dy = a[1] - b[1]
+  return dx * dx + dy * dy
+}
+
+function isPointInNavigableCorridor(point, corridors) {
+  for (const corridor of corridors) {
+    const projectedPoints = corridor.projectedPoints
+    const radiusSq = corridor.maskRadius * corridor.maskRadius
+    for (let i = 1; i < projectedPoints.length; i += 1) {
+      const closest = clampPointToSegment(point, projectedPoints[i - 1], projectedPoints[i])
+      if (distanceSq(point, closest) <= radiusSq) return true
+    }
+  }
+  return false
 }
 
 function projectRing(ring) {
@@ -91,6 +123,10 @@ function chunkString(value, chunkLength) {
 }
 
 const collection = JSON.parse(fs.readFileSync(inputPath, 'utf8'))
+const corridors = JSON.parse(fs.readFileSync(corridorPath, 'utf8')).map((corridor) => ({
+  projectedPoints: corridor.points.map(projectPoint),
+  maskRadius: (corridor.radius / WORLD_WIDTH) * MASK_WIDTH,
+}))
 const polygons = []
 
 for (const feature of collection.features) {
@@ -115,6 +151,7 @@ for (let y = 0; y < MASK_HEIGHT; y += 1) {
   for (let x = 0; x < MASK_WIDTH; x += 1) {
     const sampleX = x + 0.5
     const sampleY = y + 0.5
+    if (isPointInNavigableCorridor([sampleX, sampleY], corridors)) continue
     const isLand = polygons.some((polygon) =>
       isPointInBounds(sampleX, sampleY, polygon.bounds) &&
       isPointInPolygon(sampleX, sampleY, polygon),

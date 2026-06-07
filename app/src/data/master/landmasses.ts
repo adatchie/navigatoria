@@ -6,6 +6,7 @@
 // ============================================================
 
 import landRaw from '@/data/master/ne_110m_land.json'
+import { isPointInNavigableWaterCorridor } from '@/data/master/navigableWaterCorridors.ts'
 import { projectGeoPairToWorld } from '@/data/master/worldMapProjection.ts'
 
 export interface LandPolygon {
@@ -143,6 +144,7 @@ function isPointInPolygon(point: [number, number], polygon: LandPolygon): boolea
 }
 
 export function isPointOnLand(point: [number, number]): boolean {
+  if (isPointInNavigableWaterCorridor(point)) return false
   for (const polygon of LANDMASSES) {
     if (!isPointInBounds(point, polygon.bounds)) continue
     if (isPointInPolygon(point, polygon)) return true

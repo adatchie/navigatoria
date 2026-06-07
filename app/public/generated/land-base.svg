@@ -1,5 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="4096" height="2048" viewBox="0 0 4096 2048">
-<g fill="#7a6549" fill-rule="evenodd" clip-rule="evenodd">
+<defs>
+<mask id="water-corridor-mask" maskUnits="userSpaceOnUse">
+<rect width="4096" height="2048" fill="white"/>
+<path d="M1751.6,775.7 L1750.1,775.0 L1748.2,774.1 L1745.9,773.2 L1742.8,772.6 L1738.5,772.0 L1732.3,771.0 L1726.0,770.0 L1720.9,768.8 L1718.0,768.3" stroke="black" stroke-width="2.88" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<path d="M1718.8,768.5 L1718.0,768.0 L1717.7,767.5 L1717.5,767.1 L1717.2,766.6 L1717.0,766.1 L1716.9,765.6 L1717.0,765.0 L1717.2,764.4 L1717.6,763.8" stroke="black" stroke-width="3.52" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<path d="M1705.5,834.7 L1702.7,836.4 L1699.3,839.3 L1695.3,842.7 L1693.8,845.1 L1692.1,849.2 L1693.9,854.1 L1697.0,859.6 L1694.2,864.4 L1686.8,869.5 L1677.1,872.4" stroke="black" stroke-width="4.16" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<path d="M1281.7,883.3 L1276.0,876.4 L1272.6,869.5 L1272.7,862.3 L1270.3,855.4" stroke="black" stroke-width="4.48" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<path d="M833.4,963.6 L842.5,960.7 L849.4,956.7 L857.3,953.2 L864.1,950.3 L866.2,947.0" stroke="black" stroke-width="5.44" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<path d="M2767.1,703.3 L2798.9,708.1 L2833.1,714.5 L2858.1,722.0 L2884.8,732.7 L2916.1,742.7 L2940.0,749.0 L2947.6,751.9" stroke="black" stroke-width="5.76" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</mask>
+</defs>
+<g fill="#7a6549" fill-rule="evenodd" clip-rule="evenodd" mask="url(#water-corridor-mask)">
 <path d="M0.0,1117.2 L1.7,1118.0 L2.3,1118.4 L2.9,1118.9 L4.3,1119.4 L5.0,1120.0 L4.9,1120.7 L3.4,1120.0 L1.8,1119.4 L1.3,1119.3 L0.8,1119.3 L0.8,1119.5 L1.1,1119.7 L1.3,1120.2 L0.8,1120.6 L2.0,1120.6 L3.2,1120.6 L4.7,1120.9 L6.1,1121.0 L6.6,1121.0 L7.1,1120.9 L7.4,1120.8 L7.7,1120.5 L8.0,1120.4 L9.1,1120.5 L10.7,1121.1 L11.3,1121.6 L11.9,1121.6 L12.7,1121.5 L13.6,1121.9 L14.7,1122.0 L15.2,1121.7 L15.5,1121.3 L15.9,1121.0 L17.1,1120.9 L16.9,1120.5 L16.6,1120.4 L16.3,1120.2 L16.1,1119.9 L15.5,1120.1 L14.9,1120.2 L14.3,1120.0 L13.6,1120.0 L12.9,1119.4 L11.8,1119.1 L10.3,1118.8 L8.8,1118.6 L8.0,1118.6 L7.3,1118.5 L6.0,1118.0 L5.1,1117.7 L4.1,1117.6 L3.2,1117.5 L2.4,1117.5 L1.7,1117.5 L0.0,1117.1 L0.0,1117.2 Z"/>
 <path d="M31.5,1123.0 L32.1,1123.1 L31.7,1122.7 L31.4,1122.5 L31.2,1122.5 L30.9,1122.5 L31.0,1122.8 L31.5,1123.0 Z"/>
 <path d="M598.8,1019.5 L599.2,1019.7 L599.5,1019.6 L599.8,1019.4 L599.7,1019.2 L599.4,1019.1 L599.0,1019.2 L598.8,1019.5 Z"/>

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Navigatoria — Antique Brass</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Cinzel:wght@400;700&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --parchment: #f4e8c1;
+  --parchment-dark: #d4c4a0;
+  --ink: #2c1810;
+  --ink-light: #5a3d2b;
+  --brass: #b8860b;
+  --brass-light: #d4a843;
+  --brass-dark: #8b6508;
+  --wood: #3e2723;
+  --wood-light: #5d4037;
+  --sea-blue: #1a4a5e;
+  --red-seal: #8b1a1a;
+  --gold-leaf: #c5a044;
+}
+
+body {
+  font-family: 'Noto Serif JP', serif;
+  background: var(--wood);
+  color: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* === Header — wooden frame === */
+.header {
+  background: linear-gradient(180deg, #4a3228 0%, #3e2723 40%, #352118 100%);
+  border-bottom: 3px solid var(--brass);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5), inset 0 -1px 0 var(--brass-dark);
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.port-icon {
+  width: 40px; height: 40px;
+  background: var(--brass);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  box-shadow: inset 0 1px 3px rgba(255,255,255,0.3), 0 2px 4px rgba(0,0,0,0.4);
+  border: 2px solid var(--brass-dark);
+}
+
+.port-name {
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  color: var(--gold-leaf);
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  letter-spacing: 2px;
+}
+
+.port-subtitle {
+  font-size: 12px;
+  color: var(--brass-light);
+  opacity: 0.8;
+}
+
+.header-actions {
+  display: flex; gap: 8px;
+}
+
+.btn-wood {
+  background: linear-gradient(180deg, #5d4037 0%, #4e342e 100%);
+  color: var(--gold-leaf);
+  border: 1px solid var(--brass-dark);
+  padding: 6px 14px;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 3px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 3px rgba(0,0,0,0.3);
+  transition: all 0.15s;
+}
+.btn-wood:hover {
+  background: linear-gradient(180deg, #6d4c41 0%, #5d4037 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 5px rgba(0,0,0,0.4);
+}
+
+/* === Status bar — brass plaque === */
+.status-bar {
+  background: linear-gradient(90deg, var(--parchment-dark) 0%, var(--parchment) 20%, var(--parchment) 80%, var(--parchment-dark) 100%);
+  border-top: 1px solid var(--brass);
+  border-bottom: 2px solid var(--brass-dark);
+  padding: 8px 24px;
+  display: flex;
+  gap: 24px;
+  font-size: 13px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-label {
+  color: var(--ink-light);
+  font-size: 11px;
+}
+
+.status-value {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.status-value.gold { color: var(--brass-dark); }
+
+/* === Main layout === */
+.main-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* === Sidebar — navigation compass === */
+.sidebar {
+  width: 200px;
+  background: linear-gradient(180deg, #3e2723 0%, #2c1810 100%);
+  border-right: 2px solid var(--brass-dark);
+  padding: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: inset -3px 0 8px rgba(0,0,0,0.3);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  color: var(--brass-light);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-left: 3px solid transparent;
+  text-decoration: none;
+}
+.nav-item:hover {
+  background: rgba(184,134,11,0.1);
+  color: var(--gold-leaf);
+  border-left-color: var(--brass);
+}
+.nav-item.active {
+  background: rgba(184,134,11,0.15);
+  color: var(--gold-leaf);
+  border-left-color: var(--brass);
+  box-shadow: inset 0 0 8px rgba(184,134,11,0.1);
+}
+.nav-icon {
+  font-size: 16px;
+  width: 24px;
+  text-align: center;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(184,134,11,0.2);
+  font-size: 11px;
+  color: var(--brass);
+  opacity: 0.6;
+}
+
+/* === Content — parchment scroll === */
+.content {
+  flex: 1;
+  background: linear-gradient(135deg, #f4e8c1 0%, #efe0b3 30%, #f4e8c1 70%, #e8d5a3 100%);
+  padding: 24px 32px;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* parchment edge shadow */
+.content::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  box-shadow: inset 0 0 30px rgba(139,101,8,0.15);
+  pointer-events: none;
+}
+
+.content-title {
+  font-family: 'Cinzel', serif;
+  font-size: 28px;
+  color: var(--ink);
+  margin-bottom: 8px;
+  letter-spacing: 3px;
+}
+
+.content-desc {
+  font-size: 14px;
+  color: var(--ink-light);
+  line-height: 1.8;
+  margin-bottom: 24px;
+  max-width: 600px;
+}
+
+/* Facility grid */
+.facility-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.facility-card {
+  background: rgba(255,255,255,0.4);
+  border: 1px solid var(--parchment-dark);
+  border-radius: 4px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(139,101,8,0.1);
+}
+.facility-card:hover {
+  background: rgba(255,255,255,0.6);
+  border-color: var(--brass);
+  box-shadow: 0 3px 8px rgba(139,101,8,0.2);
+  transform: translateY(-1px);
+}
+
+.facility-icon {
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.facility-name {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.facility-desc {
+  font-size: 12px;
+  color: var(--ink-light);
+  font-style: italic;
+}
+
+/* City info panel */
+.city-info {
+  background: rgba(62,39,35,0.08);
+  border: 1px solid var(--parchment-dark);
+  border-radius: 4px;
+  padding: 16px;
+  margin-top: 24px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--ink-light);
+}
+
+.city-info strong {
+  color: var(--ink);
+}
+
+/* Seal stamp decoration */
+.seal {
+  position: absolute;
+  top: 24px;
+  right: 32px;
+  width: 60px;
+  height: 60px;
+  border: 2px solid var(--red-seal);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--red-seal);
+  opacity: 0.3;
+  transform: rotate(-15deg);
+  font-family: 'Cinzel', serif;
+  letter-spacing: 1px;
+}
+
+/* Decorative divider */
+.divider {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--brass), transparent);
+  margin: 20px 0;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="port-icon">⚓</div>
+    <div>
+      <div class="port-name">LISSABON</div>
+      <div class="port-subtitle">ポルトガル / 西ヨーロッパ / 税率 5%</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn-wood">📜 手動保存</button>
+    <button class="btn-wood">📖 最新保存を読む</button>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div class="status-item">
+    <span class="status-label">所持金</span>
+    <span class="status-value gold">10,000 d</span>
+  </div>
+  <div class="status-item">
+    <span class="status-label">艦隊</span>
+    <span class="status-value">5/5 隻</span>
+  </div>
+  <div class="status-item">
+    <span class="status-label">旗艦</span>
+    <span class="status-value">バルカ</span>
+  </div>
+  <div class="status-item">
+    <span class="status-label">耐久</span>
+    <span class="status-value">815/815</span>
+  </div>
+  <div class="status-item">
+    <span class="status-label">船員</span>
+    <span class="status-value">71/184</span>
+  </div>
+  <div class="status-item">
+    <span class="status-label">士気</span>
+    <span class="status-value">72 安定</span>
+  </div>
+</div>
+
+<div class="main-layout">
+  <nav class="sidebar">
+    <a class="nav-item active"><span class="nav-icon">🏰</span> 港概要</a>
+    <a class="nav-item"><span class="nav-icon">⛵</span> 出航所</a>
+    <a class="nav-item"><span class="nav-icon">💰</span> 市場</a>
+    <a class="nav-item"><span class="nav-icon">🗡</span> ギルド</a>
+    <a class="nav-item"><span class="nav-icon">🍻</span> 酒場</a>
+    <a class="nav-item"><span class="nav-icon">🔨</span> 造船所</a>
+    <a class="nav-item"><span class="nav-icon">🏦</span> 銀行</a>
+    <a class="nav-item"><span class="nav-icon">📦</span> 保管庫</a>
+    <div class="sidebar-footer">
+      施設一覧<br>
+      市場 Lv.4 / ギルド Lv.3<br>
+      造船所 Lv.4 / 酒場 Lv.3<br>
+      王宮 Lv.5 / 銀行 Lv.3
+    </div>
+  </nav>
+
+  <div class="content">
+    <div class="seal">PORT<br>AUTH</div>
+    <h2 class="content-title">Lisboa</h2>
+    <p class="content-desc">
+      テージョ川に面したポルトガル王国の都。丘陵に広がる街並みと賑わう港には、遠洋航海を支える施設が集まっています。
+      南方への航海を夢見る者たちが集う、大航海時代の中心的な拠点です。
+    </p>
+
+    <hr class="divider">
+
+    <div class="facility-grid">
+      <div class="facility-card">
+        <div class="facility-icon">⛵</div>
+        <div class="facility-name">出航所</div>
+        <div class="facility-desc">河岸の桟橋</div>
+      </div>
+      <div class="facility-card">
+        <div class="facility-icon">💰</div>
+        <div class="facility-name">市場</div>
+        <div class="facility-desc">港前広場</div>
+      </div>
+      <div class="facility-card">
+        <div class="facility-icon">🗡</div>
+        <div class="facility-name">ギルド</div>
+        <div class="facility-desc">商館街</div>
+      </div>
+      <div class="facility-card">
+        <div class="facility-icon">🍻</div>
+        <div class="facility-name">酒場</div>
+        <div class="facility-desc">坂道の路地</div>
+      </div>
+      <div class="facility-card">
+        <div class="facility-icon">🔨</div>
+        <div class="facility-name">造船所</div>
+        <div class="facility-desc">河口の船渠</div>
+      </div>
+      <div class="facility-card">
+        <div class="facility-icon">🏦</div>
+        <div class="facility-name">銀行</div>
+        <div class="facility-desc">城壁内の両替商</div>
+      </div>
+      <div class="facility-card">
+        <div class="facility-icon">📦</div>
+        <div class="facility-name">保管庫</div>
+        <div class="facility-desc">倉庫街</div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="city-info">
+      <strong>港</strong> portugal / 発展度 85<br>
+      <strong>施設</strong> 市場 Lv.4 / ギルド Lv.3 / 造船所 Lv.4 / 酒場 Lv.3 / 王宮 Lv.5 / 銀行 Lv.3 / 道具屋 Lv.3 / 教会 Lv.3<br>
+      <strong>船長</strong> 航海者 — 交易経験 0 / 名声 0<br>
+      <strong>艦隊</strong> 5/5 隻 / 旗艦 バルカ — 船体 815/815 / 士気 72 安定
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -18,8 +18,8 @@ type TavernService = 'meal' | 'rounds' | 'recruit'
 type RepairMode = 'emergency' | 'standard' | 'overhaul'
 
 export const SUPPLY_UNIT_COSTS = {
-  food: 6,
-  water: 4,
+  food: 3,
+  water: 2,
 } as const
 const FOOD_UNIT_COST = SUPPLY_UNIT_COSTS.food
 const WATER_UNIT_COST = SUPPLY_UNIT_COSTS.water
@@ -52,6 +52,7 @@ interface PlayerStoreState {
   addShip: (ship: ShipInstance) => void
   setActiveShip: (instanceId: string) => void
   purchaseShip: (shipTypeId: string, facilityLevel?: number) => PortActionResult
+  sellShip: (instanceId: string) => PortActionResult
   updatePlayer: (partial: Partial<Player>) => void
   addInventoryItem: (itemId: string, quantity: number) => void
   sellInventoryItem: (itemId: string, quantity: number, unitPrice: number) => PortActionResult
@@ -291,11 +292,73 @@ function createShipInstanceFromType(shipType: ShipType, instanceId: string, name
   }
 }
 
+function createNextShipInstanceId(ships: ShipInstance[]): string {
+  const usedIds = new Set(ships.map((ship) => ship.instanceId))
+  const maxNumber = ships.reduce((max, ship) => {
+    const match = /^ship_(\d+)$/.exec(ship.instanceId)
+    return match ? Math.max(max, Number(match[1])) : max
+  }, 0)
+
+  let nextNumber = maxNumber + 1
+  let nextId = 'ship_' + String(nextNumber).padStart(3, '0')
+  while (usedIds.has(nextId)) {
+    nextNumber += 1
+    nextId = 'ship_' + String(nextNumber).padStart(3, '0')
+  }
+  return nextId
+}
+
+export function ensureUniqueShipInstanceIds(ships: ShipInstance[], activeShipId: string | null): { ships: ShipInstance[]; activeShipId: string | null } {
+  const seen = new Set<string>()
+  const usedIds = new Set(ships.map((ship) => ship.instanceId))
+  let nextNumber = ships.reduce((max, ship) => {
+    const match = /^ship_(\d+)$/.exec(ship.instanceId)
+    return match ? Math.max(max, Number(match[1])) : max
+  }, 0) + 1
+  let activeAlreadyKept = false
+
+  function takeFreshId(): string {
+    let nextId = 'ship_' + String(nextNumber).padStart(3, '0')
+    while (usedIds.has(nextId) || seen.has(nextId)) {
+      nextNumber += 1
+      nextId = 'ship_' + String(nextNumber).padStart(3, '0')
+    }
+    usedIds.add(nextId)
+    nextNumber += 1
+    return nextId
+  }
+
+  const nextShips = ships.map((ship) => {
+    const isDuplicate = seen.has(ship.instanceId)
+    const shouldKeepActiveId = ship.instanceId === activeShipId && !activeAlreadyKept && !isDuplicate
+    if (ship.instanceId === activeShipId && !activeAlreadyKept && !isDuplicate) activeAlreadyKept = true
+    if (!isDuplicate || shouldKeepActiveId) {
+      seen.add(ship.instanceId)
+      return ship
+    }
+
+    const nextId = takeFreshId()
+    seen.add(nextId)
+    return { ...ship, instanceId: nextId }
+  })
+
+  const resolvedActiveShipId = nextShips.some((ship) => ship.instanceId === activeShipId)
+    ? activeShipId
+    : nextShips[0]?.instanceId ?? null
+  return { ships: nextShips, activeShipId: resolvedActiveShipId }
+}
+
 function getShipyardRequirement(shipType: ShipType): number {
   if (shipType.category === 'small_sail') return 1
   if (shipType.category === 'medium_sail' || shipType.category === 'galley') return 2
   if (shipType.category === 'oriental') return 3
   return 4
+}
+
+function getShipSalePrice(ship: ShipInstance, shipType: ShipType): number {
+  const durabilityRatio = ship.currentDurability / Math.max(1, ship.maxDurability)
+  const upgradeValue = (ship.upgrades?.rigging ?? 0) * 1200 + (ship.upgrades?.cargo ?? 0) * 1400 + (ship.upgrades?.gunnery ?? 0) * 1600
+  return Math.max(250, Math.round((shipType.price * 0.48 + upgradeValue) * (0.72 + durabilityRatio * 0.28)))
 }
 
 function getShipAssignments(ship: ShipInstance): ShipOfficerAssignments {
@@ -341,6 +404,18 @@ function getRoleLabel(role: OfficerRoleSlot): string {
   if (role === 'gunner') return '砲術長'
   if (role === 'shipwright') return '船大工'
   return '副官'
+}
+
+function preserveLevelFloor(previous: Player, next: Player): Player {
+  return {
+    ...next,
+    stats: {
+      ...next.stats,
+      adventureLevel: Math.max(previous.stats.adventureLevel, next.stats.adventureLevel),
+      tradeLevel: Math.max(previous.stats.tradeLevel, next.stats.tradeLevel),
+      combatLevel: Math.max(previous.stats.combatLevel, next.stats.combatLevel),
+    },
+  }
 }
 
 
@@ -457,12 +532,17 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
   },
 
   setActiveShip: (instanceId) => {
-    set((state) => state.ships.some((ship) => ship.instanceId === instanceId)
-      ? {
-        activeShipId: instanceId,
-        ships: state.ships.map((ship) => ship.instanceId === instanceId ? unassignOfficerRoleFromShip(ship, 'captain') : ship),
+    set((state) => {
+      const normalizedFleet = ensureUniqueShipInstanceIds(state.ships, state.activeShipId)
+      if (!normalizedFleet.ships.some((ship) => ship.instanceId === instanceId)) {
+        return { ...state, ...normalizedFleet }
       }
-      : state)
+      return {
+        ...normalizedFleet,
+        activeShipId: instanceId,
+        ships: normalizedFleet.ships.map((ship) => ship.instanceId === instanceId ? unassignOfficerRoleFromShip(ship, 'captain') : ship),
+      }
+    })
   },
 
   purchaseShip: (shipTypeId, facilityLevel = 1) => {
@@ -483,16 +563,50 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
     if (state.ships.length >= MAX_FLEET_SHIPS) return { ok: false, message: `艦隊に加えられる船は最大 ${MAX_FLEET_SHIPS} 隻までです。` }
     if (player.money < shipType.price) return { ok: false, message: '所持金が足りません。' }
 
-    const instanceId = 'ship_' + String(state.ships.length + 1).padStart(3, '0')
-    const ship = createShipInstanceFromType(shipType, instanceId, shipType.name + String(state.ships.length + 1) + '号')
+    const normalizedFleet = ensureUniqueShipInstanceIds(state.ships, state.activeShipId)
+    const instanceId = createNextShipInstanceId(normalizedFleet.ships)
+    const ship = createShipInstanceFromType(shipType, instanceId, shipType.name + String(normalizedFleet.ships.length + 1) + '号')
 
-    set((current) => ({
-      player: current.player ? { ...current.player, money: current.player.money - shipType.price } : current.player,
-      ships: [...current.ships, ship],
-      activeShipId: current.activeShipId ?? ship.instanceId,
-    }))
+    set((current) => {
+      const normalizedCurrentFleet = ensureUniqueShipInstanceIds(current.ships, current.activeShipId)
+      return {
+        player: current.player ? { ...current.player, money: current.player.money - shipType.price } : current.player,
+        ships: [...normalizedCurrentFleet.ships, ship],
+        activeShipId: normalizedCurrentFleet.activeShipId ?? ship.instanceId,
+      }
+    })
 
     return { ok: true, message: shipType.name + ' を購入しました。' }
+  },
+
+  sellShip: (instanceId) => {
+    const currentState = get()
+    const normalizedFleet = ensureUniqueShipInstanceIds(currentState.ships, currentState.activeShipId)
+    if (normalizedFleet.ships !== currentState.ships || normalizedFleet.activeShipId !== currentState.activeShipId) {
+      set({ ships: normalizedFleet.ships, activeShipId: normalizedFleet.activeShipId })
+    }
+    const state = { ...get(), ships: normalizedFleet.ships, activeShipId: normalizedFleet.activeShipId }
+    const player = state.player
+    if (!player) return { ok: false, message: '船を売却できる状態ではありません。' }
+    if (state.ships.length <= 1) return { ok: false, message: '最後の1隻は売却できません。' }
+    if (instanceId === state.activeShipId) return { ok: false, message: '旗艦は売却できません。先に別の船を旗艦にしてください。' }
+
+    const ship = state.ships.find((entry) => entry.instanceId === instanceId)
+    if (!ship) return { ok: false, message: '売却する船が見つかりません。' }
+    if (ship.cargo.length > 0 || ship.usedCapacity > 0) return { ok: false, message: '積荷が残っている船は売却できません。先に積荷を売却してください。' }
+
+    const shipType = useDataStore.getState().getShip(ship.typeId)
+    if (!shipType) return { ok: false, message: '船種データが見つかりません。' }
+
+    const salePrice = getShipSalePrice(ship, shipType)
+    const assignedOfficerIds = new Set(Object.values(getShipAssignments(ship)).filter(Boolean))
+    set((current) => ({
+      player: current.player ? { ...current.player, money: current.player.money + salePrice } : current.player,
+      ships: current.ships.filter((entry) => entry.instanceId !== instanceId),
+      officers: current.officers.map((officer) => assignedOfficerIds.has(officer.id) ? { ...officer, assignedShipId: undefined, role: undefined } : officer),
+    }))
+
+    return { ok: true, message: `${shipType.name} を ${salePrice} d で売却しました。` }
   },
 
   updatePlayer: (partial) => {
@@ -1097,15 +1211,19 @@ export const usePlayerStore = create<PlayerStoreState>()((set, get) => ({
   clearVoyageNotice: () => set({ lastVoyageNotice: null }),
 
   grantExperience: (gains, options) => {
-    const state = get()
-    if (!state.player) return []
-    const result = applyExperienceToPlayer(state.player, gains, options)
-    const notice = formatLevelUpNotice(result.levelUps)
-    set({
-      player: normalizePlayerProgression(result.player),
-      lastProgressionNotice: notice ? `レベルアップ: ${notice}` : state.lastProgressionNotice,
+    let levelUps: LevelUpEntry[] = []
+    set((state) => {
+      if (!state.player) return state
+      const result = applyExperienceToPlayer(state.player, gains, options)
+      const normalizedPlayer = normalizePlayerProgression(result.player)
+      const notice = formatLevelUpNotice(result.levelUps)
+      levelUps = result.levelUps
+      return {
+        player: preserveLevelFloor(state.player, normalizedPlayer),
+        lastProgressionNotice: notice ? `レベルアップ: ${notice}` : state.lastProgressionNotice,
+      }
     })
-    return result.levelUps
+    return levelUps
   },
 
   clearProgressionNotice: () => set({ lastProgressionNotice: null }),

@@ -14,6 +14,8 @@ import { PORT_GEO_COORDINATES } from '@/data/master/portGeography.ts'
 import { DISCOVERY_GEO_COORDINATES } from '@/data/master/discoveryGeography.ts'
 import { getPortWorldPosition } from '@/data/master/portWorldPosition.ts'
 import { projectGeoToWorld } from '@/data/master/worldMapProjection.ts'
+import { isPointOnLand, snapPointToNearestSea } from '@/data/master/landmasses.ts'
+import type { Position2D } from '@/types/common.ts'
 
 // JSON imports (Vite handles these as modules)
 import shipsRaw from '@/data/master/ships.json'
@@ -21,6 +23,15 @@ import portsRaw from '@/data/master/ports.json'
 import tradeGoodsRaw from '@/data/master/tradeGoods.json'
 import skillsRaw from '@/data/master/skills.json'
 import discoveriesRaw from '@/data/master/discoveries.json'
+
+function resolveDiscoveryPosition(discovery: Discovery): Position2D {
+  const geo = DISCOVERY_GEO_COORDINATES[discovery.id]
+  const projected = geo ? projectGeoToWorld(geo) : discovery.position
+  if (!isPointOnLand([projected.x, projected.y])) return projected
+
+  const [x, y] = snapPointToNearestSea([projected.x, projected.y])
+  return { x, y }
+}
 
 /** バリデーションエラー情報 */
 interface ValidationError {
@@ -69,11 +80,9 @@ export async function loadAllMasterData(): Promise<LoadResult> {
   const discoveriesResult = validateArray(discoveriesRaw, DiscoverySchema, 'discoveries.json')
   if (discoveriesResult.errors.length > 0) errors.push(discoveriesResult.errors[0]!)
   const discoveries = (discoveriesResult.data as Discovery[]).map((discovery) => {
-    const geo = DISCOVERY_GEO_COORDINATES[discovery.id]
-    if (!geo) return discovery
     return {
       ...discovery,
-      position: projectGeoToWorld(geo),
+      position: resolveDiscoveryPosition(discovery),
     }
   })
 

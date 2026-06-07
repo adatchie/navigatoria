@@ -23,6 +23,7 @@ export interface NpcFleetDefinition {
   nationality: Nationality
   role: NpcFleetRole
   shipTypeId: ShipId
+  shipCount?: number
   routePortIds: PortId[]
   appearancePortId?: PortId
   patrolPortId?: PortId

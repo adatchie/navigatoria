@@ -5,11 +5,13 @@ import { fileURLToPath } from 'node:url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(__dirname, '..')
 const inputPath = path.join(repoRoot, 'src/data/master/ne_50m_land.json')
+const corridorPath = path.join(repoRoot, 'src/data/master/navigableWaterCorridors.json')
 const outputDir = path.join(repoRoot, 'public/generated')
 const outputPath = path.join(outputDir, 'land-base.svg')
 
 const WIDTH = 4096
 const HEIGHT = 2048
+const WORLD_WIDTH = 1600 * 32
 const LAND_COLOR = '#7a6549'
 const MAX_MERCATOR_LAT = 85.05112878
 
@@ -32,6 +34,12 @@ function pointToSvg([lon, lat]) {
   return `${x.toFixed(1)},${y.toFixed(1)}`
 }
 
+function corridorToSvgPath(points) {
+  if (!points || points.length < 2) return ''
+  const [first, ...rest] = points
+  return `M${pointToSvg(first)} ${rest.map((point) => `L${pointToSvg(point)}`).join(' ')}`
+}
+
 function ringToPath(ring) {
   if (!ring || ring.length < 3) return ''
   const [first, ...rest] = ring
@@ -39,6 +47,7 @@ function ringToPath(ring) {
 }
 
 const collection = JSON.parse(fs.readFileSync(inputPath, 'utf8'))
+const corridors = JSON.parse(fs.readFileSync(corridorPath, 'utf8'))
 const polygons = []
 
 collection.features.forEach((feature) => {
@@ -56,9 +65,24 @@ collection.features.forEach((feature) => {
   })
 })
 
+const corridorMaskStrokes = corridors
+  .map((corridor) => {
+    const pathData = corridorToSvgPath(corridor.points)
+    if (!pathData) return ''
+    const strokeWidth = ((corridor.radius * 2) / WORLD_WIDTH) * WIDTH
+    return `<path d="${pathData}" stroke="black" stroke-width="${strokeWidth.toFixed(2)}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`
+  })
+  .filter(Boolean)
+
 const svg = [
   `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">`,
-  `<g fill="${LAND_COLOR}" fill-rule="evenodd" clip-rule="evenodd">`,
+  '<defs>',
+  '<mask id="water-corridor-mask" maskUnits="userSpaceOnUse">',
+  `<rect width="${WIDTH}" height="${HEIGHT}" fill="white"/>`,
+  ...corridorMaskStrokes,
+  '</mask>',
+  '</defs>',
+  `<g fill="${LAND_COLOR}" fill-rule="evenodd" clip-rule="evenodd" mask="url(#water-corridor-mask)">`,
   ...polygons,
   '</g>',
   '</svg>',

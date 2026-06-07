@@ -19,6 +19,7 @@ interface GeneratedCombatTarget {
   nationality: Nationality
   role: NpcFleetRole
   shipTypeId: string
+  shipCount: number
   description: string
 }
 
@@ -134,20 +135,45 @@ function pickPatrolPort(appearancePort: Port, ports: Port[], seed: number, comba
   return candidates[seed % candidates.length] ?? null
 }
 
-function createGeneratedTarget(seed: number, index: number): GeneratedCombatTarget {
+function pickGeneratedShipType(seed: number, combatLevel: number): string {
+  const pool = combatLevel <= 2
+    ? ['barca', 'dhow']
+    : combatLevel <= 4
+      ? ['barca', 'dhow', 'pinnace']
+      : combatLevel <= 7
+        ? ['pinnace', 'caravela_latina', 'sambuk']
+        : combatLevel <= 11
+          ? ['caravela_latina', 'caravel_redonda', 'sambuk', 'galley']
+          : ['caravel_redonda', 'sambuk', 'galley', 'armed_merchantman']
+
+  return pool[seed % pool.length]!
+}
+
+function pickGeneratedShipCount(seed: number, rank: QuestRank, combatLevel: number, playerFleetShipCount: number): number {
+  const levelCap = combatLevel <= 2 ? 1 : combatLevel <= 4 ? 2 : combatLevel <= 8 ? 3 : combatLevel <= 14 ? 4 : 5
+  const rankBonus = rank === 'premium' ? 1 : 0
+  const fleetCap = Math.max(1, Math.min(5, playerFleetShipCount + rankBonus))
+  const maxCount = Math.max(1, Math.min(levelCap, fleetCap))
+  if (maxCount <= 1) return 1
+  return Math.max(1, maxCount - (seed % 3 === 0 ? 1 : 0))
+}
+
+function createGeneratedTarget(seed: number, index: number, combatLevel: number, playerFleetShipCount: number, rank: QuestRank): GeneratedCombatTarget {
   const epithetIndex = (seed + index * 5) % GENERATED_EPITHETS.length
   const nameIndex = (Math.floor(seed / 7) + index * 3) % GENERATED_GIVEN_NAMES.length
   const profileIndex = (Math.floor(seed / 13) + index) % GENERATED_TARGET_PROFILES.length
   const epithet = GENERATED_EPITHETS[epithetIndex]!
   const givenName = GENERATED_GIVEN_NAMES[nameIndex]!
   const profile = GENERATED_TARGET_PROFILES[profileIndex]!
+  const shipCount = pickGeneratedShipCount(seed + index * 11, rank, combatLevel, playerFleetShipCount)
 
   return {
     slug: `generated_${epithetIndex}_${nameIndex}_${profileIndex}`,
     commander: `${epithet}の${givenName}`,
     nationality: profile.nationality,
     role: profile.role,
-    shipTypeId: profile.shipTypeId,
+    shipTypeId: pickGeneratedShipType(seed + profileIndex * 17, combatLevel),
+    shipCount,
     description: profile.description,
   }
 }
@@ -216,6 +242,7 @@ function buildGeneratedFleet(params: {
     nationality: target.nationality,
     role: target.role,
     shipTypeId: createShipId(target.shipTypeId),
+    shipCount: target.shipCount,
     routePortIds: [appearancePort.id, patrolPort.id],
     appearancePortId: appearancePort.id,
     patrolPortId: patrolPort.id,
@@ -258,10 +285,11 @@ function buildCombatQuest(params: {
   day: number
   combatLevel: number
   shipSpeedKnots?: number
+  playerFleetShipCount: number
   index: number
   existingFleet?: NpcFleetDefinition
 }): Quest | null {
-  const { port, ports, day, combatLevel, shipSpeedKnots, index, existingFleet } = params
+  const { port, ports, day, combatLevel, shipSpeedKnots, playerFleetShipCount, index, existingFleet } = params
   const seed = hashSeed(`${port.id}:${day}:combat:${index}`)
   const rank = getRank(seed, combatLevel)
   const portById = new Map(ports.map((entry) => [entry.id, entry]))
@@ -275,7 +303,7 @@ function buildCombatQuest(params: {
     : pickPatrolPort(appearancePort, ports, seed + 17, combatLevel)
   if (!patrolPort || appearancePort.id === patrolPort.id) return null
 
-  const target = createGeneratedTarget(seed, index)
+  const target = createGeneratedTarget(seed, index, combatLevel, playerFleetShipCount, rank)
   const questId = existingFleet
     ? `combat_famous_${existingFleet.id}_${port.id}_${day}_${index}`
     : `combat_bounty_${port.id}_${day}_${index}`
@@ -296,7 +324,7 @@ function buildCombatQuest(params: {
   return {
     id: questId,
     title: `${targetName} 討伐依頼`,
-    description: `${port.name} の海事ギルドより。${appearancePortName}付近に出没する ${targetName} の艦隊を捕捉し、撃破してください。報酬は討伐確認後ただちに支払われます。`,
+    description: `${port.name} の海事ギルドより。${appearancePortName}付近に出没する ${targetName} の艦隊を捕捉し、撃破してください。対象は ${targetFleet.shipCount ?? 1} 隻規模です。報酬は討伐確認後ただちに支払われます。`,
     type: 'combat',
     giver: `${port.name} 海事ギルド`,
     giverPort: port.id,
@@ -312,7 +340,7 @@ function buildCombatQuest(params: {
         target: targetFleet.id,
         count: 1,
         current: 0,
-        description: `${targetName} の艦隊を撃破する`,
+        description: `${targetName} の艦隊を撃破する（${targetFleet.shipCount ?? 1} 隻規模）`,
       },
     ],
     metadata: {
@@ -333,22 +361,24 @@ export function generateCombatQuestsForPort(params: {
   ports: Port[]
   day: number
   combatLevel: number
+  playerFleetShipCount?: number
   shipSpeedKnots?: number
 }): Quest[] {
   const { port, ports, day, combatLevel, shipSpeedKnots } = params
+  const playerFleetShipCount = Math.max(1, Math.floor(params.playerFleetShipCount ?? 1))
   const quests: Quest[] = []
   const seed = hashSeed(`${port.id}:${day}:combat`)
   const shouldOfferFamous = combatLevel >= 6 && seed % 3 === 0
   const famousFleet = shouldOfferFamous ? pickFamousFleet(port, ports, seed + 29, combatLevel) : null
 
-  const first = buildCombatQuest({ port, ports, day, combatLevel, shipSpeedKnots, index: 0 })
+  const first = buildCombatQuest({ port, ports, day, combatLevel, shipSpeedKnots, playerFleetShipCount, index: 0 })
   if (first) quests.push(first)
 
   if (famousFleet) {
-    const second = buildCombatQuest({ port, ports, day, combatLevel, shipSpeedKnots, index: 1, existingFleet: famousFleet })
+    const second = buildCombatQuest({ port, ports, day, combatLevel, shipSpeedKnots, playerFleetShipCount, index: 1, existingFleet: famousFleet })
     if (second) quests.push(second)
   } else if (combatLevel >= 4) {
-    const second = buildCombatQuest({ port, ports, day, combatLevel, shipSpeedKnots, index: 1 })
+    const second = buildCombatQuest({ port, ports, day, combatLevel, shipSpeedKnots, playerFleetShipCount, index: 1 })
     if (second) quests.push(second)
   }
 

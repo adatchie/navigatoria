@@ -60,6 +60,7 @@ export interface EncounterState {
   shipName: string
   shipClass?: string
   enemyShipTypeId?: string
+  enemyShipCount?: number
   threat: number
   enemyCrew: number
   enemyDurability: number

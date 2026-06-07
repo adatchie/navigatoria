@@ -30,7 +30,7 @@ interface DetailTileMessage {
   svg: string
 }
 
-const LAND_BASE_TEXTURE_URL = `${import.meta.env.BASE_URL}generated/land-base.svg?v=terrain-soil-20260505`
+const LAND_BASE_TEXTURE_URL = `${import.meta.env.BASE_URL}generated/land-base.svg?v=water-corridors-20260607`
 const DETAIL_UPDATE_INTERVAL = 0.45
 const DETAIL_TEXTURE_SIZE = 4096
 const DETAIL_TILE_WORLD_SIZE = 2200

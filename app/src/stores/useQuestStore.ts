@@ -203,7 +203,8 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
 
     const { masterData } = useDataStore.getState()
     const port = masterData.ports.find((entry) => entry.id === portId)
-    const player = usePlayerStore.getState().player
+    const playerState = usePlayerStore.getState()
+    const player = playerState.player
     if (!port || !player) return
 
     const activeQuests = getActiveQuests(get())
@@ -231,6 +232,7 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
       ports: masterData.ports,
       day: currentDay,
       combatLevel: player.stats.combatLevel,
+      playerFleetShipCount: playerState.ships.length,
       shipSpeedKnots: getQuestShipSpeedKnots(),
     })
     const quests = [...adventureQuests, ...tradeQuests, ...combatQuests]
@@ -310,8 +312,7 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
     const quest = getSelectedActiveQuest(get())
     const dockedPortId = useNavigationStore.getState().dockedPortId
     const playerState = usePlayerStore.getState()
-    const activeShip = playerState.ships.find((ship) => ship.instanceId === playerState.activeShipId)
-    if (!quest || !activeShip || !quest.metadata?.goodId || !quest.metadata?.quantity) {
+    if (!quest || playerState.ships.length === 0 || !quest.metadata?.goodId || !quest.metadata?.quantity) {
       return { ok: false, message: '納品可能な交易クエストがありません。' }
     }
 
@@ -333,22 +334,32 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
 
     const goodId = quest.metadata.goodId
     const quantity = quest.metadata.quantity
-    const cargoSlot = activeShip.cargo.find((slot) => slot.goodId === goodId)
-    if (!cargoSlot || cargoSlot.quantity < quantity) {
+    const fleetQuantity = playerState.ships.reduce((sum, ship) => sum + (ship.cargo.find((slot) => slot.goodId === goodId)?.quantity ?? 0), 0)
+    if (fleetQuantity < quantity) {
       return { ok: false, message: '納品に必要な積荷が足りません。' }
     }
 
     const good = useDataStore.getState().getTradeGood(goodId)
-    const remainingCargo = activeShip.cargo
-      .map((slot) => slot.goodId !== goodId ? slot : { ...slot, quantity: slot.quantity - quantity })
-      .filter((slot) => slot.quantity > 0)
-    const freedCapacity = (good?.weight ?? 1) * quantity
+    const goodWeight = good?.weight ?? 1
+    let remainingDelivery = quantity
 
     usePlayerStore.setState((state) => ({
-      ships: state.ships.map((ship) => ship.instanceId !== state.activeShipId ? ship : {
-        ...ship,
-        cargo: remainingCargo,
-        usedCapacity: Math.max(0, Math.round((ship.usedCapacity - freedCapacity) * 100) / 100),
+      ships: state.ships.map((ship) => {
+        if (remainingDelivery <= 0) return ship
+        const cargoSlot = ship.cargo.find((slot) => slot.goodId === goodId)
+        if (!cargoSlot) return ship
+
+        const deliveredFromShip = Math.min(remainingDelivery, cargoSlot.quantity)
+        remainingDelivery -= deliveredFromShip
+        const nextCargo = ship.cargo
+          .map((slot) => slot.goodId !== goodId ? slot : { ...slot, quantity: slot.quantity - deliveredFromShip })
+          .filter((slot) => slot.quantity > 0)
+        const freedCapacity = goodWeight * deliveredFromShip
+        return {
+          ...ship,
+          cargo: nextCargo,
+          usedCapacity: Math.max(0, Math.round((ship.usedCapacity - freedCapacity) * 100) / 100),
+        }
       }),
     }))
 
@@ -519,7 +530,7 @@ export const useQuestStore = create<QuestStoreState>()((set, get) => ({
     }
 
     if (nearby.quest) {
-      recordDiscoveryForPlayer(nearby.discovery)
+      recordDiscoveryForPlayer(nearby.discovery, 0.35)
       set((state) => {
         const nextQuest: Quest = {
           ...nearby.quest!,

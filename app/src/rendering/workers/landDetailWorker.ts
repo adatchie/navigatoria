@@ -1,4 +1,5 @@
 import landRaw from '@/data/master/ne_50m_land.json'
+import { NAVIGABLE_WATER_CORRIDORS } from '@/data/master/navigableWaterCorridors.ts'
 import { projectGeoPairToWorld } from '@/data/master/worldMapProjection.ts'
 
 interface Bounds2D {
@@ -135,6 +136,30 @@ function polygonToSvgPath(polygon: DetailLandPolygon, tileBounds: Bounds2D, text
     .join(' ')
 }
 
+function corridorToSvgPath(points: [number, number][], tileBounds: Bounds2D, textureSize: number): string {
+  const tileWidth = tileBounds.maxX - tileBounds.minX
+  const tileHeight = tileBounds.maxY - tileBounds.minY
+  const toSvgPoint = ([x, y]: [number, number]): string => {
+    const px = ((tileBounds.maxX - x) / tileWidth) * textureSize
+    const py = (1 - (y - tileBounds.minY) / tileHeight) * textureSize
+    return `${px.toFixed(1)},${py.toFixed(1)}`
+  }
+
+  const [first, ...rest] = points
+  if (!first || rest.length === 0) return ''
+  return `M${toSvgPoint(first)} ${rest.map((point) => `L${toSvgPoint(point)}`).join(' ')}`
+}
+
+function getCorridorBounds(points: [number, number][], radius: number): Bounds2D {
+  const bounds = computeBounds(points)
+  return {
+    minX: bounds.minX - radius,
+    minY: bounds.minY - radius,
+    maxX: bounds.maxX + radius,
+    maxY: bounds.maxY + radius,
+  }
+}
+
 function escapeXml(value: string): string {
   return value
     .replaceAll('&', '&amp;')
@@ -161,9 +186,25 @@ function renderDetailTileSvg(request: DetailTileRequest): string {
     .filter(Boolean)
     .join('')
 
+  const corridorMaskStrokes = NAVIGABLE_WATER_CORRIDORS
+    .filter((corridor) => boundsIntersect(getCorridorBounds(corridor.points, corridor.radius), tileBounds.minX, tileBounds.minY, tileBounds.maxX, tileBounds.maxY))
+    .map((corridor) => {
+      const path = corridorToSvgPath(corridor.points, tileBounds, request.textureSize)
+      const strokeWidth = ((corridor.radius * 2) / request.tileWorldSize) * request.textureSize
+      return path ? `<path d="${escapeXml(path)}" stroke="black" stroke-width="${strokeWidth.toFixed(1)}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>` : ''
+    })
+    .filter(Boolean)
+    .join('')
+
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${request.textureSize}" height="${request.textureSize}" viewBox="0 0 ${request.textureSize} ${request.textureSize}">`,
-    `<g fill="${LAND_COLOR}" fill-rule="evenodd" clip-rule="evenodd">`,
+    '<defs>',
+    '<mask id="water-corridor-mask" maskUnits="userSpaceOnUse">',
+    `<rect width="${request.textureSize}" height="${request.textureSize}" fill="white"/>`,
+    corridorMaskStrokes,
+    '</mask>',
+    '</defs>',
+    `<g fill="${LAND_COLOR}" fill-rule="evenodd" clip-rule="evenodd" mask="url(#water-corridor-mask)">`,
     paths,
     '</g>',
     '</svg>',

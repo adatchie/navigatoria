@@ -2,7 +2,7 @@
 // App — メインアプリケーションコンポーネント
 // ============================================================
 
-import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
+import { Component, Suspense, lazy, useCallback, useEffect, useRef, useState, type ErrorInfo, type ReactNode } from 'react'
 import { TitleScreen } from './screens/TitleScreen.tsx'
 import { LoadingScreen } from './screens/LoadingScreen.tsx'
 import { NavigationHud } from './HUD/NavigationHud.tsx'
@@ -12,7 +12,9 @@ import { StatusBar } from './HUD/StatusBar.tsx'
 import { SailControl } from './HUD/SailControl.tsx'
 import { EncounterOverlay } from './EncounterOverlay.tsx'
 import { NpcFleetAttackDialog } from './NpcFleetAttackDialog.tsx'
+import { PlayerStatusButton, PlayerStatusModal } from './PlayerStatus.tsx'
 import { QuestAchievementOverlay } from './QuestAchievementOverlay.tsx'
+import { SaveSlotDialog } from './SaveSlotDialog.tsx'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { usePlayerStore } from '@/stores/usePlayerStore.ts'
 import { useUIStore } from '@/stores/useUIStore.ts'
@@ -36,7 +38,7 @@ import { EncounterSystem } from '@/game/systems/EncounterSystem.ts'
 import { EconomySystem } from '@/game/systems/EconomySystem.ts'
 import { QuestSystem } from '@/game/systems/QuestSystem.ts'
 import { AutoSave } from '@/persistence/AutoSave.ts'
-import { captureGameState, loadLatestSave, restoreGameState, saveCurrentGame } from '@/persistence/GameState.ts'
+import { captureGameState, listSaveSlots, loadSaveSlot, restoreGameState, saveCurrentGameToSlot, type SaveSlotSummary } from '@/persistence/GameState.ts'
 import { uiText } from '@/i18n/uiText.ts'
 import { INITIAL_PLAYER } from '@/config/gameConfig.ts'
 import { getPortWorldPosition } from '@/data/master/portWorldPosition.ts'
@@ -75,18 +77,22 @@ export function App() {
   const dataVersion = useDataStore((s) => s.version)
   const masterPorts = useDataStore((s) => s.masterData.ports)
   const showBattleScreen = Boolean(activeEncounter && combatState)
+  const canShowPlayerStatus = (phase === 'playing' || phase === 'paused' || phase === 'port') && !showBattleScreen
 
   const [showDataInspector, setShowDataInspector] = useState(false)
+  const [showPlayerStatus, setShowPlayerStatus] = useState(false)
   const [loadProgress, setLoadProgress] = useState(0)
-  const [latestSaveExists, setLatestSaveExists] = useState(false)
+  const [saveSlots, setSaveSlots] = useState<SaveSlotSummary[]>([])
+  const [saveSlotDialogMode, setSaveSlotDialogMode] = useState<'save' | 'load' | null>(null)
+  const [busySaveSlot, setBusySaveSlot] = useState<number | null>(null)
+  const [saveSlotMessage, setSaveSlotMessage] = useState<string | null>(null)
   const responsiveUi = useResponsiveUiMetrics()
   const showDebugTools = debugFlags.showDebugPanel && !responsiveUi.isPhone
   const autoSaveRef = useRef<AutoSave | null>(null)
   const questBoardDockedPortRef = useRef<string | null>(null)
 
   const refreshSaveAvailability = useCallback(async () => {
-    const snapshot = await loadLatestSave()
-    setLatestSaveExists(Boolean(snapshot))
+    setSaveSlots(await listSaveSlots())
   }, [])
 
   const openAssetPreviewWindow = useCallback(() => {
@@ -230,24 +236,42 @@ export function App() {
     gameLoop.start()
   }, [initPlayer, initializeMarkets, setPhase])
 
-  const handleContinue = useCallback(async () => {
-    const snapshot = await loadLatestSave()
+  const handleLoadSlot = useCallback(async (slot: number) => {
+    setBusySaveSlot(slot)
+    const snapshot = await loadSaveSlot(slot)
+    setBusySaveSlot(null)
     if (!snapshot) return
     restoreGameState(snapshot)
     gameLoop.start()
   }, [])
 
   const handleManualSave = useCallback(async () => {
-    await saveCurrentGame(`Manual:${new Date().toISOString()}`)
+    setSaveSlotDialogMode('save')
+    setSaveSlotMessage(null)
     await refreshSaveAvailability()
   }, [refreshSaveAvailability])
 
   const handleLoadLatest = useCallback(async () => {
-    const snapshot = await loadLatestSave()
-    if (!snapshot) return
-    restoreGameState(snapshot)
-    gameLoop.start()
-  }, [])
+    setSaveSlotDialogMode('load')
+    setSaveSlotMessage(null)
+    await refreshSaveAvailability()
+  }, [refreshSaveAvailability])
+
+  const handleSelectSaveSlot = useCallback(async (slot: number) => {
+    if (saveSlotDialogMode === 'save') {
+      setBusySaveSlot(slot)
+      const saveId = await saveCurrentGameToSlot(slot)
+      setBusySaveSlot(null)
+      await refreshSaveAvailability()
+      setSaveSlotMessage(saveId ? `Slot ${slot} に保存しました。` : '保存できるゲーム状態がありません。')
+      return
+    }
+
+    if (saveSlotDialogMode === 'load') {
+      await handleLoadSlot(slot)
+      setSaveSlotDialogMode(null)
+    }
+  }, [handleLoadSlot, refreshSaveAvailability, saveSlotDialogMode])
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -292,11 +316,19 @@ export function App() {
   return (
     <div style={{ ...styles.root, ...getResponsiveUiStyleVars(responsiveUi) }}>
       {phase === 'loading' && <LoadingScreen progress={loadProgress} message="マスタデータを読み込み中..." />}
-      {phase === 'title' && <TitleScreen onStart={handleStart} onContinue={() => void handleContinue()} canContinue={latestSaveExists} />}
+      {phase === 'title' && (
+        <TitleScreen
+          onStart={handleStart}
+          onContinue={() => void handleLoadLatest()}
+          hasSaveData={saveSlots.some((slot) => !slot.isEmpty)}
+        />
+      )}
       {(phase === 'playing' || phase === 'paused') && (
         <Suspense fallback={<LoadingScreen message="シーンを準備中..." />}>
           {showBattleScreen ? (
-            <BattleScreen />
+            <BattleScreenErrorBoundary resetKey={`${activeEncounter?.id ?? 'none'}:${combatState?.phase ?? 'none'}`}>
+              <BattleScreen />
+            </BattleScreenErrorBoundary>
           ) : (
             <>
               <GameCanvas />
@@ -322,6 +354,23 @@ export function App() {
         </Suspense>
       )}
       {phase === 'port' && <Suspense fallback={<LoadingScreen message="港へ入港中..." />}><TownScreen onManualSave={() => void handleManualSave()} onLoadLatest={() => void handleLoadLatest()} /></Suspense>}
+      {canShowPlayerStatus && (
+        <PlayerStatusButton onClick={() => setShowPlayerStatus(true)} />
+      )}
+      {showPlayerStatus && canShowPlayerStatus && <PlayerStatusModal onClose={() => setShowPlayerStatus(false)} />}
+      {saveSlotDialogMode && (
+        <SaveSlotDialog
+          mode={saveSlotDialogMode}
+          slots={saveSlots}
+          busySlot={busySaveSlot}
+          message={saveSlotMessage}
+          onSelect={(slot) => void handleSelectSaveSlot(slot)}
+          onClose={() => {
+            setSaveSlotDialogMode(null)
+            setSaveSlotMessage(null)
+          }}
+        />
+      )}
       <QuestAchievementOverlay />
       {notificationMessage && (
         <div
@@ -338,6 +387,53 @@ export function App() {
   )
 }
 
+class BattleScreenErrorBoundary extends Component<
+  { children: ReactNode; resetKey: string },
+  { hasError: boolean; message: string }
+> {
+  state = { hasError: false, message: '' }
+
+  static getDerivedStateFromError(error: unknown) {
+    return {
+      hasError: true,
+      message: error instanceof Error ? error.message : '戦闘画面の描画に失敗しました。',
+    }
+  }
+
+  componentDidCatch(error: unknown, info: ErrorInfo) {
+    console.error('[BattleScreen] render failed', error, info.componentStack)
+  }
+
+  componentDidUpdate(previousProps: { resetKey: string }) {
+    if (previousProps.resetKey !== this.props.resetKey && this.state.hasError) {
+      this.setState({ hasError: false, message: '' })
+    }
+  }
+
+  render() {
+    if (!this.state.hasError) return this.props.children
+
+    return (
+      <div style={styles.battleErrorBackdrop}>
+        <div style={styles.battleErrorPanel}>
+          <strong>戦闘画面を表示できませんでした。</strong>
+          <p>{this.state.message}</p>
+          <button
+            type="button"
+            style={styles.battleErrorButton}
+            onClick={() => {
+              useEncounterStore.getState().closeEncounter()
+              this.setState({ hasError: false, message: '' })
+            }}
+          >
+            航海へ戻る
+          </button>
+        </div>
+      </div>
+    )
+  }
+}
+
 const styles: Record<string, React.CSSProperties> = {
   root: { width: '100vw', height: '100vh', overflow: 'hidden', background: '#000' },
   keybinds: { position: 'fixed', bottom: 8, left: 8, display: 'flex', gap: 12, alignItems: 'center', color: '#556', fontSize: 10, fontFamily: 'monospace', zIndex: 100 },
@@ -345,4 +441,7 @@ const styles: Record<string, React.CSSProperties> = {
   toast: { position: 'fixed', top: 22, left: '50%', transform: 'translateX(-50%)', zIndex: 1400, maxWidth: 'min(720px, calc(100vw - 40px))', padding: '12px 16px', borderRadius: 12, background: 'rgba(15, 42, 75, 0.94)', border: '1px solid rgba(147, 197, 253, 0.42)', color: '#eff6ff', boxShadow: '0 18px 50px rgba(0,0,0,0.32)', fontWeight: 700, lineHeight: 1.45 },
   toastWarning: { background: 'rgba(92, 53, 14, 0.96)', border: '1px solid rgba(251, 191, 36, 0.52)', color: '#fff7ed' },
   toastError: { background: 'rgba(91, 18, 18, 0.96)', border: '1px solid rgba(248, 113, 113, 0.58)', color: '#fff1f2' },
+  battleErrorBackdrop: { position: 'fixed', inset: 0, zIndex: 760, display: 'grid', placeItems: 'center', background: '#071b2d', color: '#e7f2ff' },
+  battleErrorPanel: { width: 'min(520px, calc(100vw - 32px))', padding: 20, borderRadius: 14, background: 'rgba(5, 13, 27, 0.92)', border: '1px solid rgba(248, 113, 113, 0.42)', boxShadow: '0 24px 80px rgba(0,0,0,0.42)', lineHeight: 1.55 },
+  battleErrorButton: { marginTop: 12, padding: '10px 14px', border: 'none', borderRadius: 10, background: '#2563eb', color: '#fff', fontWeight: 800, cursor: 'pointer' },
 }

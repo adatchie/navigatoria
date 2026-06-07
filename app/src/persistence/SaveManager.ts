@@ -73,9 +73,20 @@ export const SaveManager = {
     await db.saves.update(id, {
       updatedAt: Date.now(),
       gameTime: (gameState.gameTime as number) ?? 0,
+      playerName: (gameState.playerName as string) ?? 'Unknown',
       data: JSON.stringify(gameState),
     })
     console.log(`[SaveManager] Overwritten: id ${id}`)
+  },
+
+  /** 名前固定のセーブデータを作成または上書き */
+  async saveNamed(name: string, gameState: Record<string, unknown>): Promise<number> {
+    const existing = await db.saves.where('name').equals(name).first()
+    if (existing?.id) {
+      await this.overwrite(existing.id, gameState)
+      return existing.id
+    }
+    return this.save(name, gameState)
   },
 
   /** セーブデータを読み込み */
@@ -88,6 +99,11 @@ export const SaveManager = {
   /** セーブ一覧を取得 */
   async listSaves(): Promise<SaveEntry[]> {
     return db.saves.orderBy('updatedAt').reverse().toArray()
+  },
+
+  /** 名前でセーブを取得 */
+  async getSaveByName(name: string): Promise<SaveEntry | undefined> {
+    return db.saves.where('name').equals(name).first()
   },
 
   /** セーブを削除 */

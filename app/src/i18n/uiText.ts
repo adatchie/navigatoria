@@ -7,7 +7,7 @@ export const uiText = {
   title: {
     subtitle: '大航海時代シングルプレイ版',
     newVoyage: '新しく航海を始める',
-    continue: '続きから再開',
+    continue: '航海を再開する',
     version: 'Phase 1 航海プロトタイプ',
   },
   statusBar: {
@@ -164,8 +164,8 @@ export const uiText = {
     },
     labels: {
       portOfCall: '寄港地',
-      manualSave: '手動保存',
-      loadLatest: '最新保存を読む',
+    manualSave: 'セーブ',
+    loadLatest: 'ロード',
       backToSea: '海へ戻る',
       money: '所持金',
       ship: '船',

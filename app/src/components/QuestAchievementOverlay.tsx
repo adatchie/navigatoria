@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useGameStore } from '@/stores/useGameStore.ts'
 import { useUIStore, type QuestAchievement } from '@/stores/useUIStore.ts'
+import { CombatQuestIcon } from '@/components/CombatQuestIcon.tsx'
 import { DiscoveryIcon } from '@/components/DiscoveryIcon.tsx'
 import { TradeGoodIcon } from '@/components/TradeGoodIcon.tsx'
 
@@ -14,7 +15,6 @@ function getKindLabel(achievement: QuestAchievement): string {
 
 function getSealText(achievement: QuestAchievement): string {
   if (achievement.kind === 'discovery') return '発'
-  if (achievement.kind === 'combat') return '討'
   return '納'
 }
 
@@ -49,6 +49,9 @@ function AchievementIcon({ achievement }: { achievement: QuestAchievement }) {
   }
   if (achievement.kind === 'trade' && achievement.goodId) {
     return <TradeGoodIcon goodId={achievement.goodId} label={achievement.subject} size={118} />
+  }
+  if (achievement.kind === 'combat') {
+    return <CombatQuestIcon label={`${achievement.subject} の手配書`} size={118} />
   }
   return <span style={styles.sealText}>{getSealText(achievement)}</span>
 }
@@ -97,8 +100,8 @@ export function QuestAchievementOverlay() {
   return (
     <div data-quest-achievement style={styles.backdrop} role="dialog" aria-live="assertive" aria-label={achievement.title}>
       <style>{animationCss}</style>
-      <div style={{ ...styles.panel, borderColor: tone.border, boxShadow: `0 28px 90px rgba(0,0,0,0.54), 0 0 46px ${tone.shadow}` }}>
-        <div style={{ ...styles.rays, background: `repeating-conic-gradient(from 0deg, ${tone.shadow} 0deg 7deg, transparent 7deg 18deg)` }} />
+      <div style={{ ...styles.panel, borderColor: tone.border, boxShadow: `0 28px 90px rgba(0,0,0,0.54), 0 0 34px ${tone.shadow}` }}>
+        <div style={{ ...styles.panelGlow, background: `linear-gradient(90deg, transparent 0%, ${tone.shadow} 48%, transparent 100%)` }} />
         <div style={styles.topLine}>
           <span style={{ ...styles.kindBadge, color: tone.secondary, borderColor: tone.border }}>{getKindLabel(achievement)}</span>
         </div>
@@ -106,8 +109,13 @@ export function QuestAchievementOverlay() {
           <AchievementIcon achievement={achievement} />
         </div>
         <div style={styles.copy}>
-          <div style={{ ...styles.title, color: tone.secondary, textShadow: `0 0 18px ${tone.primary}, 0 0 42px ${tone.shadow}` }}>
-            {achievement.title}
+          <div style={styles.titleWrap}>
+            <div aria-hidden="true" style={{ ...styles.titleGlow, color: tone.secondary, textShadow: `0 0 16px ${tone.primary}, 0 0 38px ${tone.primary}, 0 0 62px ${tone.shadow}` }}>
+              {achievement.title}
+            </div>
+            <div style={{ ...styles.title, color: tone.secondary, textShadow: `0 0 12px ${tone.primary}, 0 0 32px ${tone.shadow}` }}>
+              {achievement.title}
+            </div>
           </div>
           {achievement.subtitle && <div style={styles.subtitle}>{achievement.subtitle}</div>}
         </div>
@@ -144,11 +152,15 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: 'hidden',
     animation: 'questAchievementPop 430ms cubic-bezier(0.2, 0.9, 0.25, 1.18) both',
   },
-  rays: {
+  panelGlow: {
     position: 'absolute',
-    inset: '-42%',
-    opacity: 0.18,
-    animation: 'questAchievementRays 9s linear infinite',
+    left: '8%',
+    right: '8%',
+    top: '50%',
+    height: 170,
+    opacity: 0.32,
+    transform: 'translateY(-22%)',
+    filter: 'blur(34px)',
     pointerEvents: 'none',
   },
   topLine: {
@@ -179,7 +191,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03))',
     position: 'relative',
     zIndex: 1,
-    animation: 'questAchievementIcon 1500ms ease-in-out infinite',
+    animation: 'questAchievementIcon 1900ms ease-in-out infinite',
   },
   sealText: {
     fontSize: 86,
@@ -194,6 +206,14 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 8,
     textAlign: 'center',
     minWidth: 0,
+    position: 'relative',
+    zIndex: 1,
+  },
+  titleWrap: {
+    position: 'relative',
+    display: 'grid',
+    justifyItems: 'center',
+    minWidth: 0,
   },
   title: {
     fontSize: 'clamp(34px, 7vw, 68px)',
@@ -201,7 +221,20 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.08,
     letterSpacing: 0,
     overflowWrap: 'anywhere',
-    animation: 'questAchievementTitle 1500ms ease-in-out infinite',
+    position: 'relative',
+    animation: 'questAchievementTitle 1900ms ease-in-out infinite',
+  },
+  titleGlow: {
+    position: 'absolute',
+    inset: 0,
+    fontSize: 'clamp(34px, 7vw, 68px)',
+    fontWeight: 950,
+    lineHeight: 1.08,
+    letterSpacing: 0,
+    overflowWrap: 'anywhere',
+    filter: 'blur(7px)',
+    opacity: 0.68,
+    animation: 'questAchievementTitleGlow 1900ms ease-in-out infinite',
   },
   subtitle: {
     maxWidth: 560,
@@ -226,17 +259,17 @@ const animationCss = `
   72% { opacity: 1; transform: translateY(0) scale(1.02); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
-@keyframes questAchievementRays {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
 @keyframes questAchievementIcon {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.045); }
+  50% { transform: scale(1.025); }
 }
 @keyframes questAchievementTitle {
   0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.24); }
+  50% { filter: brightness(1.16); }
+}
+@keyframes questAchievementTitleGlow {
+  0%, 100% { opacity: 0.42; transform: scale(1); }
+  50% { opacity: 0.78; transform: scale(1.018); }
 }
 @media (prefers-reduced-motion: reduce) {
   [data-quest-achievement] * {
