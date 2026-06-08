@@ -5,7 +5,7 @@
 import { useRef, useEffect, type ComponentRef } from 'react'
 import { OrbitControls } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Vector3 } from 'three'
+import { MOUSE, Vector3 } from 'three'
 import { useNavigationStore } from '@/stores/useNavigationStore.ts'
 import { worldToScene } from '@/rendering/worldTransform.ts'
 
@@ -16,8 +16,15 @@ export function CameraControls() {
   const controlsRef = useRef<ComponentRef<typeof OrbitControls> | null>(null)
   const targetRef = useRef(new Vector3())
   const desiredTargetRef = useRef(new Vector3())
-  const { camera } = useThree()
+  const { camera, gl } = useThree()
   const initializedRef = useRef(false)
+
+  useEffect(() => {
+    const canvas = gl.domElement
+    const preventContextMenu = (event: MouseEvent) => event.preventDefault()
+    canvas.addEventListener('contextmenu', preventContextMenu)
+    return () => canvas.removeEventListener('contextmenu', preventContextMenu)
+  }, [gl])
 
   // 初回のみカメラ位置を船の上空にセット
   useEffect(() => {
@@ -68,6 +75,11 @@ export function CameraControls() {
       maxDistance={80}
       rotateSpeed={0.5}
       zoomSpeed={0.8}
+      mouseButtons={{
+        LEFT: undefined,
+        MIDDLE: MOUSE.DOLLY,
+        RIGHT: MOUSE.ROTATE,
+      }}
     />
   )
 }

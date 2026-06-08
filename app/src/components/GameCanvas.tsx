@@ -197,12 +197,40 @@ function RudderClickHandler() {
   const mouseVec = useMemo(() => new Vector2(), [])
   const intersectPoint = useMemo(() => new Vector3(), [])
   const portMarkerRaycaster = useMemo(() => new Raycaster(), [])
+  const pointerDownRef = useRef<{ x: number; y: number } | null>(null)
+  const suppressClickUntilRef = useRef(0)
 
   useEffect(() => {
     const canvas = gl.domElement
+    const dragThresholdPx = 6
+
+    function handlePointerDown(event: PointerEvent) {
+      if (event.button !== 0) return
+      pointerDownRef.current = { x: event.clientX, y: event.clientY }
+    }
+
+    function handlePointerMove(event: PointerEvent) {
+      const origin = pointerDownRef.current
+      if (!origin) return
+      const moved = Math.hypot(event.clientX - origin.x, event.clientY - origin.y)
+      if (moved > dragThresholdPx) suppressClickUntilRef.current = performance.now() + 180
+    }
+
+    function handlePointerUp(event: PointerEvent) {
+      const origin = pointerDownRef.current
+      pointerDownRef.current = null
+      if (!origin || event.button !== 0) return
+      const moved = Math.hypot(event.clientX - origin.x, event.clientY - origin.y)
+      if (moved > dragThresholdPx) suppressClickUntilRef.current = performance.now() + 180
+    }
+
+    function handlePointerCancel() {
+      pointerDownRef.current = null
+    }
 
     function handleClick(event: MouseEvent) {
       if (event.button !== 0) return
+      if (performance.now() < suppressClickUntilRef.current) return
 
       const nav = useNavigationStore.getState()
       // 停泊中・戦闘中はクリックで操舵しない
@@ -240,8 +268,18 @@ function RudderClickHandler() {
       nav.setTargetHeading(targetHeading)
     }
 
+    canvas.addEventListener('pointerdown', handlePointerDown)
+    canvas.addEventListener('pointermove', handlePointerMove)
+    canvas.addEventListener('pointerup', handlePointerUp)
+    canvas.addEventListener('pointercancel', handlePointerCancel)
     canvas.addEventListener('click', handleClick)
-    return () => canvas.removeEventListener('click', handleClick)
+    return () => {
+      canvas.removeEventListener('pointerdown', handlePointerDown)
+      canvas.removeEventListener('pointermove', handlePointerMove)
+      canvas.removeEventListener('pointerup', handlePointerUp)
+      canvas.removeEventListener('pointercancel', handlePointerCancel)
+      canvas.removeEventListener('click', handleClick)
+    }
   }, [camera, gl, scene, raycaster, oceanPlane, mouseVec, intersectPoint, portMarkerRaycaster])
 
   return null

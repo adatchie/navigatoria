@@ -41,7 +41,7 @@ export const uiText = {
     label: '帆',
     speed: '速力',
     openToSail: '帆を開くと航行を始めます',
-    clickSea: '海面クリックで舵を切ります',
+    clickSea: '海面左クリックで舵を切ります',
   },
   nav: {
     mode: '状態',
@@ -81,7 +81,7 @@ export const uiText = {
     },
     none: 'なし',
     clickMarker: '港マーカーをクリックして出航します',
-    clickSea: '海面クリックで舵を切ります / 港マーカークリックで入港します',
+    clickSea: '海面左クリックで舵を切ります / 港マーカークリックで入港します',
   },
   encounter: {
     battleScreen: '戦闘画面',
